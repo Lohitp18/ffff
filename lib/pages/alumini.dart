@@ -13,6 +13,7 @@ class _AlumniPageState extends State<AlumniPage> {
     'API_BASE_URL',
     defaultValue: 'http://10.0.2.2:5000',
   );
+
   bool _loading = true;
   String? _error;
   List<dynamic> _items = [];
@@ -23,16 +24,11 @@ class _AlumniPageState extends State<AlumniPage> {
   String? _selectedInstitution;
   String? _selectedCourse;
 
-  // Mock lists for now; you can populate via API later
-  final List<String> _years = [
-    ...List<String>.generate(30, (i) => (DateTime.now().year - i).toString())
-  ];
-  final List<String> _institutions = <String>[
-    'AIET','AIT','AIIMS','NIT','IIT'
-  ];
-  final List<String> _courses = <String>[
-    'CSE','ECE','EEE','MECH','CIVIL','MBA','MCA'
-  ];
+  // Mock lists for now; populate via API later
+  final List<String> _years =
+  List<String>.generate(30, (i) => (DateTime.now().year - i).toString());
+  final List<String> _institutions = ['AIET', 'AIT', 'AIIMS', 'NIT', 'IIT'];
+  final List<String> _courses = ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'MBA', 'MCA'];
 
   @override
   void initState() {
@@ -45,6 +41,7 @@ class _AlumniPageState extends State<AlumniPage> {
       _loading = true;
       _error = null;
     });
+
     try {
       final params = <String, String>{};
       if (_selectedYear != null && _selectedYear!.isNotEmpty) params['year'] = _selectedYear!;
@@ -52,9 +49,13 @@ class _AlumniPageState extends State<AlumniPage> {
       if (_selectedCourse != null && _selectedCourse!.isNotEmpty) params['course'] = _selectedCourse!;
       if (_searchCtrl.text.trim().isNotEmpty) params['q'] = _searchCtrl.text.trim();
 
-      final uri = Uri.parse('$_baseUrl/api/users/approved').replace(queryParameters: params.isEmpty ? null : params);
+      final uri = Uri.parse('$_baseUrl/api/users/approved').replace(
+        queryParameters: params.isEmpty ? null : params,
+      );
+
       final res = await http.get(uri);
       if (res.statusCode != 200) throw Exception('failed');
+
       setState(() {
         _items = jsonDecode(res.body) as List<dynamic>;
       });
@@ -93,7 +94,7 @@ class _AlumniPageState extends State<AlumniPage> {
                 itemCount: _items.length,
               ),
             ),
-          )
+          ),
         ],
       ),
     );
@@ -101,9 +102,10 @@ class _AlumniPageState extends State<AlumniPage> {
 
   Widget _buildFilters() {
     return Padding(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Column(
         children: [
+          // Search + Apply button
           Row(
             children: [
               Expanded(
@@ -113,6 +115,8 @@ class _AlumniPageState extends State<AlumniPage> {
                     labelText: 'Search name or email',
                     prefixIcon: Icon(Icons.search),
                     border: OutlineInputBorder(),
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
                   ),
                   onSubmitted: (_) => _load(),
                 ),
@@ -120,68 +124,73 @@ class _AlumniPageState extends State<AlumniPage> {
               const SizedBox(width: 8),
               ElevatedButton.icon(
                 onPressed: _load,
-                icon: const Icon(Icons.filter_alt),
-                label: const Text('Apply'),
-              )
+                icon: const Icon(Icons.filter_alt, size: 18),
+                label: const Text('Apply', style: TextStyle(fontSize: 14)),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
           LayoutBuilder(
             builder: (context, constraints) {
+              final isWide = constraints.maxWidth > 600;
+              final dropdownWidth = isWide ? 180.0 : (constraints.maxWidth - 24) / 3 - 8;
+
               return Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  SizedBox(
-                    width: 130,
-                    child: DropdownButtonFormField<String?>(
-                      value: _selectedYear,
-                      items: [
-                        const DropdownMenuItem<String?>(value: null, child: Text('Any')),
-                        ..._years.map((y) => DropdownMenuItem<String?>(value: y, child: Text(y)))
-                      ],
-                      onChanged: (v) => setState(() { _selectedYear = v; }),
-                      decoration: const InputDecoration(
-                        labelText: 'Year',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
+                  _buildDropdown(
+                    label: 'Year',
+                    value: _selectedYear,
+                    items: ['Any', ..._years],
+                    width: dropdownWidth,
+                    onChanged: (v) => setState(() => _selectedYear = v == 'Any' ? null : v),
                   ),
-                  SizedBox(
-                    width: constraints.maxWidth > 600 ? 220 : (constraints.maxWidth - 130) / 2 - 12,
-                    child: DropdownButtonFormField<String?>(
-                      value: _selectedInstitution,
-                      items: [
-                        const DropdownMenuItem<String?>(value: null, child: Text('Any institution')),
-                        ..._institutions.map((i) => DropdownMenuItem<String?>(value: i, child: Text(i)))
-                      ],
-                      onChanged: (v) => setState(() { _selectedInstitution = v; }),
-                      decoration: const InputDecoration(
-                        labelText: 'Institution',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
+                  _buildDropdown(
+                    label: 'Institution',
+                    value: _selectedInstitution,
+                    items: ['Any', ..._institutions],
+                    width: dropdownWidth,
+                    onChanged: (v) => setState(() => _selectedInstitution = v == 'Any' ? null : v),
                   ),
-                  SizedBox(
-                    width: constraints.maxWidth > 600 ? 220 : (constraints.maxWidth - 130) / 2 - 12,
-                    child: DropdownButtonFormField<String?>(
-                      value: _selectedCourse,
-                      items: [
-                        const DropdownMenuItem<String?>(value: null, child: Text('Any course')),
-                        ..._courses.map((c) => DropdownMenuItem<String?>(value: c, child: Text(c)))
-                      ],
-                      onChanged: (v) => setState(() { _selectedCourse = v; }),
-                      decoration: const InputDecoration(
-                        labelText: 'Course',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
+                  _buildDropdown(
+                    label: 'Course',
+                    value: _selectedCourse,
+                    items: ['Any', ..._courses],
+                    width: dropdownWidth,
+                    onChanged: (v) => setState(() => _selectedCourse = v == 'Any' ? null : v),
                   ),
                 ],
               );
             },
-          )
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDropdown({
+    required String label,
+    required String? value,
+    required List<String> items,
+    required double width,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return SizedBox(
+      width: width,
+      child: DropdownButtonFormField<String>(
+        value: value ?? 'Any',
+        items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+        onChanged: onChanged,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        ),
       ),
     );
   }
@@ -201,23 +210,29 @@ class _AlumniTileState extends State<_AlumniTile> {
   bool _sent = false;
 
   Future<void> _connect() async {
-    setState(() { _busy = true; });
+    setState(() => _busy = true);
     try {
       final token = await const FlutterSecureStorage().read(key: 'auth_token') ?? '';
       final res = await http.post(
         Uri.parse('${widget.baseUrl}/api/connections/${widget.user['_id']}'),
-        headers: { 'Authorization': 'Bearer $token', 'Content-Type': 'application/json' },
+        headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
       );
       if (res.statusCode == 201) {
-        setState(() { _sent = true; });
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connection request sent')));
+        setState(() => _sent = true);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Connection request sent')),
+        );
       } else {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ${res.statusCode}')));
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed: ${res.statusCode}')),
+        );
       }
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error sending request')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error sending request')),
+      );
     } finally {
-      if (mounted) setState(() { _busy = false; });
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -236,9 +251,17 @@ class _AlumniTileState extends State<_AlumniTile> {
           ? const Text('Requested', style: TextStyle(color: Colors.green))
           : ElevatedButton(
         onPressed: _busy ? null : _connect,
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          minimumSize: const Size(80, 36),
+        ),
         child: _busy
-            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-            : const Text('Connect'),
+            ? const SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        )
+            : const Text('Connect', style: TextStyle(fontSize: 14)),
       ),
     );
   }
