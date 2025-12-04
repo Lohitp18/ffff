@@ -6,7 +6,15 @@ const connectDB = require("./config/db");
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+// CORS configuration - allow all origins for development
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  credentials: true
+}));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static('uploads'));

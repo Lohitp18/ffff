@@ -72,30 +72,49 @@ const loginUser = async (req, res) => {
       return res.status(400).json({ message: "Password is required" });
     }
 
+    // Find user by email (case-insensitive)
     const user = await User.findOne({ email: trimmedEmail });
     if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      console.log(`Login attempt failed: User not found for email: ${trimmedEmail}`);
+      return res.status(400).json({ message: "Invalid email or password" });
     }
 
+    // Compare password
     const isPasswordMatch = await bcrypt.compare(password, user.password);
     if (!isPasswordMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      console.log(`Login attempt failed: Invalid password for email: ${trimmedEmail}`);
+      return res.status(400).json({ message: "Invalid email or password" });
     }
 
     // Check if admin approved
     if (user.status !== "approved") {
-      return res.status(403).json({ message: "Account not approved yet" });
+      return res.status(403).json({ 
+        message: `Account is ${user.status}. Please wait for admin approval.` 
+      });
     }
 
+    // Generate token
+    let token;
+    try {
+      token = generateToken(user._id);
+    } catch (tokenError) {
+      console.error("Token generation error:", tokenError);
+      return res.status(500).json({ message: "Failed to generate authentication token" });
+    }
+
+    console.log(`Login successful for user: ${trimmedEmail}`);
     res.json({
       _id: user._id,
       email: user.email,
       status: user.status,
-      token: generateToken(user._id)
+      token: token
     });
   } catch (error) {
     console.error("Login error:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ 
+      message: "Server error during login", 
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+    });
   }
 };
 
