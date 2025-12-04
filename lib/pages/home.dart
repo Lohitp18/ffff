@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -45,11 +46,18 @@ class _HomePageState extends State<HomePage> {
       _error = null;
     });
     try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
+      final headers = {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
+
       final responses = await Future.wait([
-        http.get(Uri.parse('$_baseUrl/api/content/events')),
-        http.get(Uri.parse('$_baseUrl/api/content/opportunities')),
-        http.get(Uri.parse('$_baseUrl/api/content/posts')),
-        http.get(Uri.parse('$_baseUrl/api/content/institution-posts')),
+        http.get(Uri.parse('$_baseUrl/api/content/events'), headers: headers),
+        http.get(Uri.parse('$_baseUrl/api/content/opportunities'), headers: headers),
+        http.get(Uri.parse('$_baseUrl/api/content/posts'), headers: headers),
+        http.get(Uri.parse('$_baseUrl/api/content/institution-posts'), headers: headers),
       ]);
 
       if (responses.any((r) => r.statusCode != 200)) {
@@ -97,27 +105,102 @@ class _HomePageState extends State<HomePage> {
 
   Widget _getBody() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    } else if (_error != null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(_error!),
-            const SizedBox(height: 12),
-            ElevatedButton(onPressed: _loadAll, child: const Text('Retry')),
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(
+                Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Loading posts...',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+              ),
+            ),
           ],
         ),
       );
+    } else if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 64,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _error!,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[700],
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: _loadAll,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     } else if (_posts.isEmpty) {
-      return const Center(child: Text('Nothing to show yet'));
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.article_outlined,
+                size: 64,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No posts yet',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey[700],
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Be the first to share something!',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
     } else {
       return RefreshIndicator(
         onRefresh: _loadAll,
         child: Stack(
           children: [
             ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
               itemCount: _posts.length,
               itemBuilder: (context, index) {
                 final item = _posts[index] as Map<String, dynamic>;
@@ -130,143 +213,222 @@ class _HomePageState extends State<HomePage> {
                     .toString();
                 final type = item['category'] ?? item['type'] ?? 'Post';
 
-                return Card(
-  margin: const EdgeInsets.only(bottom: 16),
-  child: Padding(
-    padding: const EdgeInsets.all(12),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Post header with user info (clickable)
-        _buildUserInfoHeader(item),
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Post header with user info (clickable)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                        child: _buildUserInfoHeader(item),
+                      ),
 
-        const SizedBox(height: 8),
+                      // Divider
+                      const Divider(height: 1, thickness: 0.5),
 
-        // Post header (type + title)
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                type.toString(),
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ),
+                      // Post content section
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Post type badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                type.toString().toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.5,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                            ),
 
-        const SizedBox(height: 8),
+                            const SizedBox(height: 12),
 
-        // Subtitle (date/author/institution/etc.)
-        Text(
-          subtitle,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Colors.black54,
-            fontSize: 12,
-          ),
-        ),
+                            // Title
+                            Text(
+                              title,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black87,
+                                height: 1.3,
+                              ),
+                            ),
 
-        const SizedBox(height: 8),
+                            const SizedBox(height: 8),
 
-        // Post content
-        if (item['content'] != null &&
-            item['content'].toString().isNotEmpty)
-          Text(
-            item['content'],
-            style: const TextStyle(fontSize: 14),
-          ),
+                            // Subtitle (date/author/institution/etc.)
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.access_time,
+                                  size: 14,
+                                  color: Colors.grey[600],
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  subtitle,
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
 
-        const SizedBox(height: 8),
+                            const SizedBox(height: 12),
 
-        // Show image if exists (supports images[0] or imageUrl)
-        if (item['images'] != null &&
-            item['images'] is List &&
-            (item['images'] as List).isNotEmpty)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              item['images'][0],
-              fit: BoxFit.cover,
-              height: 200,
-              width: double.infinity,
-            ),
-          )
-        else if (item['imageUrl'] != null &&
-            item['imageUrl'].toString().isNotEmpty)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              '$_baseUrl${item['imageUrl']}',
-              fit: BoxFit.cover,
-              height: 200,
-              width: double.infinity,
-            ),
-          ),
+                            // Post content
+                            if (item['content'] != null &&
+                                item['content'].toString().isNotEmpty)
+                              Text(
+                                item['content'],
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.grey[800],
+                                  height: 1.5,
+                                ),
+                              ),
 
-        const SizedBox(height: 8),
+                            const SizedBox(height: 12),
 
-        // Action buttons
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            if ((item['category'] ?? item['type'] ?? 'Post') == 'Post')
-              _LikeButton(
-                postId: item['_id'],
-                baseUrl: _baseUrl,
-                initialLiked: item['isLiked'] ?? false,
-                initialLikeCount:
-                    item['likeCount'] ?? item['likes']?.length ?? 0,
-              )
-            else
-              const SizedBox.shrink(),
-            if (item['applyLink'] != null && item['applyLink'].toString().isNotEmpty)
-              TextButton.icon(
-                onPressed: () async {
-                  final url = item['applyLink'].toString();
-                  final uri = Uri.tryParse(url);
-                  if (uri != null) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  }
-                },
-                icon: const Icon(Icons.launch),
-                label: const Text('Apply'),
-              ),
-            if ((item['category'] ?? item['type'] ?? 'Post') == 'Post') ...[
-              _ReportButton(
-                postId: item['_id'],
-                baseUrl: _baseUrl,
-              ),
-            ],
-          ],
-        ),
-      ],
-    ),
-  ),
-);
+                            // Show image if exists (supports images[0] or imageUrl)
+                            if (item['images'] != null &&
+                                item['images'] is List &&
+                                (item['images'] as List).isNotEmpty)
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.network(
+                                  item['images'][0],
+                                  fit: BoxFit.cover,
+                                  height: 250,
+                                  width: double.infinity,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      height: 250,
+                                      color: Colors.grey[200],
+                                      child: const Center(
+                                        child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              )
+                            else if (item['imageUrl'] != null &&
+                                item['imageUrl'].toString().isNotEmpty)
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.network(
+                                  '$_baseUrl${item['imageUrl']}',
+                                  fit: BoxFit.cover,
+                                  height: 250,
+                                  width: double.infinity,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      height: 250,
+                                      color: Colors.grey[200],
+                                      child: const Center(
+                                        child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+
+                            // Apply button for opportunities
+                            if (item['applyLink'] != null && item['applyLink'].toString().isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: () async {
+                                    final url = item['applyLink'].toString();
+                                    final uri = Uri.tryParse(url);
+                                    if (uri != null) {
+                                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                    }
+                                  },
+                                  icon: const Icon(Icons.launch, size: 18),
+                                  label: const Text(
+                                    'Apply Now',
+                                    style: TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+
+                      // Divider
+                      const Divider(height: 1, thickness: 0.5),
+
+                      // Action buttons section - Show for ALL post types
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _LikeButton(
+                              postId: item['_id'],
+                              postType: item['category'] ?? item['type'] ?? 'Post',
+                              baseUrl: _baseUrl,
+                              initialLiked: item['isLiked'] ?? false,
+                              initialLikeCount:
+                              item['likeCount'] ?? item['likes']?.length ?? 0,
+                            ),
+                            _ShareButton(
+                              post: item,
+                              baseUrl: _baseUrl,
+                            ),
+                            _ReportButton(
+                              postId: item['_id'],
+                              postType: item['category'] ?? item['type'] ?? 'Post',
+                              baseUrl: _baseUrl,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
               },
             ),
 
             Positioned(
-              right: 16,
-              bottom: 16,
+              right: 20,
+              bottom: 20,
               child: FloatingActionButton.extended(
                 onPressed: () {
                   Navigator.push(
@@ -274,8 +436,20 @@ class _HomePageState extends State<HomePage> {
                     MaterialPageRoute(builder: (_) => const _CreatePostPage()),
                   ).then((_) => _loadAll());
                 },
-                icon: const Icon(Icons.post_add),
-                label: const Text('Post'),
+                icon: const Icon(Icons.add_circle_outline, size: 24),
+                label: const Text(
+                  'Create Post',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
             ),
           ],
@@ -290,70 +464,116 @@ class _HomePageState extends State<HomePage> {
     final authorName = author?['name'] ?? item['author'] ?? 'Unknown User';
     final authorImage = author?['profileImage'];
     final authorId = author?['_id'];
-    
+
     // For InstitutionPost, show institution name instead of user
     if (item['institution'] != null) {
       return Row(
         children: [
           // Institution icon
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: Colors.blue.shade100,
-            child: const Icon(Icons.school, color: Colors.blue, size: 16),
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.blue.shade200, width: 2),
+            ),
+            child: CircleAvatar(
+              radius: 20,
+              backgroundColor: Colors.blue.shade50,
+              child: Icon(Icons.school, color: Colors.blue.shade700, size: 20),
+            ),
           ),
-          
-          const SizedBox(width: 8),
-          
+
+          const SizedBox(width: 12),
+
           // Institution name
-          Text(
-            item['institution'],
-            style: const TextStyle(
-              fontWeight: FontWeight.w500,
-              fontSize: 13,
-              color: Colors.black87,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item['institution'],
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: Colors.black87,
+                  ),
+                ),
+                Text(
+                  'Institution',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       );
     }
-    
+
     // For regular posts with user information
     if (authorId != null) {
       return Row(
         children: [
-          // Profile picture (clickable)
+          // Profile picture (clickable) - Fixed to prevent cropping
           GestureDetector(
             onTap: () => _navigateToUserProfile(authorId),
-            child: CircleAvatar(
-              radius: 16,
-              backgroundColor: Colors.grey.shade300,
-              backgroundImage: authorImage != null 
-                  ? NetworkImage(authorImage) 
-                  : null,
-              child: authorImage == null 
-                  ? const Icon(Icons.person, color: Colors.grey, size: 16)
-                  : null,
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.grey.shade300, width: 2),
+                color: Colors.grey.shade200,
+              ),
+              child: ClipOval(
+                child: authorImage != null
+                    ? Image.network(
+                        authorImage,
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(Icons.person, color: Colors.grey[600], size: 20);
+                        },
+                      )
+                    : Icon(Icons.person, color: Colors.grey[600], size: 20),
+              ),
             ),
           ),
-          
-          const SizedBox(width: 8),
-          
+
+          const SizedBox(width: 12),
+
           // User name (clickable)
-          GestureDetector(
-            onTap: () => _navigateToUserProfile(authorId),
-            child: Text(
-              authorName,
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-                fontSize: 13,
-                color: Colors.black87,
+          Expanded(
+            child: GestureDetector(
+              onTap: () => _navigateToUserProfile(authorId),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    authorName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    'Posted',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ],
       );
     }
-    
+
     // Fallback for posts without user information
     return const SizedBox.shrink();
   }
@@ -528,12 +748,14 @@ class _CreatePostPageState extends State<_CreatePostPage> {
 
 class _LikeButton extends StatefulWidget {
   final String postId;
+  final String postType;
   final String baseUrl;
   final bool initialLiked;
   final int initialLikeCount;
 
   const _LikeButton({
     required this.postId,
+    required this.postType,
     required this.baseUrl,
     required this.initialLiked,
     required this.initialLikeCount,
@@ -565,13 +787,23 @@ class _LikeButtonState extends State<_LikeButton> {
     try {
       const storage = FlutterSecureStorage();
       final token = await storage.read(key: 'auth_token');
-      
+
       if (token == null || token.isEmpty) {
         throw Exception('Authentication required');
       }
 
+      // Determine the correct endpoint based on post type
+      String endpoint;
+      if (widget.postType == 'Event' || widget.postType == 'event') {
+        endpoint = '${widget.baseUrl}/api/content/events/${widget.postId}/like';
+      } else if (widget.postType == 'Opportunity' || widget.postType == 'opportunity') {
+        endpoint = '${widget.baseUrl}/api/content/opportunities/${widget.postId}/like';
+      } else {
+        endpoint = '${widget.baseUrl}/api/posts/${widget.postId}/like';
+      }
+
       final response = await http.patch(
-        Uri.parse('${widget.baseUrl}/api/posts/${widget.postId}/like'),
+        Uri.parse(endpoint),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -600,23 +832,307 @@ class _LikeButtonState extends State<_LikeButton> {
 
   @override
   Widget build(BuildContext context) {
-    return TextButton.icon(
-      onPressed: _isLoading ? null : _toggleLike,
-      icon: _isLoading
-          ? const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Icon(
-              _isLiked ? Icons.thumb_up : Icons.thumb_up_alt_outlined,
-              size: 18,
-              color: _isLiked ? Colors.blue : Colors.grey,
+    return Expanded(
+      child: InkWell(
+        onTap: _isLoading ? null : _toggleLike,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (_isLoading)
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      _isLiked ? Colors.blue : Colors.grey,
+                    ),
+                  ),
+                )
+              else
+                Icon(
+                  _isLiked ? Icons.thumb_up_rounded : Icons.thumb_up_outlined,
+                  size: 20,
+                  color: _isLiked ? Colors.blue : Colors.grey[600],
+                ),
+              const SizedBox(width: 6),
+              Text(
+                _likeCount > 0 ? '$_likeCount' : 'Like',
+                style: TextStyle(
+                  color: _isLiked ? Colors.blue : Colors.grey[700],
+                  fontWeight: _isLiked ? FontWeight.w600 : FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ShareButton extends StatelessWidget {
+  final Map<String, dynamic> post;
+  final String baseUrl;
+
+  const _ShareButton({
+    required this.post,
+    required this.baseUrl,
+  });
+
+  Future<void> _handleShare(BuildContext context) async {
+    try {
+      final title = post['title']?.toString() ?? 'Check this post!';
+      final content = post['content']?.toString() ?? '';
+      final author = post['authorId']?['name'] ?? post['author'] ?? 'Someone';
+      final shareText = '$title\n\n$content\n\n- Shared from Alumni Portal by $author';
+      
+      showModalBottomSheet(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (context) => Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Text(
+                'Share Post',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildShareOption(
+                    context: context,
+                    icon: Icons.public,
+                    label: 'Share to Portal',
+                    color: Theme.of(context).colorScheme.primary,
+                    onTap: () => _shareToPortal(context),
+                  ),
+                  _buildShareOption(
+                    context: context,
+                    icon: Icons.share,
+                    label: 'WhatsApp',
+                    color: const Color(0xFF25D366),
+                    onTap: () => _shareToWhatsApp(context, shareText),
+                  ),
+                  _buildShareOption(
+                    context: context,
+                    icon: Icons.email,
+                    label: 'Email',
+                    color: Colors.red,
+                    onTap: () => _shareToEmail(context, shareText),
+                  ),
+                  _buildShareOption(
+                    context: context,
+                    icon: Icons.copy,
+                    label: 'Copy',
+                    color: Colors.grey,
+                    onTap: () => _copyToClipboard(context, shareText),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to share: $e')),
+      );
+    }
+  }
+
+  Widget _buildShareOption({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: () {
+        Navigator.pop(context);
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 32, color: color),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
             ),
-      label: Text(
-        _likeCount > 0 ? '$_likeCount' : 'Like',
-        style: TextStyle(
-          color: _isLiked ? Colors.blue : Colors.grey,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _shareToWhatsApp(BuildContext context, String text) async {
+    try {
+      final encodedText = Uri.encodeComponent(text);
+      final url = 'whatsapp://send?text=$encodedText';
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('WhatsApp not installed')),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to share: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _shareToEmail(BuildContext context, String text) async {
+    try {
+      final encodedText = Uri.encodeComponent(text);
+      final url = 'mailto:?subject=Check this post from Alumni Portal!&body=$encodedText';
+      final uri = Uri.parse(url);
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to share: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _copyToClipboard(BuildContext context, String text) async {
+    await Clipboard.setData(ClipboardData(text: text));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Copied to clipboard!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _shareToPortal(BuildContext context) async {
+    try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
+
+      if (token == null || token.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Authentication required')),
+          );
+        }
+        return;
+      }
+
+      final title = post['title']?.toString() ?? 'Shared Post';
+      final content = post['content']?.toString() ?? post['description']?.toString() ?? '';
+      final originalType = post['category'] ?? post['type'] ?? 'Post';
+      
+      // Create a shared post that goes to admin for approval
+      final response = await http.post(
+        Uri.parse('${baseUrl}/api/posts/share'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'title': 'Shared: $title',
+          'content': content.isNotEmpty 
+              ? '$content\n\n[Shared from $originalType]'
+              : '[Shared from $originalType]',
+          'originalPostId': post['_id'],
+          'originalPostType': originalType,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        if (context.mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Post shared! It will be visible after admin approval.'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      } else {
+        throw Exception('Failed to share post');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to share: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: InkWell(
+        onTap: () => _handleShare(context),
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.share_outlined,
+                size: 20,
+                color: Colors.grey[700],
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Share',
+                style: TextStyle(
+                  color: Colors.grey[700],
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -625,77 +1141,167 @@ class _LikeButtonState extends State<_LikeButton> {
 
 class _ReportButton extends StatelessWidget {
   final String postId;
+  final String postType;
   final String baseUrl;
 
   const _ReportButton({
     required this.postId,
+    required this.postType,
     required this.baseUrl,
   });
 
   @override
   Widget build(BuildContext context) {
-    return TextButton.icon(
-      onPressed: () => _showReportDialog(context),
-      icon: const Icon(Icons.flag_outlined, color: Colors.red, size: 18),
-      label: const Text('Report'),
+    return Expanded(
+      child: InkWell(
+        onTap: () => _showReportDialog(context),
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.flag_outlined,
+                size: 20,
+                color: Colors.grey[700],
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Report',
+                style: TextStyle(
+                  color: Colors.grey[700],
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
   void _showReportDialog(BuildContext context) {
-    String? selectedReason;
     final TextEditingController descriptionController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    final ValueNotifier<String?> selectedReason = ValueNotifier<String?>(null);
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Report Post'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Please select a reason for reporting this post:'),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: selectedReason,
-              decoration: const InputDecoration(
-                labelText: 'Reason',
-                border: OutlineInputBorder(),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) => ValueListenableBuilder<String?>(
+            valueListenable: selectedReason,
+            builder: (context, reason, _) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
               ),
-              items: const [
-                DropdownMenuItem(value: 'spam', child: Text('Spam')),
-                DropdownMenuItem(value: 'inappropriate_content', child: Text('Inappropriate Content')),
-                DropdownMenuItem(value: 'harassment', child: Text('Harassment')),
-                DropdownMenuItem(value: 'false_information', child: Text('False Information')),
-                DropdownMenuItem(value: 'copyright_violation', child: Text('Copyright Violation')),
-                DropdownMenuItem(value: 'other', child: Text('Other')),
+              title: Row(
+                children: [
+                  Icon(Icons.flag, color: Colors.red[600], size: 24),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Report Post',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              content: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Please select a reason for reporting this post:',
+                        style: TextStyle(
+                          color: Colors.grey[700],
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        value: reason,
+                        decoration: InputDecoration(
+                          labelText: 'Reason',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[50],
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'spam', child: Text('Spam')),
+                          DropdownMenuItem(value: 'inappropriate_content', child: Text('Inappropriate Content')),
+                          DropdownMenuItem(value: 'harassment', child: Text('Harassment')),
+                          DropdownMenuItem(value: 'false_information', child: Text('False Information')),
+                          DropdownMenuItem(value: 'copyright_violation', child: Text('Copyright Violation')),
+                          DropdownMenuItem(value: 'other', child: Text('Other')),
+                        ],
+                        onChanged: (value) {
+                          selectedReason.value = value;
+                        },
+                        validator: (value) {
+                          if (value == null) {
+                            return 'Please select a reason';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: descriptionController,
+                        decoration: InputDecoration(
+                          labelText: 'Additional Details (Optional)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[50],
+                          hintText: 'Please provide more details...',
+                        ),
+                        maxLines: 3,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.grey[700]),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (formKey.currentState!.validate()) {
+                      Navigator.pop(context);
+                      _submitReport(context, reason, descriptionController.text);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red[600],
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'Submit Report',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
               ],
-              onChanged: (value) {
-                selectedReason = value;
-              },
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Additional Details (Optional)',
-                border: OutlineInputBorder(),
-                hintText: 'Please provide more details...',
-              ),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            onPressed: () => _submitReport(context, selectedReason, descriptionController.text),
-            child: const Text('Submit Report'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -710,13 +1316,23 @@ class _ReportButton extends StatelessWidget {
     try {
       const storage = FlutterSecureStorage();
       final token = await storage.read(key: 'auth_token');
-      
+
       if (token == null || token.isEmpty) {
         throw Exception('Authentication required');
       }
 
+      // Determine the correct endpoint based on post type
+      String endpoint;
+      if (postType == 'Event' || postType == 'event') {
+        endpoint = '$baseUrl/api/content/events/$postId/report';
+      } else if (postType == 'Opportunity' || postType == 'opportunity') {
+        endpoint = '$baseUrl/api/content/opportunities/$postId/report';
+      } else {
+        endpoint = '$baseUrl/api/posts/$postId/report';
+      }
+
       final response = await http.post(
-        Uri.parse('$baseUrl/api/posts/$postId/report'),
+        Uri.parse(endpoint),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',

@@ -13,6 +13,17 @@ app.use('/uploads', express.static('uploads'));
 connectDB();
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+
+// Test endpoint to verify database connection
+app.get("/api/test-db", async (_req, res) => {
+  try {
+    const User = require("./models/User");
+    const count = await User.countDocuments();
+    res.json({ status: "ok", message: "Database connected", userCount: count });
+  } catch (error) {
+    res.status(500).json({ status: "error", message: "Database connection failed", error: error.message });
+  }
+});
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/content", require("./routes/contentRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));

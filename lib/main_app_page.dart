@@ -136,13 +136,7 @@ class _MainAppPageState extends State<MainAppPage> {
                 case 'profile':
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const ProfilePage()),
-                  );
-                  break;
-                case 'admin':
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AdminPage()),
+                    MaterialPageRoute(builder: (_) => ProfilePage()),
                   );
                   break;
                 case 'signout':
@@ -156,7 +150,6 @@ class _MainAppPageState extends State<MainAppPage> {
             },
             itemBuilder: (context) => [
               const PopupMenuItem(value: 'profile', child: Text('Profile')),
-              const PopupMenuItem(value: 'admin', child: Text('Admin')),
               const PopupMenuItem(value: 'signout', child: Text('Sign out')),
             ],
           ),

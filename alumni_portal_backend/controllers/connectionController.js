@@ -57,4 +57,32 @@ exports.updateConnection = async (req, res) => {
   }
 };
 
+// Delete/Remove a connection (for disconnect or withdraw)
+exports.deleteConnection = async (req, res) => {
+  try {
+    const me = req.user._id;
+    const { id } = req.params;
+
+    const conn = await Connection.findOne({
+      _id: id,
+      $or: [{ requester: me }, { recipient: me }]
+    });
+
+    if (!conn) {
+      return res.status(404).json({ message: 'Connection not found' });
+    }
+
+    // Only allow delete if user is requester or recipient
+    await Connection.findByIdAndDelete(id);
+    return res.json({ message: 'Connection removed successfully' });
+  } catch (err) {
+    console.error('deleteConnection error', err);
+    return res.status(500).json({ message: 'Failed to delete connection' });
+  }
+};
+
+
+
+
+
 

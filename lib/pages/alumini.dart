@@ -73,7 +73,13 @@ class _AlumniPageState extends State<AlumniPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Alumni')),
+      appBar: AppBar(
+        title: const Text('Alumni'),
+        backgroundColor: Colors.blue.shade700,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+      ),
       body: Column(
         children: [
           _buildFilters(),
@@ -90,7 +96,7 @@ class _AlumniPageState extends State<AlumniPage> {
                   final u = _items[i] as Map<String, dynamic>;
                   return _AlumniTile(user: u, baseUrl: _baseUrl);
                 },
-                separatorBuilder: (_, __) => const Divider(height: 1),
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemCount: _items.length,
               ),
             ),
@@ -239,29 +245,80 @@ class _AlumniTileState extends State<_AlumniTile> {
   @override
   Widget build(BuildContext context) {
     final u = widget.user;
-    return ListTile(
-      leading: const CircleAvatar(child: Icon(Icons.person)),
-      title: Text((u['name'] ?? '').toString()),
-      subtitle: Text([
-        (u['institution'] ?? '').toString(),
-        (u['course'] ?? '').toString(),
-        (u['year'] ?? '').toString(),
-      ].where((e) => e.isNotEmpty).join(' • ')),
-      trailing: _sent
-          ? const Text('Requested', style: TextStyle(color: Colors.green))
-          : ElevatedButton(
-        onPressed: _busy ? null : _connect,
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          minimumSize: const Size(80, 36),
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 30,
+              backgroundColor: Colors.blue.shade100,
+              child: const Icon(Icons.person, color: Colors.blue, size: 30),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    (u['name'] ?? '').toString(),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    [
+                      (u['institution'] ?? '').toString(),
+                      (u['course'] ?? '').toString(),
+                      (u['year'] ?? '').toString(),
+                    ].where((e) => e.isNotEmpty).join(' • '),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            _sent
+                ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.green.shade100,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                'Requested',
+                style: TextStyle(color: Colors.green, fontSize: 12),
+              ),
+            )
+                : ElevatedButton(
+              onPressed: _busy ? null : _connect,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue.shade700,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              child: _busy
+                  ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+                  : const Text('Connect', style: TextStyle(fontSize: 14)),
+            ),
+          ],
         ),
-        child: _busy
-            ? const SizedBox(
-          width: 16,
-          height: 16,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        )
-            : const Text('Connect', style: TextStyle(fontSize: 14)),
       ),
     );
   }

@@ -12,9 +12,28 @@ const registerUser = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Parse date - handle both DD-MM-YYYY (from app) and YYYY-MM-DD (from web) formats
+    let parsedDob = null;
+    if (dob) {
+      // Try parsing as ISO format (YYYY-MM-DD)
+      parsedDob = new Date(dob);
+      // If invalid, try DD-MM-YYYY format
+      if (isNaN(parsedDob.getTime())) {
+        const parts = dob.split('-');
+        if (parts.length === 3) {
+          // Assume DD-MM-YYYY format
+          parsedDob = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+        }
+      }
+      // If still invalid, set to null
+      if (isNaN(parsedDob.getTime())) {
+        parsedDob = null;
+      }
+    }
+
     const user = await User.create({
-      name, email, phone, dob, institution, course, year,
-      password: hashedPassword, favTeacher, socialMedia
+      name, email, phone, dob: parsedDob, institution, course, year,
+      password: hashedPassword, favouriteTeacher: favTeacher || '', socialMedia: socialMedia || ''
     });
 
     res.status(201).json({

@@ -14,3 +14,13 @@ connectionSchema.index({ requester: 1, recipient: 1 }, { unique: true });
 module.exports = mongoose.model("Connection", connectionSchema);
 
 
+
+
+
+
+
+
+
+
+
+

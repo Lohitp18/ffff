@@ -20,7 +20,7 @@ class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMix
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -34,6 +34,10 @@ class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMix
     return Scaffold(
       appBar: AppBar(
         title: const Text('Admin Dashboard'),
+        backgroundColor: Colors.blue.shade700,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        automaticallyImplyLeading: false,
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -43,6 +47,7 @@ class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMix
             Tab(text: 'Posts'),
             Tab(text: 'Events'),
             Tab(text: 'Opportunities'),
+            Tab(text: 'Institutions'),
           ],
         ),
       ),
@@ -53,6 +58,7 @@ class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMix
           _PostsAdmin(baseUrl: _baseUrl),
           _PendingEvents(baseUrl: _baseUrl),
           _PendingOpportunities(baseUrl: _baseUrl),
+          _InstitutionUsersAdmin(baseUrl: _baseUrl),
         ],
       ),
     );
@@ -96,8 +102,8 @@ class _UsersAdminState extends State<_UsersAdmin> {
     try {
       final headers = await _authHeaders();
       final uri = showApproved
-          ? Uri.parse('${widget.baseUrl}/api/admin/approved-users')
-          : Uri.parse('${widget.baseUrl}/api/admin/users');
+          ? Uri.parse('${widget.baseUrl}/api/admin/users?status=approved')
+          : Uri.parse('${widget.baseUrl}/api/admin/users?status=pending');
       final res = await http.get(uri, headers: headers);
       if (res.statusCode != 200) throw Exception('failed');
       items = jsonDecode(res.body) as List<dynamic>;
@@ -404,8 +410,8 @@ class _PostsAdminState extends State<_PostsAdmin> {
     try {
       final headers = await _authHeaders();
       final uri = showApproved
-          ? Uri.parse('${widget.baseUrl}/api/content/admin/approved-posts')
-          : Uri.parse('${widget.baseUrl}/api/content/admin/pending-posts');
+          ? Uri.parse('${widget.baseUrl}/api/posts?status=approved')
+          : Uri.parse('${widget.baseUrl}/api/posts?status=pending');
       final res = await http.get(uri, headers: headers);
       if (res.statusCode != 200) throw Exception('failed');
       items = jsonDecode(res.body) as List<dynamic>;
@@ -424,7 +430,7 @@ class _PostsAdminState extends State<_PostsAdmin> {
     try {
       final headers = await _authHeaders();
       final res = await http.put(
-        Uri.parse('${widget.baseUrl}/api/content/admin/posts/$id/status'),
+        Uri.parse('${widget.baseUrl}/api/posts/$id/status'),
         headers: headers,
         body: jsonEncode({'status': status}),
       );
@@ -542,7 +548,7 @@ class _PendingEventsState extends State<_PendingEvents> {
         if (token != null) 'Authorization': 'Bearer $token',
       };
       final res = await http.get(
-          Uri.parse('${widget.baseUrl}/api/content/admin/pending-events'), headers: headers);
+          Uri.parse('${widget.baseUrl}/api/content/events?status=pending'), headers: headers);
       if (res.statusCode != 200) throw Exception('failed');
       setState(() {
         _items = jsonDecode(res.body) as List<dynamic>;
@@ -567,7 +573,7 @@ class _PendingEventsState extends State<_PendingEvents> {
         if (token != null) 'Authorization': 'Bearer $token',
       };
       final res = await http.put(
-        Uri.parse('${widget.baseUrl}/api/content/admin/events/$id/status'),
+        Uri.parse('${widget.baseUrl}/api/content/events/$id/status'),
         headers: headers,
         body: jsonEncode({'status': status}),
       );
@@ -641,7 +647,7 @@ class _PendingOpportunitiesState extends State<_PendingOpportunities> {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
       };
-      final res = await http.get(Uri.parse('${widget.baseUrl}/api/content/admin/pending-opportunities'), headers: headers);
+      final res = await http.get(Uri.parse('${widget.baseUrl}/api/content/opportunities?status=pending'), headers: headers);
       if (res.statusCode != 200) throw Exception('failed');
       setState(() { _items = jsonDecode(res.body) as List<dynamic>; });
     } catch (_) {
@@ -660,7 +666,7 @@ class _PendingOpportunitiesState extends State<_PendingOpportunities> {
         if (token != null) 'Authorization': 'Bearer $token',
       };
       final res = await http.put(
-        Uri.parse('${widget.baseUrl}/api/content/admin/opportunities/$id/status'),
+        Uri.parse('${widget.baseUrl}/api/content/opportunities/$id/status'),
         headers: headers,
         body: jsonEncode({ 'status': status }),
       );
@@ -695,6 +701,361 @@ class _PendingOpportunitiesState extends State<_PendingOpportunities> {
         },
       ),
     );
+  }
+}
+
+// -------------------- INSTITUTION USERS ADMIN --------------------
+
+class _InstitutionUsersAdmin extends StatefulWidget {
+  final String baseUrl;
+  const _InstitutionUsersAdmin({required this.baseUrl});
+
+  @override
+  State<_InstitutionUsersAdmin> createState() => _InstitutionUsersAdminState();
+}
+
+class _InstitutionUsersAdminState extends State<_InstitutionUsersAdmin> {
+  bool _loading = true;
+  String? _error;
+  List<dynamic> _users = [];
+
+  final List<String> _institutions = const [
+    "Alva's Pre-University College, Vidyagiri",
+    "Alva's Degree College, Vidyagiri",
+    "Alva's Centre for Post Graduate Studies and Research, Vidyagiri",
+    "Alva's College of Education, Vidyagiri",
+    "Alva's College of Physical Education, Vidyagiri",
+    "Alva's Institute of Engineering & Technology (AIET), Mijar",
+    "Alva's Ayurvedic Medical College, Vidyagiri",
+    "Alva's Homeopathic Medical College, Mijar",
+    "Alva's College of Naturopathy and Yogic Science, Mijar",
+    "Alva's College of Physiotherapy, Moodbidri",
+    "Alva's College of Nursing, Moodbidri",
+    "Alva's Institute of Nursing, Moodbidri",
+    "Alva's College of Medical Laboratory Technology, Moodbidri",
+    "Alva's Law College, Moodbidri",
+    "Alva's College, Moodbidri (Affiliated with Mangalore University)",
+    "Alva's College of Nursing (Affiliated with Rajiv Gandhi University of Health Sciences, Bangalore)",
+    "Alva's Institute of Engineering & Technology (AIET) (Affiliated with Visvesvaraya Technological University, Belgaum)",
+  ];
+
+  Future<Map<String, String>> _authHeaders() async {
+    const storage = FlutterSecureStorage();
+    final token = await storage.read(key: 'auth_token');
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final headers = await _authHeaders();
+      final res = await http.get(
+        Uri.parse('${widget.baseUrl}/api/admin/institution-users'),
+        headers: headers,
+      );
+      if (res.statusCode != 200) throw Exception('Failed to load');
+      setState(() {
+        _users = jsonDecode(res.body) as List<dynamic>;
+      });
+    } catch (_) {
+      setState(() {
+        _error = 'Failed to load institution users';
+      });
+    } finally {
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _deleteUser(String id) async {
+    try {
+      final headers = await _authHeaders();
+      final res = await http.delete(
+        Uri.parse('${widget.baseUrl}/api/admin/institution-users/$id'),
+        headers: headers,
+      );
+      if (res.statusCode == 200) {
+        _load();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Institution user deleted')),
+          );
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to delete user')),
+        );
+      }
+    }
+  }
+
+  void _showCreateDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => _CreateInstitutionUserDialog(
+        baseUrl: widget.baseUrl,
+        institutions: _institutions,
+        onCreated: () {
+          _load();
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Institution Users: ${_users.length}',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              ElevatedButton.icon(
+                onPressed: _showCreateDialog,
+                icon: const Icon(Icons.add),
+                label: const Text('Create User'),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
+                  ? Center(child: Text(_error!))
+                  : RefreshIndicator(
+                      onRefresh: _load,
+                      child: _users.isEmpty
+                          ? const Center(child: Text('No institution users yet'))
+                          : ListView.separated(
+                              padding: const EdgeInsets.all(16),
+                              itemCount: _users.length,
+                              separatorBuilder: (_, __) => const Divider(height: 1),
+                              itemBuilder: (_, i) {
+                                final user = _users[i] as Map<String, dynamic>;
+                                return ListTile(
+                                  leading: const CircleAvatar(
+                                    child: Icon(Icons.school),
+                                  ),
+                                  title: Text(user['name'] ?? user['institution'] ?? 'Unknown'),
+                                  subtitle: Text(user['email'] ?? ''),
+                                  trailing: IconButton(
+                                    icon: const Icon(Icons.delete, color: Colors.red),
+                                    onPressed: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text('Delete User'),
+                                          content: const Text('Are you sure you want to delete this institution user?'),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context),
+                                              child: const Text('Cancel'),
+                                            ),
+                                            ElevatedButton(
+                                              onPressed: () {
+                                                Navigator.pop(context);
+                                                _deleteUser(user['_id'].toString());
+                                              },
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.red,
+                                              ),
+                                              child: const Text('Delete', style: TextStyle(color: Colors.white)),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CreateInstitutionUserDialog extends StatefulWidget {
+  final String baseUrl;
+  final List<String> institutions;
+  final VoidCallback onCreated;
+
+  const _CreateInstitutionUserDialog({
+    required this.baseUrl,
+    required this.institutions,
+    required this.onCreated,
+  });
+
+  @override
+  State<_CreateInstitutionUserDialog> createState() => _CreateInstitutionUserDialogState();
+}
+
+class _CreateInstitutionUserDialogState extends State<_CreateInstitutionUserDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  String? _selectedInstitution;
+  bool _submitting = false;
+  bool _obscurePassword = true;
+
+  Future<Map<String, String>> _authHeaders() async {
+    const storage = FlutterSecureStorage();
+    final token = await storage.read(key: 'auth_token');
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _submitting = true;
+    });
+
+    try {
+      final headers = await _authHeaders();
+      final res = await http.post(
+        Uri.parse('${widget.baseUrl}/api/admin/institution-users'),
+        headers: headers,
+        body: jsonEncode({
+          'institution': _selectedInstitution,
+          'email': _emailCtrl.text.trim(),
+          'password': _passwordCtrl.text,
+        }),
+      );
+
+      if (res.statusCode == 201) {
+        widget.onCreated();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Institution user created successfully')),
+          );
+        }
+      } else {
+        final error = jsonDecode(res.body);
+        throw Exception(error['error'] ?? 'Failed to create user');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Create Institution User'),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                value: _selectedInstitution,
+                decoration: const InputDecoration(
+                  labelText: 'Institution',
+                  border: OutlineInputBorder(),
+                ),
+                items: widget.institutions
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: (v) => setState(() => _selectedInstitution = v),
+                validator: (v) => v == null ? 'Select institution' : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _emailCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.emailAddress,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Email required';
+                  if (!v.contains('@')) return 'Invalid email';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _passwordCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  ),
+                ),
+                obscureText: _obscurePassword,
+                validator: (v) {
+                  if (v == null || v.length < 6) return 'Password must be at least 6 characters';
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _submitting ? null : () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: _submitting ? null : _submit,
+          child: _submitting
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Create'),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
   }
 }
 

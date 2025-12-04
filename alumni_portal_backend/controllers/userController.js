@@ -110,6 +110,7 @@ exports.updatePrivacySettings = async (req, res) => {
 exports.getUserById = async (req, res) => {
   try {
     const { id } = req.params;
+    const currentUserId = req.user?._id?.toString();
 
     // Prevent CastError for non-ObjectId values like "profile"
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -127,7 +128,16 @@ exports.getUserById = async (req, res) => {
       return res.status(403).json({ message: "Profile is private" });
     }
 
-    res.json(user);
+    // Convert to plain object to modify
+    const userObj = user.toObject();
+
+    // Hide email if viewing someone else's profile (unless privacy settings allow it)
+    // Always hide email for other users' profiles
+    if (!currentUserId || currentUserId !== id) {
+      delete userObj.email;
+    }
+
+    res.json(userObj);
   } catch (error) {
     console.error("Error fetching user profile:", error);
     res.status(500).json({ message: "Server error" });
@@ -277,5 +287,13 @@ const uploadCoverImage = async (req, res) => {
 module.exports.handleImageUpload = handleImageUpload;
 module.exports.uploadProfileImage = uploadProfileImage;
 module.exports.uploadCoverImage = uploadCoverImage;
+
+
+
+
+
+
+
+
 
 

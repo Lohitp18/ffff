@@ -156,6 +156,19 @@ exports.getMyPosts = async (req, res) => {
   }
 };
 
+// Get posts by a specific user ID (public endpoint)
+exports.getPostsByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const posts = await Post.find({ authorId: userId, status: 'approved' })
+      .sort({ createdAt: -1 });
+    return res.json(posts);
+  } catch (err) {
+    console.error('getPostsByUserId error', err);
+    return res.status(500).json({ message: 'Failed to fetch posts' });
+  }
+};
+
 // Update a post (only by owner). Allows title/content and optional image replacement
 exports.updatePost = async (req, res) => {
   try {
@@ -203,5 +216,35 @@ exports.deletePost = async (req, res) => {
     return res.status(500).json({ message: 'Failed to delete post' });
   }
 };
+
+// Share a post (creates a new pending post)
+exports.sharePost = async (req, res) => {
+  try {
+    const { title, content, originalPostId, originalPostType } = req.body;
+    if (!title || !content) {
+      return res.status(400).json({ message: 'title and content are required' });
+    }
+
+    const data = {
+      title,
+      content,
+      author: req.user?.email,
+      authorId: req.user?._id,
+      status: 'pending', // Shared posts need admin approval
+      sharedFrom: {
+        postId: originalPostId,
+        postType: originalPostType
+      }
+    };
+
+    const post = await Post.create(data);
+    return res.status(201).json(post);
+  } catch (err) {
+    console.error('sharePost error', err);
+    return res.status(500).json({ message: 'Failed to share post' });
+  }
+};
+
+
 
 

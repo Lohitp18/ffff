@@ -5,10 +5,10 @@ const {
   updateReportStatus,
   getReportStats
 } = require('../controllers/reportController');
-const { verifyAdmin } = require('../middlewares/adminMiddleware');
+const authMiddleware = require('../middlewares/authMiddleware');
 
-// All report routes require admin authentication
-router.use(verifyAdmin);
+// All report routes require authentication only (accessible to all authenticated users)
+router.use(authMiddleware);
 
 // Get all reports
 router.get('/', getAllReports);
