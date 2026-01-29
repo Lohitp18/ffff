@@ -1,0 +1,329 @@
+.institution-admin-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.institution-admin-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 16px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #0a66c2;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.institution-admin-header {
+  margin-bottom: 32px;
+}
+
+.institution-admin-header h1 {
+  margin: 0 0 8px 0;
+  font-size: 32px;
+  font-weight: 600;
+  color: #000000;
+}
+
+.institution-admin-header p {
+  margin: 0;
+  color: #666666;
+  font-size: 16px;
+}
+
+.institution-selection-section {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.institution-selection-section h2 {
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #000000;
+}
+
+.institutions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.institution-select-card {
+  background: #f3f2ef;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+}
+
+.institution-select-card:hover {
+  background: #e3f2fd;
+  border-color: #0a66c2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.institution-select-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.institution-select-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.institution-select-info h3 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #000000;
+  line-height: 1.4;
+}
+
+.institution-select-info p {
+  margin: 0;
+  font-size: 12px;
+  color: #666666;
+}
+
+.institution-select-arrow {
+  font-size: 24px;
+  color: #0a66c2;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.filter-section {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.filter-section label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #000000;
+  white-space: nowrap;
+}
+
+.institution-filter-select {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  color: #000000;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.institution-filter-select:focus {
+  outline: none;
+  border-color: #0a66c2;
+  box-shadow: 0 0 0 2px rgba(10, 102, 194, 0.1);
+}
+
+.create-post-section {
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.create-post-btn {
+  background: #0a66c2;
+  color: white;
+  border: none;
+  padding: 14px 32px;
+  border-radius: 24px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.create-post-btn:hover {
+  background: #004182;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.create-post-btn:active {
+  transform: translateY(0);
+}
+
+.linkedin-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.linkedin-empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.linkedin-empty-state p {
+  color: #666;
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+.linkedin-btn-primary {
+  background: #0a66c2;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 24px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.linkedin-btn-primary:hover {
+  background: #004182;
+}
+
+.linkedin-error {
+  background: #fee;
+  color: #c33;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.linkedin-error p {
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .institution-admin-container {
+    padding: 12px;
+  }
+
+  .institution-admin-header h1 {
+    font-size: 24px;
+  }
+
+  .institution-admin-header p {
+    font-size: 14px;
+  }
+
+  .institution-selection-section {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .institution-selection-section h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  .institutions-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .institution-select-card {
+    padding: 12px;
+  }
+
+  .institution-select-icon {
+    font-size: 24px;
+  }
+
+  .institution-select-info h3 {
+    font-size: 13px;
+  }
+
+  .institution-select-info p {
+    font-size: 11px;
+  }
+
+  .filter-section {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .filter-section label {
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+
+  .institution-filter-select {
+    width: 100%;
+  }
+
+  .create-post-btn {
+    padding: 12px 24px;
+    font-size: 14px;
+    width: 100%;
+  }
+
+  .linkedin-empty-state {
+    padding: 40px 16px;
+  }
+
+  .linkedin-empty-state p {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .institution-admin-container {
+    padding: 8px;
+  }
+
+  .institution-admin-header h1 {
+    font-size: 20px;
+  }
+
+  .institution-selection-section {
+    padding: 12px;
+  }
+
+  .institution-select-card {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+  }
+
+  .institution-select-arrow {
+    display: none;
+  }
+}
+

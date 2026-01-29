@@ -359,6 +359,7 @@ class _ProfilePageState extends State<ProfilePage> {
               _buildProfileHeader(),
               _buildProfileCompletionBanner(),
               _buildPersonalDetailsSection(),
+              _buildPrivateInformationSection(),
               _buildAcademicDetailsSection(),
               _buildContactSection(),
               _buildAboutSection(),
@@ -782,6 +783,93 @@ class _ProfilePageState extends State<ProfilePage> {
             Icons.location_on_outlined,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPrivateInformationSection() {
+    final privateInfo = _userProfile!['privateInfo'] as Map<String, dynamic>? ?? {};
+    return _SectionCard(
+      title: 'Private Information',
+      subtitle: 'This information is private and not disclosed to others',
+      action: TextButton.icon(
+        onPressed: _showPrivateInfoEditor,
+        icon: const Icon(Icons.edit, size: 18),
+        label: const Text('Edit'),
+      ),
+      child: Column(
+        children: [
+          _detailLine(
+            'Placement Company',
+            privateInfo['placementCompany'] ?? 'Not specified',
+            Icons.business_center_outlined,
+          ),
+          _detailLine(
+            'Current Company',
+            privateInfo['currentCompany'] ?? 'Not specified',
+            Icons.work_outline,
+          ),
+          _detailLine(
+            'Total Experience',
+            privateInfo['totalExperience'] != null
+                ? '${privateInfo['totalExperience']} years'
+                : 'Not specified',
+            Icons.timeline_outlined,
+          ),
+          _detailLine(
+            'Current Position',
+            privateInfo['currentPosition'] ?? 'Not specified',
+            Icons.badge_outlined,
+          ),
+          _detailLine(
+            'Fields Worked',
+            (privateInfo['fieldsWorked'] as List<dynamic>?)?.join(', ') ?? 'Not specified',
+            Icons.category_outlined,
+          ),
+          _detailLine(
+            'Has Masters',
+            privateInfo['hasMasters'] == true ? 'Yes' : 'No',
+            Icons.school_outlined,
+          ),
+          if (privateInfo['hasMasters'] == true) ...[
+            _detailLine(
+              'Masters Degree',
+              privateInfo['mastersDegree'] ?? 'Not specified',
+              Icons.workspace_premium_outlined,
+            ),
+            _detailLine(
+              'Masters University',
+              privateInfo['mastersUniversity'] ?? 'Not specified',
+              Icons.account_balance_outlined,
+            ),
+            _detailLine(
+              'Masters Field',
+              privateInfo['mastersField'] ?? 'Not specified',
+              Icons.book_outlined,
+            ),
+            _detailLine(
+              'Masters Year',
+              privateInfo['mastersYear'] ?? 'Not specified',
+              Icons.calendar_today_outlined,
+            ),
+          ],
+          if (privateInfo['placementYear'] != null)
+            _detailLine(
+              'Placement Year',
+              privateInfo['placementYear'],
+              Icons.event_outlined,
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showPrivateInfoEditor() {
+    showDialog(
+      context: context,
+      builder: (context) => _PrivateInfoDialog(
+        userProfile: _userProfile!,
+        onSave: _updateProfile,
       ),
     );
   }
@@ -1707,10 +1795,16 @@ class _ProfilePageState extends State<ProfilePage> {
 
 class _SectionCard extends StatelessWidget {
   final String title;
+  final String? subtitle;
   final Widget child;
   final Widget? action;
 
-  const _SectionCard({required this.title, required this.child, this.action});
+  const _SectionCard({
+    required this.title,
+    this.subtitle,
+    required this.child,
+    this.action,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1727,15 +1821,32 @@ class _SectionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-              const Spacer(),
               if (action != null) action!,
             ],
           ),
@@ -2409,6 +2520,275 @@ class _PrivacySettingsDialogState extends State<_PrivacySettingsDialog> {
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PrivateInfoDialog extends StatefulWidget {
+  final Map<String, dynamic> userProfile;
+  final Future<void> Function(Map<String, dynamic>) onSave;
+
+  const _PrivateInfoDialog({
+    required this.userProfile,
+    required this.onSave,
+  });
+
+  @override
+  State<_PrivateInfoDialog> createState() => _PrivateInfoDialogState();
+}
+
+class _PrivateInfoDialogState extends State<_PrivateInfoDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _placementCompanyCtrl;
+  late TextEditingController _currentCompanyCtrl;
+  late TextEditingController _totalExperienceCtrl;
+  late TextEditingController _currentPositionCtrl;
+  late TextEditingController _fieldsWorkedCtrl;
+  late TextEditingController _mastersDegreeCtrl;
+  late TextEditingController _mastersUniversityCtrl;
+  late TextEditingController _mastersFieldCtrl;
+  late TextEditingController _mastersYearCtrl;
+  late TextEditingController _placementYearCtrl;
+  bool _hasMasters = false;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final privateInfo = widget.userProfile['privateInfo'] as Map<String, dynamic>? ?? {};
+    _placementCompanyCtrl = TextEditingController(text: privateInfo['placementCompany'] ?? '');
+    _currentCompanyCtrl = TextEditingController(text: privateInfo['currentCompany'] ?? '');
+    _totalExperienceCtrl = TextEditingController(
+      text: privateInfo['totalExperience']?.toString() ?? '',
+    );
+    _currentPositionCtrl = TextEditingController(text: privateInfo['currentPosition'] ?? '');
+    _fieldsWorkedCtrl = TextEditingController(
+      text: (privateInfo['fieldsWorked'] as List<dynamic>?)?.join(', ') ?? '',
+    );
+    _hasMasters = privateInfo['hasMasters'] == true;
+    _mastersDegreeCtrl = TextEditingController(text: privateInfo['mastersDegree'] ?? '');
+    _mastersUniversityCtrl = TextEditingController(text: privateInfo['mastersUniversity'] ?? '');
+    _mastersFieldCtrl = TextEditingController(text: privateInfo['mastersField'] ?? '');
+    _mastersYearCtrl = TextEditingController(text: privateInfo['mastersYear'] ?? '');
+    _placementYearCtrl = TextEditingController(text: privateInfo['placementYear'] ?? '');
+  }
+
+  @override
+  void dispose() {
+    _placementCompanyCtrl.dispose();
+    _currentCompanyCtrl.dispose();
+    _totalExperienceCtrl.dispose();
+    _currentPositionCtrl.dispose();
+    _fieldsWorkedCtrl.dispose();
+    _mastersDegreeCtrl.dispose();
+    _mastersUniversityCtrl.dispose();
+    _mastersFieldCtrl.dispose();
+    _mastersYearCtrl.dispose();
+    _placementYearCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    setState(() => _saving = true);
+    
+    final fieldsWorkedList = _fieldsWorkedCtrl.text
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    final privateInfo = {
+      'placementCompany': _placementCompanyCtrl.text.trim(),
+      'currentCompany': _currentCompanyCtrl.text.trim(),
+      'totalExperience': _totalExperienceCtrl.text.trim().isEmpty
+          ? null
+          : int.tryParse(_totalExperienceCtrl.text.trim()),
+      'currentPosition': _currentPositionCtrl.text.trim(),
+      'fieldsWorked': fieldsWorkedList,
+      'hasMasters': _hasMasters,
+      'mastersDegree': _hasMasters ? _mastersDegreeCtrl.text.trim() : null,
+      'mastersUniversity': _hasMasters ? _mastersUniversityCtrl.text.trim() : null,
+      'mastersField': _hasMasters ? _mastersFieldCtrl.text.trim() : null,
+      'mastersYear': _hasMasters ? _mastersYearCtrl.text.trim() : null,
+      'placementYear': _placementYearCtrl.text.trim().isEmpty
+          ? null
+          : _placementYearCtrl.text.trim(),
+    };
+
+    final payload = {
+      'privateInfo': privateInfo,
+    };
+
+    await widget.onSave(payload);
+    if (mounted) {
+      Navigator.pop(context);
+      setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.9,
+        height: MediaQuery.of(context).size.height * 0.9,
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              const Text(
+                'Private Information',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'This information is private and not disclosed to others',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: _placementCompanyCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Placement Company',
+                          border: OutlineInputBorder(),
+                          hintText: 'Company you got placed in',
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _currentCompanyCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Current Company',
+                          border: OutlineInputBorder(),
+                          hintText: 'Currently working company',
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _totalExperienceCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Total Experience (Years)',
+                          border: OutlineInputBorder(),
+                          hintText: 'e.g., 5',
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _currentPositionCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Current Position',
+                          border: OutlineInputBorder(),
+                          hintText: 'e.g., Software Engineer, Manager',
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _fieldsWorkedCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Fields Worked In',
+                          border: OutlineInputBorder(),
+                          hintText: 'e.g., Software Development, Data Science, Marketing',
+                          helperText: 'Separate multiple fields with commas',
+                        ),
+                        maxLines: 2,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _placementYearCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Placement Year',
+                          border: OutlineInputBorder(),
+                          hintText: 'e.g., 2020',
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                      const SizedBox(height: 24),
+                      const Divider(),
+                      const SizedBox(height: 16),
+                      SwitchListTile(
+                        title: const Text('Have you completed Masters?'),
+                        subtitle: const Text('Select if you have a masters degree'),
+                        value: _hasMasters,
+                        onChanged: (value) {
+                          setState(() {
+                            _hasMasters = value;
+                          });
+                        },
+                      ),
+                      if (_hasMasters) ...[
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _mastersDegreeCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Masters Degree',
+                            border: OutlineInputBorder(),
+                            hintText: 'e.g., M.Tech, MBA, MS',
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _mastersUniversityCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Masters University',
+                            border: OutlineInputBorder(),
+                            hintText: 'University name',
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _mastersFieldCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Masters Field of Study',
+                            border: OutlineInputBorder(),
+                            hintText: 'e.g., Computer Science, Business Administration',
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _mastersYearCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Masters Completion Year',
+                            border: OutlineInputBorder(),
+                            hintText: 'e.g., 2022',
+                          ),
+                          keyboardType: TextInputType.number,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed: _saving ? null : _submit,
+                    child: _saving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Save'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -127,7 +127,7 @@ class _InstitutionsPageState extends State<InstitutionsPage> {
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade100,
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
@@ -137,10 +137,13 @@ class _InstitutionsPageState extends State<InstitutionsPage> {
                       ),
                     ],
                   ),
-                  child: Icon(
-                    Icons.school,
-                    color: Colors.blue.shade700,
-                    size: 30,
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/logo1.png',
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -164,13 +167,15 @@ class _InstitutionsPageState extends State<InstitutionsPage> {
                         children: [
                           Icon(Icons.location_on, size: 16, color: Colors.grey.shade600),
                           const SizedBox(width: 4),
-                          Text(
-                            'Alva\'s Education Foundation',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
+                        Text(
+                          'Alva\'s Education Foundation',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         ],
                       ),
                     ],
@@ -204,12 +209,29 @@ class _InstitutionDetailPageState extends State<InstitutionDetailPage> {
   String? _error;
   List<dynamic> _posts = [];
   bool _isAdmin = false;
+  Map<String, dynamic>? _institutionProfile;
 
   @override
   void initState() {
     super.initState();
     _checkAdminStatus();
     _load();
+    _loadInstitutionProfile();
+  }
+
+  Future<void> _loadInstitutionProfile() async {
+    try {
+      final res = await http.get(
+        Uri.parse('$_baseUrl/api/institutions/${Uri.encodeComponent(widget.institutionName)}'),
+      );
+      if (res.statusCode == 200) {
+        setState(() {
+          _institutionProfile = jsonDecode(res.body) as Map<String, dynamic>;
+        });
+      }
+    } catch (_) {
+      // Institution profile doesn't exist yet, that's okay
+    }
   }
 
   Future<void> _checkAdminStatus() async {
@@ -258,8 +280,14 @@ class _InstitutionDetailPageState extends State<InstitutionDetailPage> {
         automaticallyImplyLeading: false,
         actions: _isAdmin ? [
           IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () => _showEditProfileDialog(),
+            tooltip: 'Edit Profile',
+          ),
+          IconButton(
             icon: const Icon(Icons.add),
             onPressed: () => _showCreatePostDialog(),
+            tooltip: 'Create Post',
           ),
         ] : null,
       ),
@@ -269,12 +297,24 @@ class _InstitutionDetailPageState extends State<InstitutionDetailPage> {
               ? Center(child: Text(_error!))
               : RefreshIndicator(
                   onRefresh: _load,
-                  child: _posts.isEmpty
-                      ? Center(
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      _buildInstitutionHeader(),
+                      const SizedBox(height: 16),
+                      if (_posts.isEmpty)
+                        Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.school, size: 80, color: Colors.grey.shade400),
+                              ClipOval(
+                                child: Image.asset(
+                                  'assets/logo1.png',
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
                               const SizedBox(height: 16),
                               Text(
                                 'No posts yet',
@@ -294,16 +334,284 @@ class _InstitutionDetailPageState extends State<InstitutionDetailPage> {
                             ],
                           ),
                         )
-                      : ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemBuilder: (_, i) {
-                      final m = _posts[i] as Map<String, dynamic>;
-                            return _buildPostCard(m);
-                          },
-                          separatorBuilder: (_, __) => const SizedBox(height: 16),
-                          itemCount: _posts.length,
-                        ),
+                      else
+                        ..._posts.map((m) => Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: _buildPostCard(m as Map<String, dynamic>),
+                            )),
+                    ],
+                  ),
                 ),
+    );
+  }
+
+  Widget _buildInstitutionHeader() {
+    final profile = _institutionProfile;
+    final coverImage = profile?['coverImage'];
+    final image = profile?['image'];
+    final email = profile?['email'] ?? '';
+    final phone = profile?['phone'] ?? '';
+    final address = profile?['address'] ?? '';
+    final website = profile?['website'] ?? '';
+    
+    return Column(
+      children: [
+        // Cover Image Section
+        Container(
+          height: 200,
+          decoration: BoxDecoration(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            gradient: coverImage == null
+                ? LinearGradient(
+                    colors: [Colors.blue.shade700, Colors.blue.shade400],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            image: coverImage != null
+                ? DecorationImage(
+                    image: NetworkImage(
+                      coverImage.toString().startsWith('http')
+                          ? coverImage.toString()
+                          : '$_baseUrl$coverImage',
+                    ),
+                    fit: BoxFit.cover,
+                  )
+                : null,
+          ),
+          child: Stack(
+            children: [
+              if (_isAdmin)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: IconButton(
+                    icon: const Icon(Icons.camera_alt, color: Colors.white),
+                    onPressed: () => _pickCoverImage(),
+                    tooltip: 'Change Cover Image',
+                  ),
+                ),
+            ],
+          ),
+        ),
+        // Profile Content Section
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blue.withOpacity(0.2),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Logo and Name Row
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Stack(
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.blue.shade300, width: 3),
+                          color: Colors.white,
+                        ),
+                        child: ClipOval(
+                          child: image != null && image.toString().isNotEmpty
+                              ? Image.network(
+                                  image.toString().startsWith('http')
+                                      ? image.toString()
+                                      : '$_baseUrl$image',
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Image.asset(
+                                    'assets/logo1.png',
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : Image.asset(
+                                  'assets/logo1.png',
+                                  fit: BoxFit.cover,
+                                ),
+                        ),
+                      ),
+                      if (_isAdmin)
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              color: Colors.blue,
+                              shape: BoxShape.circle,
+                            ),
+                            child: IconButton(
+                              icon: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                              onPressed: () => _pickProfileImage(),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.institutionName,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (profile?['type'] != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            profile!['type'],
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              // Contact Information
+              if (email.isNotEmpty || phone.isNotEmpty || address.isNotEmpty || website.isNotEmpty) ...[
+                const Divider(),
+                const SizedBox(height: 12),
+                if (email.isNotEmpty)
+                  _buildInfoRow(Icons.email, email),
+                if (phone.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  _buildInfoRow(Icons.phone, phone),
+                ],
+                if (address.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  _buildInfoRow(Icons.location_on, address),
+                ],
+                if (website.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  _buildInfoRow(Icons.language, website),
+                ],
+              ] else if (!_isAdmin) ...[
+                const Text(
+                  'Profile information coming soon',
+                  style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.grey.shade600),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickProfileImage() async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.gallery);
+    if (file != null) {
+      await _uploadInstitutionImage(file, isCover: false);
+    }
+  }
+
+  Future<void> _pickCoverImage() async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.gallery);
+    if (file != null) {
+      await _uploadInstitutionImage(file, isCover: true);
+    }
+  }
+
+  Future<void> _uploadInstitutionImage(XFile file, {required bool isCover}) async {
+    try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
+      if (token == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Authentication required')),
+        );
+        return;
+      }
+
+      final institutionId = _institutionProfile?['_id'];
+      if (institutionId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please create institution profile first')),
+        );
+        return;
+      }
+
+      final request = http.MultipartRequest(
+        'PUT',
+        Uri.parse('$_baseUrl/api/institutions/$institutionId${isCover ? '/cover-image' : ''}'),
+      );
+      request.headers['Authorization'] = 'Bearer $token';
+      request.files.add(await http.MultipartFile.fromPath(
+        'image',
+        file.path,
+        contentType: MediaType.parse('image/${file.path.split('.').last.toLowerCase()}'),
+      ));
+
+      final streamed = await request.send();
+      final response = await http.Response.fromStream(streamed);
+
+      if (response.statusCode == 200) {
+        await _loadInstitutionProfile();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${isCover ? 'Cover' : 'Profile'} image updated')),
+        );
+      } else {
+        throw Exception('Failed to upload image');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to upload: $e')),
+      );
+    }
+  }
+
+  void _showEditProfileDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => _EditInstitutionProfileDialog(
+        institutionName: widget.institutionName,
+        institutionProfile: _institutionProfile,
+        baseUrl: _baseUrl,
+        onProfileUpdated: _loadInstitutionProfile,
+      ),
     );
   }
 
@@ -328,13 +636,17 @@ class _InstitutionDetailPageState extends State<InstitutionDetailPage> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade100,
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.blue.shade100),
                   ),
-                  child: Icon(
-                    Icons.school,
-                    color: Colors.blue.shade700,
-                    size: 20,
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/logo1.png',
+                      width: 24,
+                      height: 24,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -348,6 +660,8 @@ class _InstitutionDetailPageState extends State<InstitutionDetailPage> {
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       if (createdAt.isNotEmpty)
                         Text(
@@ -369,6 +683,8 @@ class _InstitutionDetailPageState extends State<InstitutionDetailPage> {
                 fontWeight: FontWeight.w600,
                 fontSize: 18,
               ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
                           const SizedBox(height: 8),
             if (imageUrl.isNotEmpty) ...[
@@ -420,6 +736,8 @@ class _InstitutionDetailPageState extends State<InstitutionDetailPage> {
             Text(
               content,
               style: const TextStyle(fontSize: 16),
+              maxLines: 5,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -676,6 +994,344 @@ class _CreateInstitutionPostDialogState extends State<_CreateInstitutionPostDial
           ),
                   ),
                 ),
+    );
+  }
+}
+
+class _EditInstitutionProfileDialog extends StatefulWidget {
+  final String institutionName;
+  final Map<String, dynamic>? institutionProfile;
+  final String baseUrl;
+  final VoidCallback onProfileUpdated;
+
+  const _EditInstitutionProfileDialog({
+    required this.institutionName,
+    required this.institutionProfile,
+    required this.baseUrl,
+    required this.onProfileUpdated,
+  });
+
+  @override
+  State<_EditInstitutionProfileDialog> createState() => _EditInstitutionProfileDialogState();
+}
+
+class _EditInstitutionProfileDialogState extends State<_EditInstitutionProfileDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _nameCtrl;
+  late TextEditingController _phoneCtrl;
+  late TextEditingController _emailCtrl;
+  late TextEditingController _addressCtrl;
+  late TextEditingController _cityCtrl;
+  late TextEditingController _stateCtrl;
+  late TextEditingController _pincodeCtrl;
+  late TextEditingController _websiteCtrl;
+  late TextEditingController _establishedYearCtrl;
+  late TextEditingController _typeCtrl;
+  late TextEditingController _affiliationCtrl;
+  late TextEditingController _descriptionCtrl;
+  late TextEditingController _contactPersonCtrl;
+  late TextEditingController _contactPersonEmailCtrl;
+  late TextEditingController _contactPersonPhoneCtrl;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final profile = widget.institutionProfile;
+    _nameCtrl = TextEditingController(text: profile?['name'] ?? widget.institutionName);
+    _phoneCtrl = TextEditingController(text: profile?['phone'] ?? '');
+    _emailCtrl = TextEditingController(text: profile?['email'] ?? '');
+    _addressCtrl = TextEditingController(text: profile?['address'] ?? '');
+    _cityCtrl = TextEditingController(text: profile?['city'] ?? '');
+    _stateCtrl = TextEditingController(text: profile?['state'] ?? '');
+    _pincodeCtrl = TextEditingController(text: profile?['pincode'] ?? '');
+    _websiteCtrl = TextEditingController(text: profile?['website'] ?? '');
+    _establishedYearCtrl = TextEditingController(text: profile?['establishedYear'] ?? '');
+    _typeCtrl = TextEditingController(text: profile?['type'] ?? '');
+    _affiliationCtrl = TextEditingController(text: profile?['affiliation'] ?? '');
+    _descriptionCtrl = TextEditingController(text: profile?['description'] ?? '');
+    _contactPersonCtrl = TextEditingController(text: profile?['contactPerson'] ?? '');
+    _contactPersonEmailCtrl = TextEditingController(text: profile?['contactPersonEmail'] ?? '');
+    _contactPersonPhoneCtrl = TextEditingController(text: profile?['contactPersonPhone'] ?? '');
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _phoneCtrl.dispose();
+    _emailCtrl.dispose();
+    _addressCtrl.dispose();
+    _cityCtrl.dispose();
+    _stateCtrl.dispose();
+    _pincodeCtrl.dispose();
+    _websiteCtrl.dispose();
+    _establishedYearCtrl.dispose();
+    _typeCtrl.dispose();
+    _affiliationCtrl.dispose();
+    _descriptionCtrl.dispose();
+    _contactPersonCtrl.dispose();
+    _contactPersonEmailCtrl.dispose();
+    _contactPersonPhoneCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    setState(() => _saving = true);
+    try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
+      if (token == null) throw Exception('Authentication required');
+
+      final payload = {
+        'name': _nameCtrl.text.trim(),
+        'phone': _phoneCtrl.text.trim(),
+        'email': _emailCtrl.text.trim(),
+        'address': _addressCtrl.text.trim(),
+        'city': _cityCtrl.text.trim(),
+        'state': _stateCtrl.text.trim(),
+        'pincode': _pincodeCtrl.text.trim(),
+        'website': _websiteCtrl.text.trim(),
+        'establishedYear': _establishedYearCtrl.text.trim(),
+        'type': _typeCtrl.text.trim(),
+        'affiliation': _affiliationCtrl.text.trim(),
+        'description': _descriptionCtrl.text.trim(),
+        'contactPerson': _contactPersonCtrl.text.trim(),
+        'contactPersonEmail': _contactPersonEmailCtrl.text.trim(),
+        'contactPersonPhone': _contactPersonPhoneCtrl.text.trim(),
+      };
+
+      final response = widget.institutionProfile == null
+          ? await http.post(
+              Uri.parse('${widget.baseUrl}/api/institutions'),
+              headers: {
+                'Authorization': 'Bearer $token',
+                'Content-Type': 'application/json',
+              },
+              body: jsonEncode(payload),
+            )
+          : await http.put(
+              Uri.parse('${widget.baseUrl}/api/institutions/${widget.institutionProfile!['_id']}'),
+              headers: {
+                'Authorization': 'Bearer $token',
+                'Content-Type': 'application/json',
+              },
+              body: jsonEncode(payload),
+            );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        widget.onProfileUpdated();
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Institution profile saved successfully')),
+        );
+      } else {
+        throw Exception('Failed to save profile');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.9,
+        height: MediaQuery.of(context).size.height * 0.9,
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              Text(
+                widget.institutionProfile == null
+                    ? 'Create Institution Profile'
+                    : 'Edit Institution Profile',
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: _nameCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Institution Name *',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (v) => v?.trim().isEmpty == true ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _phoneCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Phone Number',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.phone,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _emailCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _addressCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Address',
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: 2,
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _cityCtrl,
+                              decoration: const InputDecoration(
+                                labelText: 'City',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _stateCtrl,
+                              decoration: const InputDecoration(
+                                labelText: 'State',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _pincodeCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Pincode',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _websiteCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Website',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.url,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _establishedYearCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Established Year',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _typeCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Type (e.g., Engineering, Medical, Arts)',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _affiliationCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'University Affiliation',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _descriptionCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Description',
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: 4,
+                      ),
+                      const SizedBox(height: 20),
+                      const Divider(),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Contact Person Details',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _contactPersonCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Contact Person Name',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _contactPersonEmailCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Contact Person Email',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _contactPersonPhoneCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Contact Person Phone',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.phone,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed: _saving ? null : _submit,
+                    child: _saving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Save'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

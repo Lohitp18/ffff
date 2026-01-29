@@ -23,6 +23,8 @@ const {
   reportEvent,
   toggleOpportunityLike,
   reportOpportunity,
+  toggleInstitutionPostLike,
+  reportInstitutionPost,
 } = require("../controllers/contentController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
@@ -73,6 +75,10 @@ router.post("/events/:id/report", authMiddleware, reportEvent);
 // Like and report routes for opportunities
 router.patch("/opportunities/:id/like", authMiddleware, toggleOpportunityLike);
 router.post("/opportunities/:id/report", authMiddleware, reportOpportunity);
+
+// Like and report routes for institution posts
+router.patch("/institution-posts/:id/like", authMiddleware, toggleInstitutionPostLike);
+router.post("/institution-posts/:id/report", authMiddleware, reportInstitutionPost);
 
 // Admin routes - manage pending content (accessible to all authenticated users)
 router.get("/admin/pending-events", authMiddleware, getPendingEvents);

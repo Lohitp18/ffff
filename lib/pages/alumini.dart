@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'user_profile_view.dart';
 
 class AlumniPage extends StatefulWidget {
   @override
@@ -248,76 +249,172 @@ class _AlumniTileState extends State<_AlumniTile> {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 30,
-              backgroundColor: Colors.blue.shade100,
-              child: const Icon(Icons.person, color: Colors.blue, size: 30),
+      child: InkWell(
+        onTap: () {
+          // Navigate to user profile
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => UserProfileViewPage(userId: u['_id']),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          );
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // Enhanced Avatar with proper image loading
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.blue.shade100, width: 2),
+                ),
+                child: CircleAvatar(
+                  radius: 30,
+                  backgroundColor: Colors.blue.shade50,
+                  child: u['profileImage'] != null
+                      ? ClipOval(
+                          child: Image.network(
+                            widget.baseUrl + (u['profileImage'].startsWith('/') ? u['profileImage'] : '/${u['profileImage']}'),
+                            width: 60,
+                            height: 60,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: LinearGradient(
+                                  colors: [Colors.blue.shade300, Colors.blue.shade600],
+                                ),
+                              ),
+                              child: const Icon(Icons.person, color: Colors.white, size: 30),
+                            ),
+                          ),
+                        )
+                      : Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [Colors.blue.shade300, Colors.blue.shade600],
+                            ),
+                          ),
+                          child: const Icon(Icons.person, color: Colors.white, size: 30),
+                        ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      (u['name'] ?? '').toString(),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      [
+                        (u['institution'] ?? '').toString(),
+                        (u['course'] ?? '').toString(),
+                        (u['year'] ?? '').toString(),
+                      ].where((e) => e.isNotEmpty).join(' • '),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (u['headline'] != null && u['headline'].toString().isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        u['headline'].toString(),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey.shade500,
+                          fontStyle: FontStyle.italic,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    (u['name'] ?? '').toString(),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                  _sent
+                      ? Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade100,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.green.shade300),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_circle, size: 14, color: Colors.green.shade700),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Requested',
+                          style: TextStyle(color: Colors.green.shade700, fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  )
+                      : ElevatedButton(
+                    onPressed: _busy ? null : _connect,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue.shade700,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      elevation: 2,
+                    ),
+                    child: _busy
+                        ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                        : const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.person_add, size: 16),
+                        SizedBox(width: 4),
+                        Text('Connect', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    [
-                      (u['institution'] ?? '').toString(),
-                      (u['course'] ?? '').toString(),
-                      (u['year'] ?? '').toString(),
-                    ].where((e) => e.isNotEmpty).join(' • '),
+                    'Tap to view profile',
                     style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
+                      fontSize: 10,
+                      color: Colors.grey.shade500,
                     ),
                   ),
                 ],
               ),
-            ),
-            _sent
-                ? Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.green.shade100,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text(
-                'Requested',
-                style: TextStyle(color: Colors.green, fontSize: 12),
-              ),
-            )
-                : ElevatedButton(
-              onPressed: _busy ? null : _connect,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue.shade700,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-              child: _busy
-                  ? const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-                  : const Text('Connect', style: TextStyle(fontSize: 14)),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

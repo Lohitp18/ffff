@@ -4,29 +4,16 @@ const Post = require("../models/Post");
 const InstitutionPost = require("../models/InstitutionPost");
 const { createNotification } = require("./notificationController");
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
+const { uploadBufferToAzure } = require("../utils/azureStorage");
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = "uploads/";
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname));
-  },
-});
+// Configure multer for in-memory uploads (sent to Azure)
+const storage = multer.memoryStorage();
 
-const upload = multer({ 
-  storage: storage,
+const upload = multer({
+  storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith("image/")) {
+    if (file.mimetype && file.mimetype.startsWith("image/")) {
       cb(null, true);
     } else {
       cb(new Error("Only image files are allowed"), false);
@@ -35,11 +22,11 @@ const upload = multer({
 });
 
 // Optional image upload middleware
-const uploadOptional = multer({ 
-  storage: storage,
+const uploadOptional = multer({
+  storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith("image/")) {
+    if (file.mimetype && file.mimetype.startsWith("image/")) {
       cb(null, true);
     } else {
       cb(new Error("Only image files are allowed"), false);
@@ -49,19 +36,26 @@ const uploadOptional = multer({
 
 // Upload middleware for institution posts (accepts both images and videos)
 const uploadInstitutionPostMiddleware = multer({
-  storage: storage,
+  storage,
   limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit for videos
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith("image/") || file.mimetype.startsWith("video/")) {
+    if (file.mimetype && (file.mimetype.startsWith("image/") || file.mimetype.startsWith("video/"))) {
       cb(null, true);
     } else {
       cb(new Error("Only image and video files are allowed"), false);
     }
   },
 }).fields([
-  { name: 'image', maxCount: 1 },
-  { name: 'video', maxCount: 1 }
+  { name: "image", maxCount: 1 },
+  { name: "video", maxCount: 1 },
 ]);
+
+const uploadToAzure = async (file, folder = "uploads") => {
+  if (!file || !file.buffer) return null;
+  const originalName = file.originalname || "file";
+  const mimeType = file.mimetype || "application/octet-stream";
+  return uploadBufferToAzure(file.buffer, originalName, folder, mimeType);
+};
 
 const listApproved = async (Model, res, userId = null) => {
   let items;
@@ -111,7 +105,13 @@ const listApproved = async (Model, res, userId = null) => {
       return oppObj;
     });
   } else if (Model.modelName === 'InstitutionPost') {
-    items = items.map(ip => ({ ...ip.toObject(), category: 'InstitutionPost' }));
+    items = items.map(ip => {
+      const ipObj = ip.toObject();
+      ipObj.category = 'InstitutionPost';
+      ipObj.isLiked = userId ? ip.likes?.includes(userId) : false;
+      ipObj.likeCount = ip.likes?.length || 0;
+      return ipObj;
+    });
   }
   
   return res.json(items);
@@ -158,7 +158,7 @@ module.exports = {
       };
 
       if (req.file) {
-        eventData.imageUrl = `/uploads/${req.file.filename}`;
+        eventData.imageUrl = await uploadToAzure(req.file, "events");
       }
 
       const event = await Event.create(eventData);
@@ -187,7 +187,7 @@ module.exports = {
       };
 
       if (req.file) {
-        opportunityData.imageUrl = `/uploads/${req.file.filename}`;
+        opportunityData.imageUrl = await uploadToAzure(req.file, "opportunities");
       }
 
       const opportunity = await Opportunity.create(opportunityData);
@@ -259,14 +259,14 @@ module.exports = {
       
       // Handle image upload (from req.files.image or req.file for backward compatibility)
       if (req.files && req.files.image && req.files.image[0]) {
-        data.imageUrl = `/uploads/${req.files.image[0].filename}`;
+        data.imageUrl = await uploadToAzure(req.files.image[0], "institution-posts");
       } else if (req.file) {
-        data.imageUrl = `/uploads/${req.file.filename}`;
+        data.imageUrl = await uploadToAzure(req.file, "institution-posts");
       }
       
       // Handle video upload
       if (req.files && req.files.video && req.files.video[0]) {
-        data.videoUrl = `/uploads/${req.files.video[0].filename}`;
+        data.videoUrl = await uploadToAzure(req.files.video[0], "institution-posts");
       }
       
       const post = await InstitutionPost.create(data);
@@ -689,6 +689,79 @@ module.exports = {
     } catch (err) {
       console.error('reportOpportunity error', err);
       return res.status(500).json({ message: 'Failed to report opportunity' });
+    }
+  },
+
+  // Like/Unlike an institution post
+  toggleInstitutionPostLike: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user._id;
+
+      const post = await InstitutionPost.findById(id);
+      if (!post) {
+        return res.status(404).json({ message: 'Institution post not found' });
+      }
+
+      const isLiked = post.likes.includes(userId);
+      
+      if (isLiked) {
+        post.likes.pull(userId);
+      } else {
+        post.likes.push(userId);
+      }
+
+      await post.save();
+
+      return res.json({
+        liked: !isLiked,
+        likeCount: post.likes.length
+      });
+    } catch (err) {
+      console.error('toggleInstitutionPostLike error', err);
+      return res.status(500).json({ message: 'Failed to toggle like' });
+    }
+  },
+
+  // Report an institution post
+  reportInstitutionPost: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { reason, description } = req.body;
+      const userId = req.user._id;
+
+      if (!reason) {
+        return res.status(400).json({ message: 'Reason is required' });
+      }
+
+      const post = await InstitutionPost.findById(id);
+      if (!post) {
+        return res.status(404).json({ message: 'Institution post not found' });
+      }
+
+      const Report = require('../models/Report');
+      const existingReport = await Report.findOne({
+        reporterId: userId,
+        reportedItemId: id,
+        reportedItemType: 'InstitutionPost'
+      });
+
+      if (existingReport) {
+        return res.status(400).json({ message: 'You have already reported this institution post' });
+      }
+
+      const report = await Report.create({
+        reporterId: userId,
+        reportedItemId: id,
+        reportedItemType: 'InstitutionPost',
+        reason,
+        description: description || ''
+      });
+
+      return res.status(201).json({ message: 'Institution post reported successfully', report });
+    } catch (err) {
+      console.error('reportInstitutionPost error', err);
+      return res.status(500).json({ message: 'Failed to report institution post' });
     }
   },
 };

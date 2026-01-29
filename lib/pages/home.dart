@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'user_profile_view.dart';
+import 'institution.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -21,6 +22,14 @@ class _HomePageState extends State<HomePage> {
     'API_BASE_URL',
     defaultValue: 'http://10.0.2.2:5000',
   );
+
+  String? _resolveImageUrl(dynamic url) {
+    if (url == null) return null;
+    final value = url.toString().trim();
+    if (value.isEmpty) return null;
+    if (value.startsWith('http')) return Uri.encodeFull(value);
+    return Uri.encodeFull(_baseUrl + (value.startsWith('/') ? value : '/$value'));
+  }
 
   bool _loading = true;
   String? _error;
@@ -462,14 +471,14 @@ class _HomePageState extends State<HomePage> {
     // Get user information from the populated data
     final author = item['authorId'] ?? item['postedBy'];
     final authorName = author?['name'] ?? item['author'] ?? 'Unknown User';
-    final authorImage = author?['profileImage'];
+    final authorImage = _resolveImageUrl(author?['profileImage']);
     final authorId = author?['_id'];
 
     // For InstitutionPost, show institution name instead of user
     if (item['institution'] != null) {
       return Row(
         children: [
-          // Institution icon
+          // Institution logo
           Container(
             decoration: BoxDecoration(
               shape: BoxShape.circle,
@@ -478,7 +487,14 @@ class _HomePageState extends State<HomePage> {
             child: CircleAvatar(
               radius: 20,
               backgroundColor: Colors.blue.shade50,
-              child: Icon(Icons.school, color: Colors.blue.shade700, size: 20),
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/logo1.png',
+                  width: 28,
+                  height: 28,
+                  fit: BoxFit.cover,
+                ),
+              ),
             ),
           ),
 
@@ -486,81 +502,30 @@ class _HomePageState extends State<HomePage> {
 
           // Institution name
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item['institution'],
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                    color: Colors.black87,
-                  ),
-                ),
-                Text(
-                  'Institution',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
-    }
-
-    // For regular posts with user information
-    if (authorId != null) {
-      return Row(
-        children: [
-          // Profile picture (clickable) - Fixed to prevent cropping
-          GestureDetector(
-            onTap: () => _navigateToUserProfile(authorId),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.grey.shade300, width: 2),
-                color: Colors.grey.shade200,
-              ),
-              child: ClipOval(
-                child: authorImage != null
-                    ? Image.network(
-                        authorImage,
-                        width: 40,
-                        height: 40,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Icon(Icons.person, color: Colors.grey[600], size: 20);
-                        },
-                      )
-                    : Icon(Icons.person, color: Colors.grey[600], size: 20),
-              ),
-            ),
-          ),
-
-          const SizedBox(width: 12),
-
-          // User name (clickable)
-          Expanded(
             child: GestureDetector(
-              onTap: () => _navigateToUserProfile(authorId),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => InstitutionDetailPage(institutionName: item['institution']),
+                  ),
+                );
+              },
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    authorName,
+                    item['institution'],
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 15,
                       color: Colors.black87,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    'Posted',
+                    'Institution',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[600],
@@ -571,6 +536,23 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ],
+      );
+    }
+
+    // For regular posts with user information (name only)
+    if (authorId != null) {
+      return GestureDetector(
+        onTap: () => _navigateToUserProfile(authorId),
+        child: Text(
+          authorName,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+            color: Colors.black87,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       );
     }
 

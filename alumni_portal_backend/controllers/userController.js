@@ -4,8 +4,7 @@ const mongoose = require("mongoose");
 
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const { uploadBufferToAzure } = require("../utils/azureStorage");
 
 // GET /api/users/approved?year=&institution=&course=&q=
 exports.getApprovedAlumni = async (req, res) => {
@@ -209,23 +208,9 @@ exports.resetPasswordByEmail = async (req, res) => {
 };
 
 
-// ===== Image Uploads for Profile & Cover =====
-const imageStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    const uploadDir = 'uploads/';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (_req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, 'user-' + uniqueSuffix + path.extname(file.originalname));
-  },
-});
-
+// ===== Image Uploads for Profile & Cover (Azure) =====
 const imageUpload = multer({
-  storage: imageStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype && file.mimetype.startsWith('image/')) return cb(null, true);
@@ -251,7 +236,12 @@ const uploadProfileImage = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'No image uploaded' });
     const userId = req.user._id;
-    const imageUrl = `/uploads/${req.file.filename}`;
+    const imageUrl = await uploadBufferToAzure(
+      req.file.buffer,
+      req.file.originalname || 'profile.jpg',
+      "users",
+      req.file.mimetype
+    );
     const user = await User.findByIdAndUpdate(
       userId,
       { profileImage: imageUrl },
@@ -270,7 +260,12 @@ const uploadCoverImage = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'No image uploaded' });
     const userId = req.user._id;
-    const imageUrl = `/uploads/${req.file.filename}`;
+    const imageUrl = await uploadBufferToAzure(
+      req.file.buffer,
+      req.file.originalname || 'cover.jpg',
+      "users",
+      req.file.mimetype
+    );
     const user = await User.findByIdAndUpdate(
       userId,
       { coverImage: imageUrl },

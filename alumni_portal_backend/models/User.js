@@ -60,6 +60,29 @@ const userSchema = new mongoose.Schema({
         showSkills: { type: Boolean, default: true },
         showConnections: { type: Boolean, default: true },
         allowMessages: { type: Boolean, default: true }
+    },
+    
+    // Private fields (not disclosed to others)
+    privateInfo: {
+        placementCompany: String, // Company they got placed in
+        currentCompany: String, // Currently working company
+        totalExperience: Number, // Total years of experience
+        fieldsWorked: [String], // Fields/domains they worked in
+        currentPosition: String, // Current position/designation
+        hasMasters: { type: Boolean, default: false },
+        mastersDegree: String, // e.g., "M.Tech", "MBA", "MS", etc.
+        mastersUniversity: String, // University where masters was done
+        mastersField: String, // Field of study for masters
+        mastersYear: String, // Year of completion
+        placementYear: String, // Year of placement
+        placementPackage: String, // Placement package (optional)
+        previousCompanies: [{
+            company: String,
+            position: String,
+            startDate: Date,
+            endDate: Date,
+            field: String
+        }]
     }
 }, { timestamps: true });
 

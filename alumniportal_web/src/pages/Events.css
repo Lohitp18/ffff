@@ -1,0 +1,74 @@
+/* LinkedIn-style Events Page */
+.events-container {
+  width: 100%;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.page-header h1 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #000000e6;
+  margin: 0;
+}
+
+.fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 14px 24px;
+  background: #0a66c2;
+  color: white;
+  border: none;
+  border-radius: 24px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 50;
+  transition: all 0.2s;
+}
+
+.fab:hover {
+  background: #004182;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.events-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.loading,
+.empty-state {
+  text-align: center;
+  padding: 48px;
+  color: #00000099;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .fab {
+    bottom: 80px;
+    right: 16px;
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+}

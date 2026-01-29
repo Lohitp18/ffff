@@ -24,6 +24,10 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> {
   String? _error;
   bool _loadingPosts = true;
   List<dynamic> _userPosts = [];
+  bool _loadingEvents = true;
+  bool _loadingOpportunities = true;
+  List<dynamic> _userEvents = [];
+  List<dynamic> _userOpportunities = [];
   String? _connectionStatus; // 'none', 'pending', 'accepted'
   bool _isFollowing = false;
   bool _followLoading = false;
@@ -33,12 +37,17 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> {
     super.initState();
     _loadUserProfile();
     _loadUserPosts();
+    _loadUserEvents();
+    _loadUserOpportunities();
     _checkConnectionStatus();
   }
 
-  String _normalizedUrl(String url) {
-    if (url.startsWith('http')) return url;
-    return _baseUrl + (url.startsWith('/') ? url : '/$url');
+  String? _normalizedUrl(dynamic url) {
+    if (url == null) return null;
+    final value = url.toString().trim();
+    if (value.isEmpty) return null;
+    if (value.startsWith('http')) return Uri.encodeFull(value);
+    return Uri.encodeFull(_baseUrl + (value.startsWith('/') ? value : '/$value'));
   }
 
   Future<void> _loadUserProfile() async {
@@ -105,6 +114,64 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> {
       setState(() {
         _loadingPosts = false;
       });
+    }
+  }
+
+  bool _isUserMatch(dynamic postedBy) {
+    if (postedBy == null) return false;
+    final id = postedBy is Map ? postedBy['_id'] ?? postedBy['id'] : postedBy;
+    return id?.toString() == widget.userId;
+  }
+
+  Future<void> _loadUserEvents() async {
+    setState(() => _loadingEvents = true);
+    try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
+      final headers = {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/content/events'),
+        headers: headers,
+      );
+      if (response.statusCode == 200) {
+        final items = jsonDecode(response.body) as List<dynamic>;
+        setState(() {
+          _userEvents = items.where((e) => _isUserMatch(e['postedBy'])).toList();
+        });
+      }
+    } catch (_) {
+      setState(() => _userEvents = []);
+    } finally {
+      setState(() => _loadingEvents = false);
+    }
+  }
+
+  Future<void> _loadUserOpportunities() async {
+    setState(() => _loadingOpportunities = true);
+    try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
+      final headers = {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/content/opportunities'),
+        headers: headers,
+      );
+      if (response.statusCode == 200) {
+        final items = jsonDecode(response.body) as List<dynamic>;
+        setState(() {
+          _userOpportunities = items.where((o) => _isUserMatch(o['postedBy'])).toList();
+        });
+      }
+    } catch (_) {
+      setState(() => _userOpportunities = []);
+    } finally {
+      setState(() => _loadingOpportunities = false);
     }
   }
 
@@ -177,6 +244,8 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> {
               _buildSection(_buildEducationContent(), title: 'Education'),
               _buildSection(_buildSkillsContent(), title: 'Skills'),
               _buildSection(_buildContactLinksContent(), title: 'Contact & Links'),
+              _buildSection(_buildEventsContent(), title: 'Events'),
+              _buildSection(_buildOpportunitiesContent(), title: 'Opportunities'),
               _buildSection(_buildPostsContent(), title: 'Posts'),
               const SizedBox(height: 16),
             ],
@@ -192,19 +261,40 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> {
       color: Colors.white,
       child: Column(
         children: [
-          // Cover Image - LinkedIn Blue
+          // Enhanced Cover Image with Gradient Overlay
           Container(
             height: 200,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: const Color(0xFF0A66C2),
-              image: _userProfile!['coverImage'] != null
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFF0A66C2),
+                  const Color(0xFF004182),
+                ],
+              ),
+              image: _normalizedUrl(_userProfile!['coverImage']) != null
                   ? DecorationImage(
-                      image: NetworkImage(_normalizedUrl(_userProfile!['coverImage'])),
-                fit: BoxFit.cover,
-              )
+                      image: NetworkImage(_normalizedUrl(_userProfile!['coverImage'])!),
+                      fit: BoxFit.cover,
+                    )
                   : null,
             ),
+            child: _normalizedUrl(_userProfile!['coverImage']) != null
+                ? Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.3),
+                        ],
+                      ),
+                    ),
+                  )
+                : null,
           ),
           
           // Profile Info Section
@@ -212,22 +302,90 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                // Profile Image (overlapping)
+                // Profile Image (overlapping) - Enhanced with better error handling
                 Transform.translate(
                   offset: const Offset(0, -60),
-                  child: CircleAvatar(
-            radius: 60,
-            backgroundColor: Colors.white,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 4),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
                     child: CircleAvatar(
-                      radius: 56,
+                      radius: 60,
                       backgroundColor: Colors.grey.shade200,
-            backgroundImage: _userProfile!['profileImage'] != null
-                          ? NetworkImage(_normalizedUrl(_userProfile!['profileImage']))
-                : null,
-            child: _userProfile!['profileImage'] == null
-                ? const Icon(Icons.person, size: 60, color: Colors.grey)
-                : null,
-          ),
+                      child: _normalizedUrl(_userProfile!['profileImage']) != null
+                          ? ClipOval(
+                              child: Image.network(
+                                _normalizedUrl(_userProfile!['profileImage'])!,
+                                width: 120,
+                                height: 120,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  print('Image load error: $error');
+                                  return Container(
+                                    width: 120,
+                                    height: 120,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      gradient: LinearGradient(
+                                        colors: [Colors.blue.shade300, Colors.blue.shade600],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      Icons.person,
+                                      size: 60,
+                                      color: Colors.white,
+                                    ),
+                                  );
+                                },
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    width: 120,
+                                    height: 120,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.grey.shade200,
+                                    ),
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress.expectedTotalBytes != null
+                                            ? loadingProgress.cumulativeBytesLoaded /
+                                                loadingProgress.expectedTotalBytes!
+                                            : null,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            )
+                          : Container(
+                              width: 120,
+                              height: 120,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: LinearGradient(
+                                  colors: [Colors.blue.shade300, Colors.blue.shade600],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.person,
+                                size: 60,
+                                color: Colors.white,
+                              ),
+                            ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -240,6 +398,9 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> {
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
             ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
           if (_userProfile!['headline'] != null) ...[
                   const SizedBox(height: 4),
@@ -251,6 +412,8 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> {
                       fontWeight: FontWeight.w400,
                     ),
               textAlign: TextAlign.center,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
           if (_userProfile!['location'] != null) ...[
@@ -291,84 +454,81 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> {
                 ),
                 const SizedBox(height: 16),
 
-                // Action Buttons - LinkedIn Style
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton(
-                      onPressed: _followLoading ? null : (_isFollowing ? _unfollow : _sendConnectionRequest),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _isFollowing ? Colors.grey.shade200 : const Color(0xFF0A66C2),
-                        foregroundColor: _isFollowing ? Colors.black87 : Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: _followLoading
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (!_isFollowing) ...[
-                                  const Text('+', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w300)),
-                                  const SizedBox(width: 4),
-                                ],
-                                Text(
-                                  _isFollowing
-                                      ? (_connectionStatus == 'pending' ? 'Pending' : 'Following')
-                                      : 'Follow',
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                                ),
-                              ],
+                // Enhanced Action Buttons
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: _isFollowing
+                                ? null
+                                : LinearGradient(
+                                    colors: [const Color(0xFF0A66C2), const Color(0xFF004182)],
+                                  ),
+                            borderRadius: BorderRadius.circular(25),
+                          ),
+                          child: ElevatedButton(
+                            onPressed: _followLoading ? null : (_isFollowing ? _unfollow : _sendConnectionRequest),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _isFollowing ? Colors.grey.shade200 : Colors.transparent,
+                              foregroundColor: _isFollowing ? Colors.black87 : Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                              elevation: _isFollowing ? 0 : 3,
+                              shadowColor: Colors.blue.withOpacity(0.3),
                             ),
-                    ),
-                    const SizedBox(width: 8),
-                    OutlinedButton(
-                    onPressed: _sendMessage,
-                    style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.black54,
-                        side: const BorderSide(color: Colors.black26),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
+                            child: _followLoading
+                                ? SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        _isFollowing ? Colors.blue : Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                : Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        _isFollowing ? Icons.check : Icons.person_add,
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        _isFollowing
+                                            ? (_connectionStatus == 'pending' ? 'Pending' : 'Following')
+                                            : 'Connect',
+                                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                                      ),
+                                    ],
+                                  ),
+                          ),
                         ),
                       ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.lock_outline, size: 16),
-                          SizedBox(width: 4),
-                          Text('Message', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    OutlinedButton(
-                      onPressed: _showOptionsDialog,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.black54,
-                        side: const BorderSide(color: Colors.black26),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
+                      const SizedBox(width: 12),
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                        child: IconButton(
+                          onPressed: _showOptionsDialog,
+                          icon: const Icon(Icons.more_horiz, color: Colors.black54),
+                          style: IconButton.styleFrom(
+                            padding: const EdgeInsets.all(12),
+                          ),
                         ),
                       ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.more_horiz, size: 16),
-                          SizedBox(width: 4),
-                          Text('More', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -383,12 +543,25 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: Colors.grey.shade600),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 18, color: const Color(0xFF0A66C2)),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               text,
-              style: TextStyle(color: Colors.grey.shade800, fontSize: 14),
+              style: TextStyle(
+                color: Colors.grey.shade800,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -496,6 +669,8 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> {
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -505,6 +680,8 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> {
                     color: Color(0xFF0A66C2),
                     fontWeight: FontWeight.w500,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 if (exp['location'] != null) ...[
                   const SizedBox(height: 2),
@@ -569,6 +746,8 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> {
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -578,6 +757,8 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> {
                     color: Color(0xFF0A66C2),
                     fontWeight: FontWeight.w500,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   _formatDateRange(edu['startDate'], edu['endDate'], edu['current']),
@@ -741,13 +922,202 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> {
     );
   }
 
-  Widget _buildPostCard(Map<String, dynamic> post) {
+  // ------------------ EVENTS ------------------
+  Widget _buildEventsContent() {
+    if (_loadingEvents) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    if (_userEvents.isEmpty) {
+      return Text(
+        'No events posted yet.',
+        style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+      );
+    }
+    return Column(
+      children: _userEvents.map((event) => _buildEventCard(event)).toList(),
+    );
+  }
+
+  Widget _buildEventCard(Map<String, dynamic> event) {
+    final title = event['title']?.toString() ?? '';
+    final description = event['description']?.toString() ?? '';
+    final date = event['date']?.toString() ?? '';
+    final location = event['location']?.toString() ?? '';
+    final imageUrl = _normalizedUrl(event['imageUrl']);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (date.isNotEmpty || location.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              [if (date.isNotEmpty) _formatPostDate(date), if (location.isNotEmpty) location]
+                  .join(' • '),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+          if (imageUrl != null) ...[
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.network(
+                imageUrl,
+                height: 180,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 180,
+                  color: Colors.grey.shade100,
+                  child: const Icon(Icons.broken_image_outlined),
+                ),
+              ),
+            ),
+          ],
+          if (description.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              description,
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade700, height: 1.4),
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ------------------ OPPORTUNITIES ------------------
+  Widget _buildOpportunitiesContent() {
+    if (_loadingOpportunities) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    if (_userOpportunities.isEmpty) {
+      return Text(
+        'No opportunities posted yet.',
+        style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+      );
+    }
+    return Column(
+      children: _userOpportunities.map((opp) => _buildOpportunityCard(opp)).toList(),
+    );
+  }
+
+  Widget _buildOpportunityCard(Map<String, dynamic> opp) {
+    final title = opp['title']?.toString() ?? '';
+    final description = opp['description']?.toString() ?? '';
+    final company = opp['company']?.toString() ?? '';
+    final type = opp['type']?.toString() ?? '';
+    final imageUrl = _normalizedUrl(opp['imageUrl']);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (company.isNotEmpty || type.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              [if (company.isNotEmpty) company, if (type.isNotEmpty) type].join(' • '),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+          if (imageUrl != null) ...[
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.network(
+                imageUrl,
+                height: 180,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 180,
+                  color: Colors.grey.shade100,
+                  child: const Icon(Icons.broken_image_outlined),
+                ),
+              ),
+            ),
+          ],
+          if (description.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              description,
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade700, height: 1.4),
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPostCard(Map<String, dynamic> post) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -755,58 +1125,104 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (post['title'] != null && post['title'].toString().isNotEmpty)
-              Text(
-                post['title'],
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+              Container(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  post['title'],
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-            if (post['title'] != null && post['content'] != null) const SizedBox(height: 8),
             if (post['content'] != null && post['content'].toString().isNotEmpty)
-              Text(
-                post['content'],
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade700,
-                  height: 1.5,
+              Container(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  post['content'],
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Colors.grey.shade700,
+                    height: 1.6,
+                  ),
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 5,
-                overflow: TextOverflow.ellipsis,
               ),
             if (post['imageUrl'] != null) ...[
-              const SizedBox(height: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  _normalizedUrl(post['imageUrl']),
-                  width: double.infinity,
-                  height: 300,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    _normalizedUrl(post['imageUrl']),
+                    width: double.infinity,
                     height: 200,
-                    color: Colors.grey.shade200,
-                    child: const Icon(Icons.broken_image),
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      height: 200,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.broken_image_outlined,
+                        size: 48,
+                        color: Colors.grey.shade400,
+                      ),
+                    ),
                   ),
                 ),
               ),
             ],
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(Icons.favorite_border, size: 16, color: Colors.grey.shade600),
-                const SizedBox(width: 4),
-                Text(
-                  '${post['likes']?.length ?? 0}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                ),
-                const SizedBox(width: 16),
-                Text(
-                  _formatPostDate(post['createdAt']),
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                ),
-              ],
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Icon(Icons.favorite_border, size: 14, color: Colors.red.shade400),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${post['likes']?.length ?? 0} likes',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade700,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Icon(Icons.access_time, size: 14, color: Colors.blue.shade400),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _formatPostDate(post['createdAt']),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade700,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -835,31 +1251,52 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> {
     }
   }
 
-  // ------------------ SECTION WRAPPER ------------------
+  // ------------------ ENHANCED SECTION WRAPPER ------------------
   Widget _buildSection(Widget content, {required String title}) {
     if (content is SizedBox) return const SizedBox.shrink();
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
+            Row(
+              children: [
+                Container(
+                  width: 4,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [const Color(0xFF0A66C2), const Color(0xFF004182)],
+                    ),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
-          content,
+            content,
           ],
         ),
       ),
@@ -1074,11 +1511,6 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> {
     }
   }
 
-  void _sendMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Messaging feature coming soon!')),
-    );
-  }
   void _blockUser() => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User blocked!')));
   void _reportUser() => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User reported!')));
 }

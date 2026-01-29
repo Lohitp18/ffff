@@ -1,0 +1,202 @@
+/* LinkedIn-style Institutions Page */
+.institutions-container {
+  width: 100%;
+}
+
+.institutions-header {
+  margin-bottom: 24px;
+}
+
+.institutions-header h1 {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 600;
+  color: #000000;
+}
+
+.institutions-header p {
+  margin: 0;
+  color: #666666;
+  font-size: 14px;
+}
+
+.institutions-search {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.search-header {
+  width: 100%;
+}
+
+.institution-search-input {
+  width: 100%;
+  padding: 12px 16px 12px 40px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 14px;
+  background: #eef3f8;
+  color: #000000e6;
+  transition: all 0.2s;
+}
+
+.institution-search-input:focus {
+  outline: none;
+  background: white;
+  border-color: #0a66c2;
+  box-shadow: 0 0 0 1px #0a66c2;
+}
+
+.institution-search-input::placeholder {
+  color: #00000099;
+}
+
+.institutions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.institution-card {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.institution-card:hover {
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.institution-icon {
+  font-size: 48px;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e3f2fd;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.institution-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.institution-info h3 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #000000e6;
+  line-height: 1.5;
+}
+
+.institution-info p {
+  margin: 0;
+  font-size: 14px;
+  color: #00000099;
+  line-height: 1.43;
+}
+
+.institution-arrow {
+  font-size: 24px;
+  color: #666;
+  flex-shrink: 0;
+  transition: transform 0.2s, color 0.2s;
+}
+
+.institution-card:hover .institution-arrow {
+  transform: translateX(4px);
+  color: #0a66c2;
+}
+
+.loading,
+.empty-state {
+  text-align: center;
+  padding: 48px;
+  color: #00000099;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 768px) {
+  .institutions-container {
+    padding: 0;
+  }
+
+  .institutions-header {
+    margin-bottom: 16px;
+  }
+
+  .institutions-header h1 {
+    font-size: 22px;
+  }
+
+  .institutions-header p {
+    font-size: 13px;
+  }
+
+  .institutions-search {
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+
+  .institution-search-input {
+    padding: 10px 12px 10px 36px;
+    font-size: 14px;
+  }
+
+  .institution-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .institution-icon {
+    margin: 0 auto;
+    width: 56px;
+    height: 56px;
+    font-size: 36px;
+  }
+
+  .institution-info h3 {
+    font-size: 15px;
+  }
+
+  .institution-info p {
+    font-size: 13px;
+  }
+
+  .institution-arrow {
+    display: none;
+  }
+
+  .loading,
+  .empty-state {
+    padding: 32px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .institutions-header h1 {
+    font-size: 20px;
+  }
+
+  .institution-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 32px;
+  }
+}

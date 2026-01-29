@@ -7,6 +7,7 @@ const institutionPostSchema = new mongoose.Schema(
     content: { type: String, required: true },
     imageUrl: { type: String },
     videoUrl: { type: String },
+    likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User", default: [] }],
     status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
   },
   { timestamps: true }

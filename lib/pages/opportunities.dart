@@ -35,8 +35,17 @@ class _OpportunitiesPageState extends State<OpportunitiesPage> {
       _error = null;
     });
     try {
-      final res =
-          await http.get(Uri.parse('$_baseUrl/api/content/opportunities'));
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
+      final headers = {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
+      
+      final res = await http.get(
+        Uri.parse('$_baseUrl/api/content/opportunities'),
+        headers: headers,
+      );
       if (res.statusCode != 200) throw Exception('failed');
       setState(() {
         _items = jsonDecode(res.body) as List<dynamic>;
@@ -256,8 +265,7 @@ class _OpportunitiesPageState extends State<OpportunitiesPage> {
             const SizedBox(height: 16),
             Row(
               children: [
-                _buildActionButton(
-                    Icons.thumb_up_outlined, 'Like', () => _handleLike(opportunity)),
+                _buildLikeButton(opportunity),
                 const SizedBox(width: 16),
                 _buildActionButton(
                     Icons.share, 'Share', () => _handleShare(opportunity)),
@@ -317,13 +325,50 @@ class _OpportunitiesPageState extends State<OpportunitiesPage> {
     );
   }
 
+  Widget _buildLikeButton(Map<String, dynamic> opportunity) {
+    final isLiked = opportunity['isLiked'] ?? false;
+    final likeCount = opportunity['likeCount'] ?? opportunity['likes']?.length ?? 0;
+    
+    return InkWell(
+      onTap: () => _handleLike(opportunity),
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
+              size: 20,
+              color: isLiked ? Colors.blue : Colors.grey.shade600,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              likeCount > 0 ? '$likeCount' : 'Like',
+              style: TextStyle(
+                color: isLiked ? Colors.blue : Colors.grey.shade600,
+                fontSize: 14,
+                fontWeight: isLiked ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _handleLike(Map<String, dynamic> item) async {
     try {
       final storage = FlutterSecureStorage();
       final token = await storage.read(key: 'auth_token');
-      if (token == null) return;
+      if (token == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please login to like opportunities')),
+        );
+        return;
+      }
 
-      final response = await http.post(
+      final response = await http.patch(
         Uri.parse('$_baseUrl/api/content/opportunities/${item['_id']}/like'),
         headers: {
           'Authorization': 'Bearer $token',
@@ -333,10 +378,16 @@ class _OpportunitiesPageState extends State<OpportunitiesPage> {
 
       if (response.statusCode == 200) {
         final result = jsonDecode(response.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Opportunity liked! Total likes: ${result['likeCount'] ?? 0}')),
-        );
-        _load(); // Refresh to update like count
+        setState(() {
+          // Update the item in the list
+          final index = _items.indexWhere((e) => e['_id'] == item['_id']);
+          if (index != -1) {
+            _items[index]['isLiked'] = result['liked'];
+            _items[index]['likeCount'] = result['likeCount'];
+          }
+        });
+      } else {
+        throw Exception('Failed to toggle like');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -367,24 +418,28 @@ class _OpportunitiesPageState extends State<OpportunitiesPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _buildShareOption(
+                    context: context,
                     icon: Icons.share,
                     label: 'WhatsApp',
                     color: Colors.green,
                     onTap: () => _shareToWhatsApp(shareText),
                   ),
                   _buildShareOption(
+                    context: context,
                     icon: Icons.g_mobiledata,
                     label: 'Google',
                     color: Colors.blue,
                     onTap: () => _shareToGoogle(shareText),
                   ),
                   _buildShareOption(
+                    context: context,
                     icon: Icons.email,
                     label: 'Email',
                     color: Colors.red,
                     onTap: () => _shareToEmail(shareText),
                   ),
                   _buildShareOption(
+                    context: context,
                     icon: Icons.copy,
                     label: 'Copy',
                     color: Colors.grey,
@@ -405,13 +460,17 @@ class _OpportunitiesPageState extends State<OpportunitiesPage> {
   }
 
   Widget _buildShareOption({
+    required BuildContext context,
     required IconData icon,
     required String label,
     required Color color,
     required VoidCallback onTap,
   }) {
     return InkWell(
-      onTap: onTap,
+      onTap: () {
+        Navigator.pop(context);
+        onTap();
+      },
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -489,10 +548,13 @@ class _OpportunitiesPageState extends State<OpportunitiesPage> {
           }),
         );
 
-        if (response.statusCode == 200) {
+        if (response.statusCode == 201) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Report submitted to admin successfully')),
           );
+        } else {
+          final data = jsonDecode(response.body);
+          throw Exception(data['message'] ?? 'Failed to submit report');
         }
       }
     } catch (e) {
