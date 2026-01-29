@@ -253,7 +253,7 @@ const Alumni = () => {
                 </div>
                 <h3>{alum.name}</h3>
                 {alum.headline && <p className="headline">{alum.headline}</p>}
-                {alum.email && <p className="email">{alum.email}</p>}
+                <p className="alumni-info">{[alum.institution, alum.course, alum.year].filter(Boolean).join(' • ')}</p>
                 {!isCurrentUser && (
                   <div className="alumni-actions" onClick={(e) => e.stopPropagation()}>
                     {connectionInfo?.status === 'none' && (

@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7
+    container_name: alumni_mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-adminpassword}
+      MONGO_INITDB_DATABASE: alumni_portal
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    ports:
+      - "27017:27017"
+    networks:
+      - alumni_network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # Backend API Server
+  backend:
+    build:
+      context: ./alumni_portal_backend
+      dockerfile: Dockerfile
+    container_name: alumni_backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - MONGO_URI=mongodb://${MONGO_USER:-alumniuser}:${MONGO_PASSWORD:-alumnipassword}@mongodb:27017/alumni_portal?authSource=alumni_portal
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING:-}
+      - AZURE_STORAGE_CONTAINER_NAME=${AZURE_STORAGE_CONTAINER_NAME:-alumni-uploads}
+      - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_USER=${EMAIL_USER:-}
+      - EMAIL_PASS=${EMAIL_PASS:-}
+    volumes:
+      - backend_uploads:/app/uploads
+    ports:
+      - "5000:5000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - alumni_network
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:5000/api/health || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # Web Frontend
+  web:
+    build:
+      context: ./alumniportal_web
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:5000}
+    container_name: alumni_web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - alumni_network
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:80 || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  alumni_network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+    driver: local
+  backend_uploads:
+    driver: local

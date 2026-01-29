@@ -119,7 +119,7 @@ class _AlumniPageState extends State<AlumniPage> {
                 child: TextField(
                   controller: _searchCtrl,
                   decoration: const InputDecoration(
-                    labelText: 'Search name or email',
+                    labelText: 'Search by name',
                     prefixIcon: Icon(Icons.search),
                     border: OutlineInputBorder(),
                     isDense: true,

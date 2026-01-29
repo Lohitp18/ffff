@@ -13,6 +13,7 @@ class SignUpPage extends StatefulWidget {
 class _SignUpPageState extends State<SignUpPage> {
   final _formKey = GlobalKey<FormState>();
 
+  // Basic fields
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
@@ -21,6 +22,16 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController confirmPasswordController = TextEditingController();
   final TextEditingController favTeacherController = TextEditingController();
   final TextEditingController socialMediaController = TextEditingController();
+
+  // New required fields for profile
+  final TextEditingController currentCompanyController = TextEditingController();
+  final TextEditingController currentPositionController = TextEditingController();
+  final TextEditingController placementCompanyController = TextEditingController();
+  final TextEditingController placementYearController = TextEditingController();
+  final TextEditingController totalExperienceController = TextEditingController();
+  final TextEditingController fieldsWorkedController = TextEditingController();
+  final TextEditingController headlineController = TextEditingController();
+  final TextEditingController locationController = TextEditingController();
 
   String? _institution;
   String? _course;
@@ -58,6 +69,15 @@ class _SignUpPageState extends State<SignUpPage> {
             'password': passwordController.text,
             'favTeacher': favTeacherController.text.trim(),
             'socialMedia': socialMediaController.text.trim(),
+            // New required fields
+            'currentCompany': currentCompanyController.text.trim(),
+            'currentPosition': currentPositionController.text.trim(),
+            'placementCompany': placementCompanyController.text.trim(),
+            'placementYear': placementYearController.text.trim(),
+            'totalExperience': totalExperienceController.text.trim(),
+            'fieldsWorked': fieldsWorkedController.text.trim(),
+            'headline': headlineController.text.trim(),
+            'location': locationController.text.trim(),
           }),
         );
 
@@ -68,9 +88,10 @@ class _SignUpPageState extends State<SignUpPage> {
           final String token = data['token'] as String;
           await _secureStorage.write(key: 'auth_token', value: token);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Registered successfully. Await approval.')),
+            const SnackBar(content: Text('Account created successfully!')),
           );
-          Navigator.pop(context);
+          // Navigate directly to home - no verification needed
+          Navigator.pushReplacementNamed(context, '/home');
         } else {
           final Map<String, dynamic>? err = response.body.isNotEmpty ? jsonDecode(response.body) : null;
           setState(() { _error = err != null && err['message'] is String ? err['message'] as String : 'Sign up failed'; });
@@ -89,22 +110,30 @@ class _SignUpPageState extends State<SignUpPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Create Account")),
+      appBar: AppBar(
+        title: const Text("Create Account"),
+        backgroundColor: Colors.blue.shade700,
+        foregroundColor: Colors.white,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Form(
           key: _formKey,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 8),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Join the Alumni community",
-                  style: TextStyle(fontSize: 16, color: Colors.black54),
-                ),
+              const Text(
+                "Join the Alumni Community",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "Fill in all required details to create your profile",
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
               ),
               const SizedBox(height: 16),
+              
               if (_error != null) ...[
                 Container(
                   width: double.infinity,
@@ -118,35 +147,48 @@ class _SignUpPageState extends State<SignUpPage> {
                 ),
                 const SizedBox(height: 16),
               ],
+
+              // ===== BASIC INFORMATION SECTION =====
+              _buildSectionHeader("Basic Information", Icons.person),
+              const SizedBox(height: 12),
+              
               // Name
               TextFormField(
                 controller: nameController,
-                decoration: const InputDecoration(labelText: "Full Name"),
-                validator: (value) => value!.isEmpty ? "Enter name" : null,
+                decoration: _inputDecoration("Full Name *", Icons.person_outline),
+                validator: (value) => value!.isEmpty ? "Enter your full name" : null,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
               // Email
               TextFormField(
                 controller: emailController,
-                decoration: const InputDecoration(labelText: "Email"),
-                validator: (value) => value!.isEmpty ? "Enter email" : null,
+                decoration: _inputDecoration("Email *", Icons.email_outlined),
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) {
+                  if (value!.isEmpty) return "Enter your email";
+                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                    return "Enter a valid email";
+                  }
+                  return null;
+                },
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
               // Phone
               TextFormField(
                 controller: phoneController,
-                decoration: const InputDecoration(labelText: "Phone Number"),
+                decoration: _inputDecoration("Phone Number *", Icons.phone_outlined),
                 keyboardType: TextInputType.phone,
-                validator: (value) => value!.isEmpty ? "Enter phone number" : null,
+                validator: (value) => value!.isEmpty ? "Enter your phone number" : null,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
               // DOB
               TextFormField(
                 controller: dobController,
-                decoration: const InputDecoration(labelText: "Date of Birth"),
+                decoration: _inputDecoration("Date of Birth *", Icons.calendar_today_outlined),
+                readOnly: true,
                 onTap: () async {
                   FocusScope.of(context).requestFocus(FocusNode());
                   DateTime? pickedDate = await showDatePicker(
@@ -156,11 +198,24 @@ class _SignUpPageState extends State<SignUpPage> {
                     lastDate: DateTime.now(),
                   );
                   if (pickedDate != null) {
-                    dobController.text = "${pickedDate.day}-${pickedDate.month}-${pickedDate.year}";
+                    dobController.text = "${pickedDate.day.toString().padLeft(2, '0')}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.year}";
                   }
                 },
+                validator: (value) => value!.isEmpty ? "Select your date of birth" : null,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
+
+              // Location
+              TextFormField(
+                controller: locationController,
+                decoration: _inputDecoration("Current Location *", Icons.location_on_outlined),
+                validator: (value) => value!.isEmpty ? "Enter your current location" : null,
+              ),
+              const SizedBox(height: 24),
+
+              // ===== EDUCATION SECTION =====
+              _buildSectionHeader("Education Details", Icons.school),
+              const SizedBox(height: 12),
 
               // Institution dropdown
               DropdownButtonFormField<String>(
@@ -169,10 +224,10 @@ class _SignUpPageState extends State<SignUpPage> {
                   ..._institutions.map((i) => DropdownMenuItem(value: i, child: Text(i)))
                 ],
                 onChanged: (v) => setState(() { _institution = v; }),
-                decoration: const InputDecoration(labelText: "Institution"),
-                validator: (v) => (v == null || v.isEmpty) ? 'Select institution' : null,
+                decoration: _inputDecoration("Institution *", Icons.business),
+                validator: (v) => (v == null || v.isEmpty) ? 'Select your institution' : null,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
               // Course dropdown
               DropdownButtonFormField<String>(
@@ -181,10 +236,10 @@ class _SignUpPageState extends State<SignUpPage> {
                   ..._courses.map((c) => DropdownMenuItem(value: c, child: Text(c)))
                 ],
                 onChanged: (v) => setState(() { _course = v; }),
-                decoration: const InputDecoration(labelText: "Course"),
-                validator: (v) => (v == null || v.isEmpty) ? 'Select course' : null,
+                decoration: _inputDecoration("Course *", Icons.menu_book),
+                validator: (v) => (v == null || v.isEmpty) ? 'Select your course' : null,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
               // Year of passed-out dropdown
               DropdownButtonFormField<String>(
@@ -193,54 +248,205 @@ class _SignUpPageState extends State<SignUpPage> {
                   ..._years.map((y) => DropdownMenuItem(value: y, child: Text(y)))
                 ],
                 onChanged: (v) => setState(() { _year = v; }),
-                decoration: const InputDecoration(labelText: "Year of Passed-out"),
-                validator: (v) => (v == null || v.isEmpty) ? 'Select year' : null,
+                decoration: _inputDecoration("Year of Graduation *", Icons.date_range),
+                validator: (v) => (v == null || v.isEmpty) ? 'Select your graduation year' : null,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
+
+              // Favorite Teacher
+              TextFormField(
+                controller: favTeacherController,
+                decoration: _inputDecoration("Favourite Teacher", Icons.favorite_outline),
+              ),
+              const SizedBox(height: 24),
+
+              // ===== PROFESSIONAL INFORMATION SECTION =====
+              _buildSectionHeader("Professional Information", Icons.work),
+              const SizedBox(height: 12),
+
+              // Headline
+              TextFormField(
+                controller: headlineController,
+                decoration: _inputDecoration("Professional Headline *", Icons.title, 
+                  hintText: "e.g., Software Engineer at Google"),
+                validator: (value) => value!.isEmpty ? "Enter your professional headline" : null,
+              ),
+              const SizedBox(height: 12),
+
+              // Current Company
+              TextFormField(
+                controller: currentCompanyController,
+                decoration: _inputDecoration("Current Company *", Icons.business_center_outlined),
+                validator: (value) => value!.isEmpty ? "Enter your current company" : null,
+              ),
+              const SizedBox(height: 12),
+
+              // Current Position
+              TextFormField(
+                controller: currentPositionController,
+                decoration: _inputDecoration("Current Position/Designation *", Icons.badge_outlined),
+                validator: (value) => value!.isEmpty ? "Enter your current position" : null,
+              ),
+              const SizedBox(height: 12),
+
+              // Total Experience
+              TextFormField(
+                controller: totalExperienceController,
+                decoration: _inputDecoration("Total Years of Experience *", Icons.timer_outlined,
+                  hintText: "e.g., 3"),
+                keyboardType: TextInputType.number,
+                validator: (value) => value!.isEmpty ? "Enter your total experience" : null,
+              ),
+              const SizedBox(height: 12),
+
+              // Fields Worked
+              TextFormField(
+                controller: fieldsWorkedController,
+                decoration: _inputDecoration("Fields/Domains Worked In *", Icons.category_outlined,
+                  hintText: "e.g., Web Development, Machine Learning"),
+                validator: (value) => value!.isEmpty ? "Enter fields you have worked in" : null,
+              ),
+              const SizedBox(height: 12),
+
+              // Placement Company
+              TextFormField(
+                controller: placementCompanyController,
+                decoration: _inputDecoration("Campus Placement Company", Icons.celebration_outlined,
+                  hintText: "Company where you got placed (if any)"),
+              ),
+              const SizedBox(height: 12),
+
+              // Placement Year
+              TextFormField(
+                controller: placementYearController,
+                decoration: _inputDecoration("Placement Year", Icons.event,
+                  hintText: "Year of campus placement"),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 24),
+
+              // ===== SOCIAL & SECURITY SECTION =====
+              _buildSectionHeader("Social & Security", Icons.lock),
+              const SizedBox(height: 12),
+
+              // Social Media
+              TextFormField(
+                controller: socialMediaController,
+                decoration: _inputDecoration("LinkedIn Profile URL", Icons.link),
+              ),
+              const SizedBox(height: 12),
 
               // Password
               TextFormField(
                 controller: passwordController,
                 obscureText: true,
-                decoration: const InputDecoration(labelText: "Password"),
+                decoration: _inputDecoration("Password *", Icons.lock_outline),
+                validator: (value) {
+                  if (value!.isEmpty) return "Enter a password";
+                  if (value.length < 6) return "Password must be at least 6 characters";
+                  return null;
+                },
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
               // Confirm Password
               TextFormField(
                 controller: confirmPasswordController,
                 obscureText: true,
-                decoration: const InputDecoration(labelText: "Confirm Password"),
-                validator: (value) => value != passwordController.text ? "Passwords don’t match" : null,
+                decoration: _inputDecoration("Confirm Password *", Icons.lock_outline),
+                validator: (value) => value != passwordController.text ? "Passwords don't match" : null,
               ),
-              const SizedBox(height: 10),
-
-              // Favorite Teacher
-              TextFormField(
-                controller: favTeacherController,
-                decoration: const InputDecoration(labelText: "Favourite Teacher"),
-              ),
-              const SizedBox(height: 10),
-
-              // Social Media
-              TextFormField(
-                controller: socialMediaController,
-                decoration: const InputDecoration(labelText: "Social Media Link"),
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
               // Submit Button
               _isLoading
-                  ? const CircularProgressIndicator()
-                  : ElevatedButton(
-                onPressed: _signUp,
-                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
-                child: const Text("Sign Up"),
+                  ? const Center(child: CircularProgressIndicator())
+                  : SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: _signUp,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade700,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          "Create Account",
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+              const SizedBox(height: 16),
+              
+              // Login link
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: RichText(
+                    text: TextSpan(
+                      text: "Already have an account? ",
+                      style: TextStyle(color: Colors.grey.shade600),
+                      children: [
+                        TextSpan(
+                          text: "Sign In",
+                          style: TextStyle(
+                            color: Colors.blue.shade700,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.blue.shade700, size: 20),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue.shade700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String label, IconData icon, {String? hintText}) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hintText,
+      prefixIcon: Icon(icon, color: Colors.blue.shade600),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Colors.blue.shade700, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
   }
 }

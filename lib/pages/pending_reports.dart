@@ -209,7 +209,7 @@ class _PendingReportsPageState extends State<PendingReportsPage> {
             
             // Reporter info
             Text(
-              'Reported by: ${reporter['name']} (${reporter['email']})',
+              'Reported by: ${reporter['name'] ?? 'Unknown User'}',
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,

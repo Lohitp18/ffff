@@ -776,11 +776,15 @@ class _LikeButtonState extends State<_LikeButton> {
 
       // Determine the correct endpoint based on post type
       String endpoint;
-      if (widget.postType == 'Event' || widget.postType == 'event') {
+      final lowerType = widget.postType.toLowerCase();
+      if (lowerType == 'event') {
         endpoint = '${widget.baseUrl}/api/content/events/${widget.postId}/like';
-      } else if (widget.postType == 'Opportunity' || widget.postType == 'opportunity') {
+      } else if (lowerType == 'opportunity') {
         endpoint = '${widget.baseUrl}/api/content/opportunities/${widget.postId}/like';
+      } else if (lowerType == 'institutionpost' || lowerType == 'institution_post') {
+        endpoint = '${widget.baseUrl}/api/content/institution-posts/${widget.postId}/like';
       } else {
+        // Regular Post
         endpoint = '${widget.baseUrl}/api/posts/${widget.postId}/like';
       }
 
@@ -1305,11 +1309,15 @@ class _ReportButton extends StatelessWidget {
 
       // Determine the correct endpoint based on post type
       String endpoint;
-      if (postType == 'Event' || postType == 'event') {
+      final lowerType = postType.toLowerCase();
+      if (lowerType == 'event') {
         endpoint = '$baseUrl/api/content/events/$postId/report';
-      } else if (postType == 'Opportunity' || postType == 'opportunity') {
+      } else if (lowerType == 'opportunity') {
         endpoint = '$baseUrl/api/content/opportunities/$postId/report';
+      } else if (lowerType == 'institutionpost' || lowerType == 'institution_post') {
+        endpoint = '$baseUrl/api/content/institution-posts/$postId/report';
       } else {
+        // Regular Post
         endpoint = '$baseUrl/api/posts/$postId/report';
       }
 
@@ -1326,7 +1334,6 @@ class _ReportButton extends StatelessWidget {
       );
 
       if (response.statusCode == 201) {
-        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Report submitted successfully')),
         );

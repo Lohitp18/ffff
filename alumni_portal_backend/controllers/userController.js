@@ -7,6 +7,7 @@ const multer = require('multer');
 const { uploadBufferToAzure } = require("../utils/azureStorage");
 
 // GET /api/users/approved?year=&institution=&course=&q=
+// NOTE: Email and phone are NOT returned for privacy - users should connect to see contact details
 exports.getApprovedAlumni = async (req, res) => {
   try {
     const { year, institution, course, q } = req.query;
@@ -16,16 +17,14 @@ exports.getApprovedAlumni = async (req, res) => {
     if (institution) filter.institution = { $regex: institution, $options: "i" };
     if (course) filter.course = { $regex: course, $options: "i" };
 
-    // Text search on name or email if q provided
+    // Text search on name only (not email for privacy)
     if (q) {
-      filter.$or = [
-        { name: { $regex: q, $options: "i" } },
-        { email: { $regex: q, $options: "i" } },
-      ];
+      filter.name = { $regex: q, $options: "i" };
     }
 
+    // Do NOT include email or phone in the response for privacy
     const users = await User.find(filter)
-      .select("name email phone institution course year createdAt")
+      .select("name institution course year createdAt profileImage headline location")
       .sort({ createdAt: -1 })
       .limit(200);
 
@@ -130,10 +129,13 @@ exports.getUserById = async (req, res) => {
     // Convert to plain object to modify
     const userObj = user.toObject();
 
-    // Hide email if viewing someone else's profile (unless privacy settings allow it)
-    // Always hide email for other users' profiles
+    // Hide email and phone if viewing someone else's profile (for privacy)
+    // Only the user themselves can see their own email/phone
     if (!currentUserId || currentUserId !== id) {
       delete userObj.email;
+      delete userObj.phone;
+      // Also hide private info for other users
+      delete userObj.privateInfo;
     }
 
     res.json(userObj);

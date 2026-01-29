@@ -436,11 +436,10 @@ const Admin = () => {
                     <tr>
                       <th>Photo</th>
                       <th>Name</th>
-                      <th>Email</th>
-                      <th>Phone</th>
                       <th>Institution</th>
                       <th>Course</th>
                       <th>Year</th>
+                      <th>Headline</th>
                       <th>Status</th>
                       <th>Actions</th>
                     </tr>
@@ -458,11 +457,10 @@ const Admin = () => {
                           </div>
                         </td>
                         <td>{user.name || 'N/A'}</td>
-                        <td>{user.email || 'N/A'}</td>
-                        <td>{user.phone || '-'}</td>
                         <td>{user.institution || '-'}</td>
                         <td>{user.course || '-'}</td>
                         <td>{user.year || '-'}</td>
+                        <td>{user.headline || '-'}</td>
                         <td>
                           <span className={`status-badge ${user.status}`}>
                             {user.status || 'pending'}
@@ -746,7 +744,7 @@ const Admin = () => {
                     </div>
                     <p><strong>Description:</strong> {report.description || 'No description'}</p>
                     <div className="report-meta">
-                      <span>Reported by: {report.reporterId?.name || report.reporterId?.email || 'Unknown'}</span>
+                      <span>Reported by: {report.reporterId?.name || 'Unknown User'}</span>
                       <span>Date: {report.createdAt ? new Date(report.createdAt).toLocaleDateString() : 'N/A'}</span>
                       {report.reviewedBy && (
                         <span>Reviewed by: {report.reviewedBy?.name || 'Admin'}</span>
@@ -757,10 +755,10 @@ const Admin = () => {
                         <strong>Reported Content:</strong>
                         <p>{report.reportedItem.title || report.reportedItem.content || 'Content not available'}</p>
                         {report.reportedItem.authorId && (
-                          <p>Author: {report.reportedItem.authorId.name || report.reportedItem.authorId.email}</p>
+                          <p>Author: {report.reportedItem.authorId.name || 'Unknown'}</p>
                         )}
                         {report.reportedItem.postedBy && (
-                          <p>Posted by: {report.reportedItem.postedBy.name || report.reportedItem.postedBy.email}</p>
+                          <p>Posted by: {report.reportedItem.postedBy.name || 'Unknown'}</p>
                         )}
                       </div>
                     )}

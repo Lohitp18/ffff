@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -246,7 +247,8 @@ class _InstitutionDetailPageState extends State<InstitutionDetailPage> {
         if (res.statusCode == 200) {
           final user = jsonDecode(res.body) as Map<String, dynamic>;
           setState(() {
-            _isAdmin = user['role'] == 'admin';
+            // Check both isAdmin field and role field for compatibility
+            _isAdmin = user['isAdmin'] == true || user['role'] == 'admin';
           });
         }
       }
@@ -621,126 +623,162 @@ class _InstitutionDetailPageState extends State<InstitutionDetailPage> {
     final imageUrl = (post['imageUrl'] ?? '').toString();
     final videoUrl = (post['videoUrl'] ?? '').toString();
     final createdAt = post['createdAt']?.toString() ?? '';
+    final postId = post['_id']?.toString() ?? '';
     
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.blue.shade100),
-                  ),
-                  child: ClipOval(
-                    child: Image.asset(
-                      'assets/logo1.png',
-                      width: 24,
-                      height: 24,
-                      fit: BoxFit.cover,
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.blue.shade100),
+                      ),
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/logo1.png',
+                          width: 24,
+                          height: 24,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                      Text(
-                        widget.institutionName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                          Text(
+                            widget.institutionName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (createdAt.isNotEmpty)
+                            Text(
+                              _formatDate(createdAt),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                        ],
                       ),
-                      if (createdAt.isNotEmpty)
-                        Text(
-                          _formatDate(createdAt),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                if (imageUrl.isNotEmpty) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      imageUrl.startsWith('http') ? imageUrl : '$_baseUrl$imageUrl',
+                      height: 200,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        height: 200,
+                        color: Colors.grey.shade200,
+                        child: const Center(child: Icon(Icons.broken_image)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                if (videoUrl.isNotEmpty) ...[
+                  Container(
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: Colors.black12,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Stack(
+                      children: [
+                        Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.play_circle_filled,
+                                size: 60,
+                                color: Colors.blue.shade700,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Video Content',
+                                style: TextStyle(
+                                  color: Colors.blue.shade700,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(height: 8),
+                ],
+                Text(
+                  content,
+                  style: const TextStyle(fontSize: 16),
+                  maxLines: 5,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 18,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-                          const SizedBox(height: 8),
-            if (imageUrl.isNotEmpty) ...[
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                imageUrl.startsWith('http') ? imageUrl : '$_baseUrl$imageUrl',
-                  height: 200,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-              const SizedBox(height: 8),
-            ],
-                          if (videoUrl.isNotEmpty) ...[
-                            Container(
-                height: 200,
-                              decoration: BoxDecoration(
-                                color: Colors.black12,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                child: Stack(
-                  children: [
-                    Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                          Icon(
-                            Icons.play_circle_filled,
-                            size: 60,
-                            color: Colors.blue.shade700,
-                          ),
-                                  const SizedBox(height: 8),
-                          Text(
-                            'Video Content',
-                            style: TextStyle(
-                              color: Colors.blue.shade700,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                                ],
-                              ),
-                            ),
-                          ],
+          ),
+          // Action buttons for like, share, report
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _InstitutionPostLikeButton(
+                  postId: postId,
+                  baseUrl: _baseUrl,
+                  initialLiked: post['isLiked'] ?? false,
+                  initialLikeCount: post['likeCount'] ?? post['likes']?.length ?? 0,
                 ),
-              ),
-                          const SizedBox(height: 8),
-            ],
-            Text(
-              content,
-              style: const TextStyle(fontSize: 16),
-              maxLines: 5,
-              overflow: TextOverflow.ellipsis,
+                _InstitutionPostShareButton(
+                  post: post,
+                  institutionName: widget.institutionName,
+                  baseUrl: _baseUrl,
+                ),
+                _InstitutionPostReportButton(
+                  postId: postId,
+                  baseUrl: _baseUrl,
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1013,6 +1051,374 @@ class _EditInstitutionProfileDialog extends StatefulWidget {
 
   @override
   State<_EditInstitutionProfileDialog> createState() => _EditInstitutionProfileDialogState();
+}
+
+// ===== INSTITUTION POST ACTION BUTTONS =====
+
+class _InstitutionPostLikeButton extends StatefulWidget {
+  final String postId;
+  final String baseUrl;
+  final bool initialLiked;
+  final int initialLikeCount;
+
+  const _InstitutionPostLikeButton({
+    required this.postId,
+    required this.baseUrl,
+    required this.initialLiked,
+    required this.initialLikeCount,
+  });
+
+  @override
+  State<_InstitutionPostLikeButton> createState() => _InstitutionPostLikeButtonState();
+}
+
+class _InstitutionPostLikeButtonState extends State<_InstitutionPostLikeButton> {
+  late bool _isLiked;
+  late int _likeCount;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isLiked = widget.initialLiked;
+    _likeCount = widget.initialLikeCount;
+  }
+
+  Future<void> _toggleLike() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+
+    try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
+      if (token == null) throw Exception('Authentication required');
+
+      final response = await http.patch(
+        Uri.parse('${widget.baseUrl}/api/content/institution-posts/${widget.postId}/like'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _isLiked = data['liked'];
+          _likeCount = data['likeCount'];
+        });
+      } else {
+        throw Exception('Failed to like');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: InkWell(
+        onTap: _isLoading ? null : _toggleLike,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _isLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(
+                      _isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
+                      size: 20,
+                      color: _isLiked ? Colors.blue : Colors.grey.shade600,
+                    ),
+              const SizedBox(width: 6),
+              Text(
+                _likeCount > 0 ? '$_likeCount' : 'Like',
+                style: TextStyle(
+                  color: _isLiked ? Colors.blue : Colors.grey.shade700,
+                  fontWeight: _isLiked ? FontWeight.w600 : FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InstitutionPostShareButton extends StatelessWidget {
+  final Map<String, dynamic> post;
+  final String institutionName;
+  final String baseUrl;
+
+  const _InstitutionPostShareButton({
+    required this.post,
+    required this.institutionName,
+    required this.baseUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: InkWell(
+        onTap: () => _showShareSheet(context),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.share_outlined, size: 20, color: Colors.grey.shade600),
+              const SizedBox(width: 6),
+              Text(
+                'Share',
+                style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showShareSheet(BuildContext context) {
+    final title = post['title']?.toString() ?? '';
+    final content = post['content']?.toString() ?? '';
+    final shareText = '$title\n\n$content\n\n- Shared from $institutionName via Alumni Portal';
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Text(
+              'Share Post',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _shareOption(
+                  context: ctx,
+                  icon: Icons.copy,
+                  label: 'Copy',
+                  color: Colors.grey,
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    await Clipboard.setData(ClipboardData(text: shareText));
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Copied to clipboard!')),
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _shareOption({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 32, color: color),
+            const SizedBox(height: 8),
+            Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InstitutionPostReportButton extends StatelessWidget {
+  final String postId;
+  final String baseUrl;
+
+  const _InstitutionPostReportButton({
+    required this.postId,
+    required this.baseUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: InkWell(
+        onTap: () => _showReportDialog(context),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.flag_outlined, size: 20, color: Colors.grey.shade600),
+              const SizedBox(width: 6),
+              Text(
+                'Report',
+                style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showReportDialog(BuildContext context) {
+    final reasonNotifier = ValueNotifier<String?>(null);
+    final descController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => ValueListenableBuilder<String?>(
+        valueListenable: reasonNotifier,
+        builder: (_, reason, __) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Icon(Icons.flag, color: Colors.red.shade600),
+              const SizedBox(width: 8),
+              const Text('Report Post'),
+            ],
+          ),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: reason,
+                    decoration: InputDecoration(
+                      labelText: 'Reason',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'spam', child: Text('Spam')),
+                      DropdownMenuItem(value: 'inappropriate', child: Text('Inappropriate Content')),
+                      DropdownMenuItem(value: 'harassment', child: Text('Harassment')),
+                      DropdownMenuItem(value: 'false_info', child: Text('False Information')),
+                      DropdownMenuItem(value: 'other', child: Text('Other')),
+                    ],
+                    onChanged: (v) => reasonNotifier.value = v,
+                    validator: (v) => v == null ? 'Select a reason' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: descController,
+                    decoration: InputDecoration(
+                      labelText: 'Details (optional)',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    maxLines: 3,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  Navigator.pop(ctx);
+                  await _submitReport(context, reason!, descController.text);
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade600),
+              child: const Text('Report', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submitReport(BuildContext context, String reason, String description) async {
+    try {
+      const storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
+      if (token == null) throw Exception('Authentication required');
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/content/institution-posts/$postId/report'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'reason': reason, 'description': description}),
+      );
+
+      if (response.statusCode == 201) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Report submitted successfully')),
+          );
+        }
+      } else {
+        final data = jsonDecode(response.body);
+        throw Exception(data['message'] ?? 'Failed to report');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed: $e')),
+        );
+      }
+    }
+  }
 }
 
 class _EditInstitutionProfileDialogState extends State<_EditInstitutionProfileDialog> {

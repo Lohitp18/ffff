@@ -32,7 +32,7 @@ const Layout = ({ children }) => {
               🔔
             </Link>
             <div className="user-menu">
-              <span>{user?.name || user?.email}</span>
+              <span>{user?.name || 'User'}</span>
               <div className="dropdown">
                 <Link to="/profile">Profile</Link>
                 {user?.role === 'admin' && <Link to="/admin">Admin</Link>}

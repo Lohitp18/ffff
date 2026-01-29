@@ -2,10 +2,26 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const generateToken = require("../utils/generateToken");
 
-// ✅ User Registration (Sign Up)
+// ✅ User Registration (Sign Up) - Auto-approved, no verification required
 const registerUser = async (req, res) => {
   try {
-    const { name, email, phone, dob, institution, course, year, password, favTeacher, socialMedia } = req.body;
+    const { 
+      name, email, phone, dob, institution, course, year, password, 
+      favTeacher, socialMedia,
+      // New required fields for comprehensive profile
+      currentCompany, currentPosition, placementCompany, placementYear,
+      totalExperience, fieldsWorked, headline, location
+    } = req.body;
+
+    // Validate required fields
+    if (!name || !email || !phone || !institution || !course || !year || !password) {
+      return res.status(400).json({ message: "All basic fields are required" });
+    }
+
+    // Validate additional required fields for profile
+    if (!currentCompany || !currentPosition) {
+      return res.status(400).json({ message: "Current company and position are required" });
+    }
 
     const userExists = await User.findOne({ email });
     if (userExists) return res.status(400).json({ message: "User already exists" });
@@ -32,8 +48,28 @@ const registerUser = async (req, res) => {
     }
 
     const user = await User.create({
-      name, email, phone, dob: parsedDob, institution, course, year,
-      password: hashedPassword, favouriteTeacher: favTeacher || '', socialMedia: socialMedia || ''
+      name, 
+      email, 
+      phone, 
+      dob: parsedDob, 
+      institution, 
+      course, 
+      year,
+      password: hashedPassword, 
+      favouriteTeacher: favTeacher || '', 
+      socialMedia: socialMedia || '',
+      status: "approved", // Auto-approve users - no verification needed
+      headline: headline || `${currentPosition} at ${currentCompany}`,
+      location: location || '',
+      // Store private professional info
+      privateInfo: {
+        currentCompany: currentCompany || '',
+        currentPosition: currentPosition || '',
+        placementCompany: placementCompany || '',
+        placementYear: placementYear || '',
+        totalExperience: totalExperience ? Number(totalExperience) : 0,
+        fieldsWorked: fieldsWorked ? (Array.isArray(fieldsWorked) ? fieldsWorked : [fieldsWorked]) : []
+      }
     });
 
     res.status(201).json({

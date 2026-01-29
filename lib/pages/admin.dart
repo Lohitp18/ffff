@@ -185,8 +185,12 @@ class _UsersAdminState extends State<_UsersAdmin> {
                           return Card(
                             child: ListTile(
                               leading: const CircleAvatar(child: Icon(Icons.person)),
-                              title: Text((u['name'] ?? u['email'] ?? '').toString()),
-                              subtitle: Text((u['email'] ?? '').toString()),
+                              title: Text((u['name'] ?? 'Unknown User').toString()),
+                              subtitle: Text([
+                                (u['institution'] ?? '').toString(),
+                                (u['course'] ?? '').toString(),
+                                (u['year'] ?? '').toString(),
+                              ].where((s) => s.isNotEmpty).join(' • ')),
                               trailing: showApproved
                                   ? null
                                   : Wrap(spacing: 4, children: [
@@ -859,7 +863,7 @@ class _InstitutionUsersAdminState extends State<_InstitutionUsersAdmin> {
                                     child: Icon(Icons.school),
                                   ),
                                   title: Text(user['name'] ?? user['institution'] ?? 'Unknown'),
-                                  subtitle: Text(user['email'] ?? ''),
+                                  subtitle: Text(user['institution'] ?? 'Institution Admin'),
                                   trailing: IconButton(
                                     icon: const Icon(Icons.delete, color: Colors.red),
                                     onPressed: () {
