@@ -281,7 +281,20 @@ class _InstitutionDetailPageState extends State<InstitutionDetailPage> {
         foregroundColor: Colors.white,
         elevation: 0,
         automaticallyImplyLeading: false,
-        actions: null, // Remove admin actions - profile management is done in admin panel
+        actions: _isAdmin
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.edit),
+                  onPressed: _showEditProfileDialog,
+                  tooltip: 'Create / Edit Profile',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: _showCreatePostDialog,
+                  tooltip: 'Create Post',
+                ),
+              ]
+            : null,
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
