@@ -67,7 +67,33 @@ class _SignInPageState extends State<SignInPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Signed in successfully')),
           );
-          Navigator.pushReplacementNamed(context, '/home');
+          
+          // Check if profile is complete
+          final profileResponse = await http.get(
+            Uri.parse('$_baseUrl/api/users/profile'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+          );
+          
+          if (profileResponse.statusCode == 200) {
+            final profileData = jsonDecode(profileResponse.body) as Map<String, dynamic>;
+            final privateInfo = profileData['privateInfo'] as Map<String, dynamic>?;
+            final hasCurrentCompany = privateInfo?['currentCompany']?.toString().trim().isNotEmpty ?? false;
+            final hasHeadline = profileData['headline']?.toString().trim().isNotEmpty ?? false;
+            final hasLocation = profileData['location']?.toString().trim().isNotEmpty ?? false;
+            
+            // If profile is incomplete, redirect to completion page
+            if (!hasCurrentCompany || !hasHeadline || !hasLocation) {
+              Navigator.pushReplacementNamed(context, '/profile-completion');
+            } else {
+              Navigator.pushReplacementNamed(context, '/home');
+            }
+          } else {
+            // If profile fetch fails, go to home
+            Navigator.pushReplacementNamed(context, '/home');
+          }
         } else {
           setState(() { _error = 'Invalid response from server'; });
         }

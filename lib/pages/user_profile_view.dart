@@ -1158,7 +1158,7 @@ class _UserProfileViewPageState extends State<UserProfileViewPage> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: Image.network(
-                    _normalizedUrl(post['imageUrl']),
+                    _normalizedUrl(post['imageUrl']) ?? '',
                     width: double.infinity,
                     height: 200,
                     fit: BoxFit.cover,

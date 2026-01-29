@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'pages/signin.dart';
 import 'pages/signup.dart';
+import 'pages/profile_completion.dart';
 import 'main_app_page.dart';
 
 void main() {
@@ -71,6 +72,7 @@ class MyApp extends StatelessWidget {
         '/': (context) => const SignInPage(),
         '/home': (context) => const MainAppPage(),
         '/signup': (context) => const SignUpPage(),
+        '/profile-completion': (context) => const ProfileCompletionPage(),
       },
     );
   }

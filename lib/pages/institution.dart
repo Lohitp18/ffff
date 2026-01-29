@@ -198,7 +198,8 @@ class _InstitutionsPageState extends State<InstitutionsPage> {
 
 class InstitutionDetailPage extends StatefulWidget {
   final String institutionName;
-  const InstitutionDetailPage({super.key, required this.institutionName});
+  final bool isFromAdmin;
+  const InstitutionDetailPage({super.key, required this.institutionName, this.isFromAdmin = false});
 
   @override
   State<InstitutionDetailPage> createState() => _InstitutionDetailPageState();
@@ -280,18 +281,7 @@ class _InstitutionDetailPageState extends State<InstitutionDetailPage> {
         foregroundColor: Colors.white,
         elevation: 0,
         automaticallyImplyLeading: false,
-        actions: _isAdmin ? [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () => _showEditProfileDialog(),
-            tooltip: 'Edit Profile',
-          ),
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => _showCreatePostDialog(),
-            tooltip: 'Create Post',
-          ),
-        ] : null,
+        actions: null, // Remove admin actions - profile management is done in admin panel
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -304,6 +294,45 @@ class _InstitutionDetailPageState extends State<InstitutionDetailPage> {
                     children: [
                       _buildInstitutionHeader(),
                       const SizedBox(height: 16),
+                      // Show create/edit profile button if from admin panel
+                      if (widget.isFromAdmin && _isAdmin) ...[
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  _institutionProfile == null
+                                      ? 'Institution profile not created yet'
+                                      : 'Institution profile created',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: _institutionProfile == null
+                                        ? Colors.orange.shade700
+                                        : Colors.green.shade700,
+                                  ),
+                                ),
+                                ElevatedButton.icon(
+                                  onPressed: () => _showEditProfileDialog(),
+                                  icon: Icon(
+                                    _institutionProfile == null
+                                        ? Icons.add
+                                        : Icons.edit,
+                                  ),
+                                  label: Text(
+                                    _institutionProfile == null
+                                        ? 'Create Profile'
+                                        : 'Edit Profile',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                       if (_posts.isEmpty)
                         Center(
                           child: Column(

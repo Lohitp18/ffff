@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'institution.dart';
 
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
@@ -858,15 +859,34 @@ class _InstitutionUsersAdminState extends State<_InstitutionUsersAdmin> {
                               separatorBuilder: (_, __) => const Divider(height: 1),
                               itemBuilder: (_, i) {
                                 final user = _users[i] as Map<String, dynamic>;
+                                final institutionName = user['institution']?.toString() ?? 'Unknown';
                                 return ListTile(
                                   leading: const CircleAvatar(
                                     child: Icon(Icons.school),
                                   ),
-                                  title: Text(user['name'] ?? user['institution'] ?? 'Unknown'),
-                                  subtitle: Text(user['institution'] ?? 'Institution Admin'),
-                                  trailing: IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.red),
-                                    onPressed: () {
+                                  title: Text(user['name'] ?? institutionName),
+                                  subtitle: Text(institutionName),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.edit, color: Colors.blue),
+                                        tooltip: 'Manage Institution Profile',
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => InstitutionDetailPage(
+                                                institutionName: institutionName,
+                                                isFromAdmin: true,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete, color: Colors.red),
+                                        onPressed: () {
                                       showDialog(
                                         context: context,
                                         builder: (context) => AlertDialog(
@@ -891,6 +911,8 @@ class _InstitutionUsersAdminState extends State<_InstitutionUsersAdmin> {
                                         ),
                                       );
                                     },
+                                      ),
+                                    ],
                                   ),
                                 );
                               },

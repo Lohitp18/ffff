@@ -23,15 +23,9 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController favTeacherController = TextEditingController();
   final TextEditingController socialMediaController = TextEditingController();
 
-  // New required fields for profile
-  final TextEditingController currentCompanyController = TextEditingController();
-  final TextEditingController currentPositionController = TextEditingController();
-  final TextEditingController placementCompanyController = TextEditingController();
-  final TextEditingController placementYearController = TextEditingController();
-  final TextEditingController totalExperienceController = TextEditingController();
-  final TextEditingController fieldsWorkedController = TextEditingController();
-  final TextEditingController headlineController = TextEditingController();
-  final TextEditingController locationController = TextEditingController();
+  // Optional fields
+  final TextEditingController favTeacherController = TextEditingController();
+  final TextEditingController socialMediaController = TextEditingController();
 
   String? _institution;
   String? _course;
@@ -69,29 +63,17 @@ class _SignUpPageState extends State<SignUpPage> {
             'password': passwordController.text,
             'favTeacher': favTeacherController.text.trim(),
             'socialMedia': socialMediaController.text.trim(),
-            // New required fields
-            'currentCompany': currentCompanyController.text.trim(),
-            'currentPosition': currentPositionController.text.trim(),
-            'placementCompany': placementCompanyController.text.trim(),
-            'placementYear': placementYearController.text.trim(),
-            'totalExperience': totalExperienceController.text.trim(),
-            'fieldsWorked': fieldsWorkedController.text.trim(),
-            'headline': headlineController.text.trim(),
-            'location': locationController.text.trim(),
           }),
         );
 
         if (!mounted) return;
 
         if (response.statusCode == 201) {
-          final Map<String, dynamic> data = jsonDecode(response.body);
-          final String token = data['token'] as String;
-          await _secureStorage.write(key: 'auth_token', value: token);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Account created successfully!')),
+            const SnackBar(content: Text('Account created! Awaiting admin approval.')),
           );
-          // Navigate directly to home - no verification needed
-          Navigator.pushReplacementNamed(context, '/home');
+          // Navigate back to sign in - admin approval required
+          Navigator.pop(context);
         } else {
           final Map<String, dynamic>? err = response.body.isNotEmpty ? jsonDecode(response.body) : null;
           setState(() { _error = err != null && err['message'] is String ? err['message'] as String : 'Sign up failed'; });
@@ -205,14 +187,6 @@ class _SignUpPageState extends State<SignUpPage> {
               ),
               const SizedBox(height: 12),
 
-              // Location
-              TextFormField(
-                controller: locationController,
-                decoration: _inputDecoration("Current Location *", Icons.location_on_outlined),
-                validator: (value) => value!.isEmpty ? "Enter your current location" : null,
-              ),
-              const SizedBox(height: 24),
-
               // ===== EDUCATION SECTION =====
               _buildSectionHeader("Education Details", Icons.school),
               const SizedBox(height: 12),
@@ -257,71 +231,6 @@ class _SignUpPageState extends State<SignUpPage> {
               TextFormField(
                 controller: favTeacherController,
                 decoration: _inputDecoration("Favourite Teacher", Icons.favorite_outline),
-              ),
-              const SizedBox(height: 24),
-
-              // ===== PROFESSIONAL INFORMATION SECTION =====
-              _buildSectionHeader("Professional Information", Icons.work),
-              const SizedBox(height: 12),
-
-              // Headline
-              TextFormField(
-                controller: headlineController,
-                decoration: _inputDecoration("Professional Headline *", Icons.title, 
-                  hintText: "e.g., Software Engineer at Google"),
-                validator: (value) => value!.isEmpty ? "Enter your professional headline" : null,
-              ),
-              const SizedBox(height: 12),
-
-              // Current Company
-              TextFormField(
-                controller: currentCompanyController,
-                decoration: _inputDecoration("Current Company *", Icons.business_center_outlined),
-                validator: (value) => value!.isEmpty ? "Enter your current company" : null,
-              ),
-              const SizedBox(height: 12),
-
-              // Current Position
-              TextFormField(
-                controller: currentPositionController,
-                decoration: _inputDecoration("Current Position/Designation *", Icons.badge_outlined),
-                validator: (value) => value!.isEmpty ? "Enter your current position" : null,
-              ),
-              const SizedBox(height: 12),
-
-              // Total Experience
-              TextFormField(
-                controller: totalExperienceController,
-                decoration: _inputDecoration("Total Years of Experience *", Icons.timer_outlined,
-                  hintText: "e.g., 3"),
-                keyboardType: TextInputType.number,
-                validator: (value) => value!.isEmpty ? "Enter your total experience" : null,
-              ),
-              const SizedBox(height: 12),
-
-              // Fields Worked
-              TextFormField(
-                controller: fieldsWorkedController,
-                decoration: _inputDecoration("Fields/Domains Worked In *", Icons.category_outlined,
-                  hintText: "e.g., Web Development, Machine Learning"),
-                validator: (value) => value!.isEmpty ? "Enter fields you have worked in" : null,
-              ),
-              const SizedBox(height: 12),
-
-              // Placement Company
-              TextFormField(
-                controller: placementCompanyController,
-                decoration: _inputDecoration("Campus Placement Company", Icons.celebration_outlined,
-                  hintText: "Company where you got placed (if any)"),
-              ),
-              const SizedBox(height: 12),
-
-              // Placement Year
-              TextFormField(
-                controller: placementYearController,
-                decoration: _inputDecoration("Placement Year", Icons.event,
-                  hintText: "Year of campus placement"),
-                keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 24),
 

@@ -7,20 +7,12 @@ const registerUser = async (req, res) => {
   try {
     const { 
       name, email, phone, dob, institution, course, year, password, 
-      favTeacher, socialMedia,
-      // New required fields for comprehensive profile
-      currentCompany, currentPosition, placementCompany, placementYear,
-      totalExperience, fieldsWorked, headline, location
+      favTeacher, socialMedia
     } = req.body;
 
     // Validate required fields
     if (!name || !email || !phone || !institution || !course || !year || !password) {
       return res.status(400).json({ message: "All basic fields are required" });
-    }
-
-    // Validate additional required fields for profile
-    if (!currentCompany || !currentPosition) {
-      return res.status(400).json({ message: "Current company and position are required" });
     }
 
     const userExists = await User.findOne({ email });
@@ -58,25 +50,14 @@ const registerUser = async (req, res) => {
       password: hashedPassword, 
       favouriteTeacher: favTeacher || '', 
       socialMedia: socialMedia || '',
-      status: "approved", // Auto-approve users - no verification needed
-      headline: headline || `${currentPosition} at ${currentCompany}`,
-      location: location || '',
-      // Store private professional info
-      privateInfo: {
-        currentCompany: currentCompany || '',
-        currentPosition: currentPosition || '',
-        placementCompany: placementCompany || '',
-        placementYear: placementYear || '',
-        totalExperience: totalExperience ? Number(totalExperience) : 0,
-        fieldsWorked: fieldsWorked ? (Array.isArray(fieldsWorked) ? fieldsWorked : [fieldsWorked]) : []
-      }
+      status: "pending", // Require admin approval
     });
 
     res.status(201).json({
       _id: user._id,
       email: user.email,
       status: user.status,
-      token: generateToken(user._id)
+      message: "Account created successfully. Please wait for admin approval."
     });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
