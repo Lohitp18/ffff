@@ -87,6 +87,10 @@
   border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 /* Post Content */
@@ -100,6 +104,10 @@
   color: #000000e6;
   line-height: 1.5;
   margin: 0 0 8px 0;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 .post-text {
@@ -109,6 +117,9 @@
   margin: 0 0 12px 0;
   white-space: pre-wrap;
   word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 .post-image-container {

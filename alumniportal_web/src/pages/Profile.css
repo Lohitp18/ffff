@@ -352,6 +352,9 @@
   justify-content: center;
   white-space: nowrap;
   min-width: fit-content;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -379,6 +382,9 @@
   justify-content: center;
   white-space: nowrap;
   min-width: fit-content;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .btn-secondary:hover:not(:disabled) {

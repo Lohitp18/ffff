@@ -31,6 +31,8 @@ const InstitutionDetail = () => {
   const [logoFile, setLogoFile] = useState(null)
   const [coverFile, setCoverFile] = useState(null)
   const [savingProfile, setSavingProfile] = useState(false)
+  const [profileError, setProfileError] = useState('')
+  const [formErrors, setFormErrors] = useState({})
 
   // Decode the institution name from URL
   const decodedInstitutionName = decodeURIComponent(institutionName || '')
@@ -58,17 +60,24 @@ const InstitutionDetail = () => {
   const loadProfile = async () => {
     try {
       setProfileLoading(true)
+      setError('')
       const res = await axios.get(`${API_BASE_URL}/api/institutions/${encodeURIComponent(decodedInstitutionName)}`)
-      setProfile(res.data)
-      setProfileForm({
-        name: res.data.name || decodedInstitutionName,
-        phone: res.data.phone || '',
-        email: res.data.email || '',
-        address: res.data.address || '',
-        website: res.data.website || '',
-      })
+      if (res.data) {
+        setProfile(res.data)
+        setProfileForm({
+          name: res.data.name || decodedInstitutionName,
+          phone: res.data.phone || '',
+          email: res.data.email || '',
+          address: res.data.address || '',
+          website: res.data.website || '',
+        })
+      }
     } catch (err) {
-      // If not found, keep profile null
+      // If not found (404), keep profile null - this is expected for new institutions
+      if (err.response?.status !== 404) {
+        console.error('Error loading institution profile:', err)
+        setError('Failed to load institution profile')
+      }
       setProfile(null)
     } finally {
       setProfileLoading(false)
@@ -85,6 +94,8 @@ const InstitutionDetail = () => {
     })
     setLogoFile(null)
     setCoverFile(null)
+    setProfileError('')
+    setFormErrors({})
     setShowProfileModal(true)
   }
 
@@ -92,27 +103,73 @@ const InstitutionDetail = () => {
     setShowProfileModal(false)
     setLogoFile(null)
     setCoverFile(null)
+    setProfileError('')
+    setFormErrors({})
   }
 
   const handleProfileInputChange = (field, value) => {
     setProfileForm((prev) => ({ ...prev, [field]: value }))
   }
 
+  const validateForm = () => {
+    const errors = {}
+    
+    if (!profileForm.name || profileForm.name.trim() === '') {
+      errors.name = 'Institution name is required'
+    }
+    
+    if (profileForm.email && profileForm.email.trim() !== '') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(profileForm.email)) {
+        errors.email = 'Please enter a valid email address'
+      }
+    }
+    
+    if (profileForm.website && profileForm.website.trim() !== '') {
+      const urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/
+      if (!urlRegex.test(profileForm.website) && !profileForm.website.startsWith('http')) {
+        errors.website = 'Please enter a valid website URL'
+      }
+    }
+    
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
   const handleSaveProfile = async () => {
+    setProfileError('')
+    setFormErrors({})
+    
+    // Validate form
+    if (!validateForm()) {
+      setProfileError('Please fix the errors in the form')
+      return
+    }
+
     try {
       setSavingProfile(true)
       const token = localStorage.getItem('auth_token')
       if (!token) {
-        alert('Authentication required')
+        setProfileError('Authentication required. Please log in again.')
         return
       }
 
+      // Ensure name is set - use decoded institution name if not provided
+      const institutionName = (profileForm.name && profileForm.name.trim()) || decodedInstitutionName
+      
       const formData = new FormData()
-      formData.append('name', profileForm.name || decodedInstitutionName)
-      formData.append('phone', profileForm.phone || '')
-      formData.append('email', profileForm.email || '')
-      formData.append('address', profileForm.address || '')
-      formData.append('website', profileForm.website || '')
+      formData.append('name', institutionName.trim())
+      if (profileForm.phone) formData.append('phone', profileForm.phone.trim())
+      if (profileForm.email) formData.append('email', profileForm.email.trim())
+      if (profileForm.address) formData.append('address', profileForm.address.trim())
+      if (profileForm.website) {
+        let website = profileForm.website.trim()
+        // Add http:// if no protocol is specified
+        if (website && !website.startsWith('http://') && !website.startsWith('https://')) {
+          website = 'https://' + website
+        }
+        formData.append('website', website)
+      }
       if (logoFile) formData.append('image', logoFile)
 
       const url = profile?._id
@@ -136,28 +193,38 @@ const InstitutionDetail = () => {
         coverData.append('image', coverFile)
         const institutionId = res.data._id || profile?._id
         if (institutionId) {
-          await axios.put(
-            `${API_BASE_URL}/api/institutions/${institutionId}/cover-image`,
-            coverData,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'multipart/form-data',
-              },
-            }
-          )
+          try {
+            await axios.put(
+              `${API_BASE_URL}/api/institutions/${institutionId}/cover-image`,
+              coverData,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'multipart/form-data',
+                },
+              }
+            )
+          } catch (coverErr) {
+            console.warn('Failed to upload cover image:', coverErr)
+            // Don't fail the whole operation if cover image fails
+          }
         }
       }
 
       await loadProfile()
-      alert('Institution profile saved successfully')
+      setProfileError('')
       closeProfileModal()
+      // Show success message using a more user-friendly approach
+      setTimeout(() => {
+        alert('Institution profile saved successfully!')
+      }, 100)
     } catch (err) {
       console.error('Error saving institution profile:', err)
       const errorMessage = err.response?.data?.message || 
+                          err.response?.data?.error ||
                           err.message || 
                           'Failed to save profile. Please check your connection and try again.'
-      alert(errorMessage)
+      setProfileError(errorMessage)
     } finally {
       setSavingProfile(false)
     }
@@ -199,12 +266,12 @@ const InstitutionDetail = () => {
     loadPosts()
   }
 
-  if (loading) {
+  if (loading && posts.length === 0) {
     return (
       <MainLayout>
         <div className="institution-detail-loading">
           <div className="loading-spinner"></div>
-          <p>Loading posts...</p>
+          <p>Loading institution page...</p>
         </div>
       </MainLayout>
     )
@@ -312,64 +379,158 @@ const InstitutionDetail = () => {
         )}
 
         {showProfileModal && (
-          <div className="modal-backdrop">
-            <div className="modal-card">
-              <h2>{profile ? 'Edit Institution Profile' : 'Create Institution Profile'}</h2>
-              <p>This information will be shown on the institution page.</p>
+          <div className="modal-backdrop" onClick={closeProfileModal}>
+            <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>{profile ? 'Edit Institution Profile' : 'Create Institution Profile'}</h2>
+                <button className="modal-close" onClick={closeProfileModal} aria-label="Close">×</button>
+              </div>
+              <p className="modal-description">Fill in the details below to create or update your institution profile. This information will be displayed on the institution page.</p>
+              
+              {profileError && (
+                <div className="modal-error">
+                  <span className="error-icon">⚠️</span>
+                  <span>{profileError}</span>
+                </div>
+              )}
+              
               <div className="modal-grid">
-                <label>
-                  Name
+                <label className={formErrors.name ? 'error' : ''}>
+                  Institution Name <span className="required">*</span>
                   <input
                     type="text"
                     value={profileForm.name || ''}
-                    onChange={(e) => handleProfileInputChange('name', e.target.value)}
+                    onChange={(e) => {
+                      handleProfileInputChange('name', e.target.value)
+                      if (formErrors.name) {
+                        setFormErrors({ ...formErrors, name: '' })
+                      }
+                    }}
+                    placeholder="Enter institution name"
+                    required
                   />
+                  {formErrors.name && <span className="field-error">{formErrors.name}</span>}
                 </label>
-                <label>
+                
+                <label className={formErrors.email ? 'error' : ''}>
                   Email
                   <input
                     type="email"
                     value={profileForm.email || ''}
-                    onChange={(e) => handleProfileInputChange('email', e.target.value)}
+                    onChange={(e) => {
+                      handleProfileInputChange('email', e.target.value)
+                      if (formErrors.email) {
+                        setFormErrors({ ...formErrors, email: '' })
+                      }
+                    }}
+                    placeholder="institution@example.com"
                   />
+                  {formErrors.email && <span className="field-error">{formErrors.email}</span>}
                 </label>
+                
                 <label>
                   Phone
                   <input
-                    type="text"
+                    type="tel"
                     value={profileForm.phone || ''}
                     onChange={(e) => handleProfileInputChange('phone', e.target.value)}
+                    placeholder="+1 (555) 123-4567"
                   />
                 </label>
+                
                 <label className="full-width">
                   Address
                   <input
                     type="text"
                     value={profileForm.address || ''}
                     onChange={(e) => handleProfileInputChange('address', e.target.value)}
+                    placeholder="Street address, City, State, ZIP"
                   />
                 </label>
-                <label className="full-width">
+                
+                <label className={`full-width ${formErrors.website ? 'error' : ''}`}>
                   Website
                   <input
                     type="text"
                     value={profileForm.website || ''}
-                    onChange={(e) => handleProfileInputChange('website', e.target.value)}
+                    onChange={(e) => {
+                      handleProfileInputChange('website', e.target.value)
+                      if (formErrors.website) {
+                        setFormErrors({ ...formErrors, website: '' })
+                      }
+                    }}
+                    placeholder="www.example.com"
                   />
+                  {formErrors.website && <span className="field-error">{formErrors.website}</span>}
+                  <small className="field-hint">Include http:// or https:// or leave blank</small>
                 </label>
-                <label>
-                  Logo
-                  <input type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files[0])} />
+                
+                <label className="file-upload-label">
+                  <span>Logo Image</span>
+                  <div className="file-upload-wrapper">
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
+                      className="file-input"
+                    />
+                    <div className="file-upload-display">
+                      {logoFile ? (
+                        <span className="file-selected">✓ {logoFile.name}</span>
+                      ) : profile?.image ? (
+                        <span className="file-current">Current logo uploaded</span>
+                      ) : (
+                        <span className="file-placeholder">Click to select logo (optional)</span>
+                      )}
+                    </div>
+                  </div>
+                  <small className="field-hint">Recommended: Square image, max 5MB</small>
                 </label>
-                <label>
-                  Cover Image
-                  <input type="file" accept="image/*" onChange={(e) => setCoverFile(e.target.files[0])} />
+                
+                <label className="file-upload-label">
+                  <span>Cover Image</span>
+                  <div className="file-upload-wrapper">
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
+                      className="file-input"
+                    />
+                    <div className="file-upload-display">
+                      {coverFile ? (
+                        <span className="file-selected">✓ {coverFile.name}</span>
+                      ) : profile?.coverImage ? (
+                        <span className="file-current">Current cover image uploaded</span>
+                      ) : (
+                        <span className="file-placeholder">Click to select cover image (optional)</span>
+                      )}
+                    </div>
+                  </div>
+                  <small className="field-hint">Recommended: Wide image (16:9), max 5MB</small>
                 </label>
               </div>
+              
               <div className="modal-actions">
-                <button className="linkedin-btn-secondary" onClick={closeProfileModal}>Cancel</button>
-                <button className="linkedin-btn-primary" onClick={handleSaveProfile} disabled={savingProfile}>
-                  {savingProfile ? 'Saving...' : 'Save'}
+                <button 
+                  className="linkedin-btn-secondary" 
+                  onClick={closeProfileModal}
+                  disabled={savingProfile}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="linkedin-btn-primary" 
+                  onClick={handleSaveProfile} 
+                  disabled={savingProfile}
+                >
+                  {savingProfile ? (
+                    <>
+                      <span className="spinner-small"></span>
+                      Saving...
+                    </>
+                  ) : (
+                    profile ? 'Update Profile' : 'Create Profile'
+                  )}
                 </button>
               </div>
             </div>

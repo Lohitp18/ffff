@@ -9,7 +9,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000
 
 const Admin = () => {
   const navigate = useNavigate()
-  const { user, login } = useAuth()
+  const { user, login, logout } = useAuth()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -32,13 +32,22 @@ const Admin = () => {
   const SUPER_ADMIN_PASSWORD = 'Lohit@2004'
 
   useEffect(() => {
-    const adminAuth = localStorage.getItem('admin_authenticated')
-    if (adminAuth === 'true') {
-      setIsAuthenticated(true)
-      if (user) {
-        loadDashboardStats()
+    const checkAuth = () => {
+      const adminAuth = localStorage.getItem('admin_authenticated')
+      const token = localStorage.getItem('auth_token')
+      
+      // Check if user is authenticated as admin
+      if (adminAuth === 'true' && token) {
+        setIsAuthenticated(true)
+        if (user) {
+          loadDashboardStats()
+        }
+      } else {
+        setIsAuthenticated(false)
       }
     }
+    
+    checkAuth()
   }, [user])
 
   const getAuthHeaders = () => {
@@ -308,10 +317,42 @@ const Admin = () => {
     )
   }
 
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to log out?')) {
+      localStorage.removeItem('admin_authenticated')
+      logout()
+      navigate('/signin')
+    }
+  }
+
   return (
     <div className="admin-container-full">
       <div className="admin-header-full">
-        <h1>Super Admin Dashboard</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <h1>Super Admin Dashboard</h1>
+          <button 
+            onClick={handleLogout}
+            style={{
+              padding: '8px 16px',
+              background: '#fff',
+              color: '#0a66c2',
+              border: '1px solid #0a66c2',
+              borderRadius: '24px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '600',
+              transition: 'all 0.2s'
+            }}
+            onMouseOver={(e) => {
+              e.target.style.background = '#f0f7ff'
+            }}
+            onMouseOut={(e) => {
+              e.target.style.background = '#fff'
+            }}
+          >
+            Logout
+          </button>
+        </div>
         <div className="admin-stats-full">
           <div className="stat-card-full">
             <div className="stat-value-full">{stats.totalUsers || 0}</div>

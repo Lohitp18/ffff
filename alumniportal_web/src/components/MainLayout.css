@@ -130,10 +130,11 @@
   font-weight: 400;
   line-height: 1.2;
   white-space: nowrap;
-  overflow: visible;
-  text-overflow: clip;
-  max-width: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
   display: block;
+  word-wrap: break-word;
 }
 
 .nav-item svg {
@@ -217,12 +218,20 @@
   font-weight: 600;
   color: #000000e6;
   line-height: 1.5;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 .menu-headline {
   font-size: 14px;
   color: #00000099;
   line-height: 1.43;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 .menu-divider {
@@ -335,6 +344,10 @@
   font-weight: 600;
   color: #000000e6;
   line-height: 1.5;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 .sidebar-profile-info p {
@@ -345,6 +358,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  word-wrap: break-word;
+  max-width: 100%;
 }
 
 .sidebar-section {

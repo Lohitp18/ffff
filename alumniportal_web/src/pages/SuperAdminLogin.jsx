@@ -28,6 +28,7 @@ const SuperAdminLogin = () => {
 
     const result = await login(email, password)
     if (result.success) {
+      localStorage.setItem('admin_authenticated', 'true')
       navigate('/admin')
     } else {
       setError(result.message || 'Login failed')

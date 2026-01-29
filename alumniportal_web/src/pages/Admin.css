@@ -222,6 +222,12 @@
   border-bottom: 2px solid var(--border-color);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .data-table td {
@@ -229,6 +235,11 @@
   border-bottom: 1px solid var(--border-color-light);
   font-size: var(--font-size-sm);
   color: var(--text-primary);
+  word-wrap: break-word;
+  word-break: break-word;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .data-table tr:hover {
@@ -294,6 +305,10 @@
   transition: all var(--transition-base);
   min-height: 32px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  word-wrap: break-word;
 }
 
 .btn-approve {
@@ -391,10 +406,22 @@
   font-weight: 600;
   color: #000000e6;
   font-size: 14px;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .data-table td {
   font-size: 14px;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: #000000e6;
 }
 
@@ -409,6 +436,11 @@
   border-radius: 8px;
   padding: 1.5rem;
   background: #f9fafb;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .content-header {
@@ -422,12 +454,20 @@
   margin: 0;
   font-size: 18px;
   font-weight: 600;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 .content-item p {
   margin: 0.5rem 0;
   color: #666;
   line-height: 1.5;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 .content-meta {
@@ -436,6 +476,9 @@
   margin: 0.75rem 0;
   font-size: 12px;
   color: #999;
+  flex-wrap: wrap;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 .content-actions {
@@ -455,6 +498,11 @@
   border-radius: 8px;
   padding: 1.5rem;
   background: #f9fafb;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .report-header {
@@ -462,10 +510,13 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .report-header strong {
   margin-right: 0.5rem;
+  word-wrap: break-word;
 }
 
 .report-meta {
@@ -474,6 +525,9 @@
   margin: 0.75rem 0;
   font-size: 12px;
   color: #999;
+  flex-wrap: wrap;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 .reported-item {
@@ -702,10 +756,17 @@
   cursor: pointer;
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
   color: var(--text-secondary);
   transition: all var(--transition-base);
   min-height: 44px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .admin-tabs-full button:hover {
