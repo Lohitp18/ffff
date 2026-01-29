@@ -42,7 +42,7 @@ const InstitutionDetail = () => {
   }, [decodedInstitutionName, user])
 
   const checkAdminStatus = () => {
-    if (user && user.isAdmin) {
+    if (user && (user.isAdmin === true || user.role === 'admin' || user.isAdmin === 'true')) {
       setIsAdmin(true)
     } else {
       setIsAdmin(false)
@@ -235,8 +235,7 @@ const InstitutionDetail = () => {
                 <p>{posts.length} {posts.length === 1 ? 'post' : 'posts'}</p>
                 {profile && (
                   <div className="institution-contact">
-                    {profile.email && <span>{profile.email}</span>}
-                    {profile.phone && <span>{profile.phone}</span>}
+                    {/* Do not display email/phone publicly */}
                     {profile.address && <span>{profile.address}</span>}
                   </div>
                 )}

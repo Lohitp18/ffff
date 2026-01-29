@@ -766,7 +766,6 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       child: Column(
         children: [
-          _detailLine('Email', _userProfile!['email'], Icons.mail_outline),
           _detailLine(
             'Phone number',
             _userProfile!['phone'],
@@ -2354,7 +2353,6 @@ class _PrivacySettingsDialogState extends State<_PrivacySettingsDialog> {
 
     // Set defaults if not present
     _settings['profileVisibility'] ??= 'public';
-    _settings['showEmail'] ??= false;
     _settings['showPhone'] ??= false;
     _settings['showExperience'] ??= true;
     _settings['showEducation'] ??= true;
@@ -2420,16 +2418,6 @@ class _PrivacySettingsDialogState extends State<_PrivacySettingsDialog> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    SwitchListTile(
-                      title: const Text('Show Email'),
-                      subtitle: const Text('Allow others to see your email'),
-                      value: _settings['showEmail'],
-                      onChanged: (value) {
-                        setState(() {
-                          _settings['showEmail'] = value;
-                        });
-                      },
-                    ),
                     SwitchListTile(
                       title: const Text('Show Phone'),
                       subtitle: const Text(

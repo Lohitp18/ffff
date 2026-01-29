@@ -369,6 +369,14 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               ),
 
+                            // Show video if exists (institution posts may contain videoUrl)
+                            if (item['videoUrl'] != null && item['videoUrl'].toString().isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              _VideoLinkPreview(
+                                url: _resolveImageUrl(item['videoUrl']),
+                              ),
+                            ],
+
                             // Apply button for opportunities
                             if (item['applyLink'] != null && item['applyLink'].toString().isNotEmpty) ...[
                               const SizedBox(height: 12),
@@ -539,19 +547,46 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    // For regular posts with user information (name only)
+    // For regular posts with user information (show avatar + name)
     if (authorId != null) {
       return GestureDetector(
         onTap: () => _navigateToUserProfile(authorId),
-        child: Text(
-          authorName,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 15,
-            color: Colors.black87,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+        child: Row(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.blue.shade200, width: 2),
+              ),
+              child: CircleAvatar(
+                radius: 20,
+                backgroundColor: Colors.blue.shade50,
+                backgroundImage: authorImage != null ? NetworkImage(authorImage) : null,
+                child: authorImage == null
+                    ? Text(
+                        (authorName.toString().isNotEmpty ? authorName.toString()[0] : 'U').toUpperCase(),
+                        style: TextStyle(
+                          color: Colors.blue.shade700,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      )
+                    : null,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                authorName.toString(),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                  color: Colors.black87,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -576,6 +611,49 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _getBody(),
+    );
+  }
+}
+
+class _VideoLinkPreview extends StatelessWidget {
+  final String? url;
+  const _VideoLinkPreview({required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    final safeUrl = url?.trim();
+    if (safeUrl == null || safeUrl.isEmpty) return const SizedBox.shrink();
+
+    return InkWell(
+      onTap: () async {
+        final uri = Uri.tryParse(safeUrl);
+        if (uri != null) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        height: 200,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.black12,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.play_circle_fill, size: 64, color: Colors.blue.shade700),
+            const SizedBox(height: 8),
+            Text(
+              'Tap to play video',
+              style: TextStyle(
+                color: Colors.grey.shade800,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -917,13 +995,6 @@ class _ShareButton extends StatelessWidget {
                     label: 'WhatsApp',
                     color: const Color(0xFF25D366),
                     onTap: () => _shareToWhatsApp(context, shareText),
-                  ),
-                  _buildShareOption(
-                    context: context,
-                    icon: Icons.email,
-                    label: 'Email',
-                    color: Colors.red,
-                    onTap: () => _shareToEmail(context, shareText),
                   ),
                   _buildShareOption(
                     context: context,

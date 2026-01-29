@@ -380,7 +380,6 @@ class _InstitutionDetailPageState extends State<InstitutionDetailPage> {
     final profile = _institutionProfile;
     final coverImage = profile?['coverImage'];
     final image = profile?['image'];
-    final email = profile?['email'] ?? '';
     final phone = profile?['phone'] ?? '';
     final address = profile?['address'] ?? '';
     final website = profile?['website'] ?? '';
@@ -525,11 +524,9 @@ class _InstitutionDetailPageState extends State<InstitutionDetailPage> {
               ),
               const SizedBox(height: 20),
               // Contact Information
-              if (email.isNotEmpty || phone.isNotEmpty || address.isNotEmpty || website.isNotEmpty) ...[
+              if (phone.isNotEmpty || address.isNotEmpty || website.isNotEmpty) ...[
                 const Divider(),
                 const SizedBox(height: 12),
-                if (email.isNotEmpty)
-                  _buildInfoRow(Icons.email, email),
                 if (phone.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   _buildInfoRow(Icons.phone, phone),
