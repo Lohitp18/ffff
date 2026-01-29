@@ -471,6 +471,114 @@
   justify-content: center;
 }
 
+/* College profile – all details */
+.institution-profile-details {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.institution-profile-details-title {
+  margin: 0 0 20px 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #000000e6;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.institution-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.institution-profile-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.institution-profile-section.full-width {
+  grid-column: 1 / -1;
+}
+
+.institution-profile-section h3 {
+  margin: 0 0 6px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #000000e6;
+}
+
+.profile-row {
+  margin: 0;
+  font-size: 14px;
+  color: #333;
+  line-height: 1.5;
+}
+
+.profile-label {
+  display: inline-block;
+  min-width: 100px;
+  font-weight: 600;
+  color: #666;
+}
+
+.profile-row a {
+  color: #0a66c2;
+  text-decoration: none;
+}
+
+.profile-row a:hover {
+  text-decoration: underline;
+}
+
+.profile-description {
+  margin: 0;
+  font-size: 14px;
+  color: #333;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.profile-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 14px;
+  color: #333;
+  line-height: 1.6;
+}
+
+.profile-list li {
+  margin-bottom: 4px;
+}
+
+.profile-social-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.profile-social-link {
+  display: inline-block;
+  padding: 8px 14px;
+  background: #f3f2ef;
+  color: #0a66c2;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+}
+
+.profile-social-link:hover {
+  background: #0a66c2;
+  color: white;
+}
+
 /* Institution Header Styles */
 .institution-cover {
   width: 100%;
@@ -634,6 +742,25 @@
 
   .institution-contact {
     justify-content: center;
+  }
+
+  .institution-profile-details {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .institution-profile-details-title {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  .institution-profile-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .institution-profile-section.full-width {
+    grid-column: 1;
   }
 
   .institution-website {

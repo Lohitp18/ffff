@@ -322,6 +322,82 @@ const InstitutionDetail = () => {
             </div>
           </div>
         </div>
+
+        {/* College / Institution profile – all filled details */}
+        {profile && (profile.phone || profile.email || profile.address || profile.city || profile.state || profile.pincode || profile.country || profile.website || profile.establishedYear || profile.type || profile.affiliation || profile.description || (profile.facilities && profile.facilities.length > 0) || (profile.courses && profile.courses.length > 0) || profile.contactPerson || profile.contactPersonEmail || profile.contactPersonPhone || profile.facebook || profile.twitter || profile.linkedin || profile.instagram) && (
+          <div className="institution-profile-details">
+            <h2 className="institution-profile-details-title">College Profile</h2>
+            <div className="institution-profile-grid">
+              {(profile.phone || profile.email || profile.address || profile.city || profile.state || profile.pincode || profile.country) && (
+                <section className="institution-profile-section">
+                  <h3>Contact &amp; Location</h3>
+                  {profile.address && <p className="profile-row"><span className="profile-label">Address</span> {profile.address}</p>}
+                  {profile.city && <p className="profile-row"><span className="profile-label">City</span> {profile.city}</p>}
+                  {profile.state && <p className="profile-row"><span className="profile-label">State</span> {profile.state}</p>}
+                  {profile.pincode && <p className="profile-row"><span className="profile-label">Pincode</span> {profile.pincode}</p>}
+                  {profile.country && <p className="profile-row"><span className="profile-label">Country</span> {profile.country}</p>}
+                  {profile.phone && <p className="profile-row"><span className="profile-label">Phone</span> <a href={`tel:${profile.phone}`}>{profile.phone}</a></p>}
+                  {profile.email && <p className="profile-row"><span className="profile-label">Email</span> <a href={`mailto:${profile.email}`}>{profile.email}</a></p>}
+                  {profile.website && <p className="profile-row"><span className="profile-label">Website</span> <a href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`} target="_blank" rel="noreferrer">{profile.website}</a></p>}
+                </section>
+              )}
+              {(profile.establishedYear || profile.type || profile.affiliation) && (
+                <section className="institution-profile-section">
+                  <h3>Details</h3>
+                  {profile.establishedYear && <p className="profile-row"><span className="profile-label">Established</span> {profile.establishedYear}</p>}
+                  {profile.type && <p className="profile-row"><span className="profile-label">Type</span> {profile.type}</p>}
+                  {profile.affiliation && <p className="profile-row"><span className="profile-label">Affiliation</span> {profile.affiliation}</p>}
+                </section>
+              )}
+              {profile.description && (
+                <section className="institution-profile-section full-width">
+                  <h3>About</h3>
+                  <p className="profile-description">{profile.description}</p>
+                </section>
+              )}
+              {profile.facilities && profile.facilities.length > 0 && (
+                <section className="institution-profile-section">
+                  <h3>Facilities</h3>
+                  <ul className="profile-list">
+                    {profile.facilities.map((f, i) => (
+                      <li key={i}>{typeof f === 'string' ? f : f}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+              {profile.courses && profile.courses.length > 0 && (
+                <section className="institution-profile-section">
+                  <h3>Courses Offered</h3>
+                  <ul className="profile-list">
+                    {profile.courses.map((c, i) => (
+                      <li key={i}>{typeof c === 'string' ? c : c}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+              {(profile.contactPerson || profile.contactPersonEmail || profile.contactPersonPhone) && (
+                <section className="institution-profile-section">
+                  <h3>Contact Person</h3>
+                  {profile.contactPerson && <p className="profile-row"><span className="profile-label">Name</span> {profile.contactPerson}</p>}
+                  {profile.contactPersonEmail && <p className="profile-row"><span className="profile-label">Email</span> <a href={`mailto:${profile.contactPersonEmail}`}>{profile.contactPersonEmail}</a></p>}
+                  {profile.contactPersonPhone && <p className="profile-row"><span className="profile-label">Phone</span> <a href={`tel:${profile.contactPersonPhone}`}>{profile.contactPersonPhone}</a></p>}
+                </section>
+              )}
+              {(profile.facebook || profile.twitter || profile.linkedin || profile.instagram) && (
+                <section className="institution-profile-section full-width">
+                  <h3>Connect</h3>
+                  <div className="profile-social-links">
+                    {profile.facebook && <a href={profile.facebook.startsWith('http') ? profile.facebook : `https://${profile.facebook}`} target="_blank" rel="noreferrer" className="profile-social-link" aria-label="Facebook">Facebook</a>}
+                    {profile.twitter && <a href={profile.twitter.startsWith('http') ? profile.twitter : `https://${profile.twitter}`} target="_blank" rel="noreferrer" className="profile-social-link" aria-label="Twitter">Twitter</a>}
+                    {profile.linkedin && <a href={profile.linkedin.startsWith('http') ? profile.linkedin : `https://${profile.linkedin}`} target="_blank" rel="noreferrer" className="profile-social-link" aria-label="LinkedIn">LinkedIn</a>}
+                    {profile.instagram && <a href={profile.instagram.startsWith('http') ? profile.instagram : `https://${profile.instagram}`} target="_blank" rel="noreferrer" className="profile-social-link" aria-label="Instagram">Instagram</a>}
+                  </div>
+                </section>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Create Post Card - Only visible to admins */}
         {isAdmin && (
           <div className="linkedin-post-box">
