@@ -1,8 +1,10 @@
 const Institution = require('../models/Institution');
 const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const { uploadBufferToAzure } = require("../utils/azureStorage");
 
-// Configure multer for image uploads (in-memory, then pushed to Azure)
+// Configure multer for image uploads (in-memory)
 const imageUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
@@ -13,6 +15,31 @@ const imageUpload = multer({
     return cb(new Error('Only image files are allowed'));
   }
 }).single('image');
+
+/** Upload image: Azure only when configured; otherwise always use local uploads/. Returns URL path. */
+async function uploadInstitutionImage(buffer, originalname, purpose = 'logo') {
+  const ext = path.extname(originalname) || '.jpg';
+  const safeName = (originalname || 'image').replace(/\s+/g, '-').toLowerCase();
+  const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+  const filename = `institution-${purpose}-${unique}-${path.basename(safeName, path.extname(safeName))}${ext}`;
+
+  const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
+  const azureConfigured = connectionString && String(connectionString).trim().length > 0;
+
+  if (azureConfigured) {
+    try {
+      return await uploadBufferToAzure(buffer, filename, 'institutions', 'image/jpeg');
+    } catch (err) {
+      console.warn('[institution] Azure upload failed, using local:', err.message);
+    }
+  }
+
+  const dir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const filePath = path.join(dir, filename);
+  fs.writeFileSync(filePath, buffer);
+  return `/uploads/${filename}`;
+}
 
 // Middleware wrapper to handle Multer errors cleanly
 const handleImageUpload = (req, res, next) => {
@@ -70,13 +97,12 @@ exports.createInstitution = async (req, res) => {
       updatedBy: userId
     };
     
-    // Handle image upload
+    // Handle image upload (logo)
     if (req.file) {
-      institutionData.image = await uploadBufferToAzure(
+      institutionData.image = await uploadInstitutionImage(
         req.file.buffer,
         req.file.originalname || 'institution-logo.jpg',
-        "institutions",
-        req.file.mimetype
+        'logo'
       );
     }
     
@@ -102,13 +128,12 @@ exports.updateInstitution = async (req, res) => {
       updatedBy: userId
     };
     
-    // Handle image upload
+    // Handle image upload (logo)
     if (req.file) {
-      updateData.image = await uploadBufferToAzure(
+      updateData.image = await uploadInstitutionImage(
         req.file.buffer,
         req.file.originalname || 'institution-logo.jpg',
-        "institutions",
-        req.file.mimetype
+        'logo'
       );
     }
     
@@ -138,11 +163,10 @@ exports.updateCoverImage = async (req, res) => {
       return res.status(400).json({ message: 'No image uploaded' });
     }
     
-    const coverImageUrl = await uploadBufferToAzure(
+    const coverImageUrl = await uploadInstitutionImage(
       req.file.buffer,
       req.file.originalname || 'institution-cover.jpg',
-      "institutions",
-      req.file.mimetype
+      'cover'
     );
     const institution = await Institution.findByIdAndUpdate(
       id,

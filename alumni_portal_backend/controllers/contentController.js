@@ -3,6 +3,8 @@ const Opportunity = require("../models/Opportunity");
 const Post = require("../models/Post");
 const InstitutionPost = require("../models/InstitutionPost");
 const { createNotification } = require("./notificationController");
+
+const VALID_REPORT_REASONS = ['spam', 'inappropriate_content', 'harassment', 'false_information', 'copyright_violation', 'other'];
 const multer = require("multer");
 const { uploadBufferToAzure } = require("../utils/azureStorage");
 
@@ -587,6 +589,12 @@ module.exports = {
       if (!reason) {
         return res.status(400).json({ message: 'Reason is required' });
       }
+      const reasonValue = String(reason).trim().toLowerCase();
+      if (!VALID_REPORT_REASONS.includes(reasonValue)) {
+        return res.status(400).json({
+          message: 'Invalid reason. Allowed: spam, inappropriate_content, harassment, false_information, copyright_violation, other'
+        });
+      }
 
       const event = await Event.findById(id);
       if (!event) {
@@ -608,7 +616,7 @@ module.exports = {
         reporterId: userId,
         reportedItemId: id,
         reportedItemType: 'Event',
-        reason,
+        reason: reasonValue,
         description: description || ''
       });
 
@@ -660,6 +668,12 @@ module.exports = {
       if (!reason) {
         return res.status(400).json({ message: 'Reason is required' });
       }
+      const reasonValue = String(reason).trim().toLowerCase();
+      if (!VALID_REPORT_REASONS.includes(reasonValue)) {
+        return res.status(400).json({
+          message: 'Invalid reason. Allowed: spam, inappropriate_content, harassment, false_information, copyright_violation, other'
+        });
+      }
 
       const opportunity = await Opportunity.findById(id);
       if (!opportunity) {
@@ -681,7 +695,7 @@ module.exports = {
         reporterId: userId,
         reportedItemId: id,
         reportedItemType: 'Opportunity',
-        reason,
+        reason: reasonValue,
         description: description || ''
       });
 
@@ -733,6 +747,12 @@ module.exports = {
       if (!reason) {
         return res.status(400).json({ message: 'Reason is required' });
       }
+      const reasonValue = String(reason).trim().toLowerCase();
+      if (!VALID_REPORT_REASONS.includes(reasonValue)) {
+        return res.status(400).json({
+          message: 'Invalid reason. Allowed: spam, inappropriate_content, harassment, false_information, copyright_violation, other'
+        });
+      }
 
       const post = await InstitutionPost.findById(id);
       if (!post) {
@@ -754,7 +774,7 @@ module.exports = {
         reporterId: userId,
         reportedItemId: id,
         reportedItemType: 'InstitutionPost',
-        reason,
+        reason: reasonValue,
         description: description || ''
       });
 

@@ -177,13 +177,13 @@ const InstitutionDetail = () => {
         : `${API_BASE_URL}/api/institutions`
       const method = profile?._id ? 'put' : 'post'
 
+      // Do NOT set Content-Type: multipart/form-data — let browser set it with boundary
       const res = await axios({
         method,
         url,
         data: formData,
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
         },
       })
 
@@ -200,7 +200,6 @@ const InstitutionDetail = () => {
               {
                 headers: {
                   Authorization: `Bearer ${token}`,
-                  'Content-Type': 'multipart/form-data',
                 },
               }
             )

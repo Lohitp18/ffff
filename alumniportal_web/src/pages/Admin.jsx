@@ -9,12 +9,8 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000
 
 const Admin = () => {
   const navigate = useNavigate()
-  const { user, login, logout } = useAuth()
+  const { user, logout } = useAuth()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('dashboard')
   const [stats, setStats] = useState({})
   const [users, setUsers] = useState([])
@@ -28,26 +24,15 @@ const Admin = () => {
   const [opportunitiesLoading, setOpportunitiesLoading] = useState(false)
   const [reportsLoading, setReportsLoading] = useState(false)
 
-  const SUPER_ADMIN_EMAIL = 'patgarlohit818@gmail.com'
-  const SUPER_ADMIN_PASSWORD = 'Lohit@2004'
-
   useEffect(() => {
-    const checkAuth = () => {
-      const adminAuth = localStorage.getItem('admin_authenticated')
-      const token = localStorage.getItem('auth_token')
-      
-      // Check if user is authenticated as admin
-      if (adminAuth === 'true' && token) {
-        setIsAuthenticated(true)
-        if (user) {
-          loadDashboardStats()
-        }
-      } else {
-        setIsAuthenticated(false)
-      }
+    const adminAuth = localStorage.getItem('admin_authenticated')
+    const token = localStorage.getItem('auth_token')
+    if (adminAuth === 'true' && token) {
+      setIsAuthenticated(true)
+      if (user) loadDashboardStats()
+    } else {
+      setIsAuthenticated(false)
     }
-    
-    checkAuth()
   }, [user])
 
   const getAuthHeaders = () => {
@@ -62,27 +47,6 @@ const Admin = () => {
     }
   }
 
-  const handleLogin = async (e) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-
-    if (email !== SUPER_ADMIN_EMAIL || password !== SUPER_ADMIN_PASSWORD) {
-      setError('Invalid admin credentials')
-      setLoading(false)
-      return
-    }
-
-    const result = await login(email, password)
-    if (result.success) {
-      localStorage.setItem('admin_authenticated', 'true')
-      setIsAuthenticated(true)
-      loadDashboardStats()
-    } else {
-      setError(result.message || 'Login failed')
-    }
-    setLoading(false)
-  }
 
   const loadDashboardStats = async () => {
     try {
@@ -281,40 +245,8 @@ const Admin = () => {
   }
 
   if (!isAuthenticated) {
-    return (
-      <div className="auth-container">
-        <div className="auth-card">
-          <h1>Alumni Portal</h1>
-          <h2>Admin Login</h2>
-          {error && <div className="error-message">{error}</div>}
-          <form onSubmit={handleLogin}>
-            <div className="form-group">
-              <label>Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder="Enter admin email"
-              />
-            </div>
-            <div className="form-group">
-              <label>Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="Enter admin password"
-              />
-            </div>
-            <button type="submit" disabled={loading} className="auth-button">
-              {loading ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
-        </div>
-      </div>
-    )
+    navigate('/super-admin-login', { replace: true })
+    return null
   }
 
   const handleLogout = () => {

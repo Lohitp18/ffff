@@ -5,6 +5,8 @@ const Post = require('../models/Post');
 const Connection = require('../models/Connection');
 const Report = require('../models/Report');
 
+const VALID_REPORT_REASONS = ['spam', 'inappropriate_content', 'harassment', 'false_information', 'copyright_violation', 'other'];
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = 'uploads/';
@@ -110,6 +112,12 @@ exports.reportPost = async (req, res) => {
     if (!reason) {
       return res.status(400).json({ message: 'Reason is required' });
     }
+    const reasonValue = String(reason).trim().toLowerCase();
+    if (!VALID_REPORT_REASONS.includes(reasonValue)) {
+      return res.status(400).json({
+        message: 'Invalid reason. Allowed: spam, inappropriate_content, harassment, false_information, copyright_violation, other'
+      });
+    }
 
     const post = await Post.findById(postId);
     if (!post) {
@@ -127,18 +135,20 @@ exports.reportPost = async (req, res) => {
       return res.status(400).json({ message: 'You have already reported this post' });
     }
 
-    // Create report
     const report = await Report.create({
       reporterId: userId,
       reportedItemId: postId,
       reportedItemType: 'Post',
-      reason,
+      reason: reasonValue,
       description: description || ''
     });
 
     return res.status(201).json({ message: 'Post reported successfully', report });
   } catch (err) {
     console.error('reportPost error', err);
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ message: err.message || 'Report validation failed' });
+    }
     return res.status(500).json({ message: 'Failed to report post' });
   }
 };

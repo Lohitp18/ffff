@@ -5,10 +5,24 @@ import './PostCard.css'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
+const REPORT_REASONS = [
+  { value: 'spam', label: 'Spam' },
+  { value: 'inappropriate_content', label: 'Inappropriate Content' },
+  { value: 'harassment', label: 'Harassment' },
+  { value: 'false_information', label: 'False Information' },
+  { value: 'copyright_violation', label: 'Copyright Violation' },
+  { value: 'other', label: 'Other' },
+]
+
 const PostCard = ({ post, onUpdate }) => {
   const [isLiked, setIsLiked] = useState(() => post.isLiked || false)
   const [likeCount, setLikeCount] = useState(post.likeCount || (Array.isArray(post.likes) ? post.likes.length : 0))
   const [loading, setLoading] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [reportReason, setReportReason] = useState('')
+  const [reportDescription, setReportDescription] = useState('')
+  const [reportSubmitting, setReportSubmitting] = useState(false)
+  const [reportError, setReportError] = useState('')
   const navigate = useNavigate()
 
   const getPostType = () => {
@@ -111,14 +125,23 @@ const PostCard = ({ post, onUpdate }) => {
     }
   }
 
-  const handleReport = async () => {
-    const reason = prompt('Please enter the reason for reporting:')
-    if (!reason) return
+  const openReportModal = () => {
+    setReportReason('')
+    setReportDescription('')
+    setReportError('')
+    setShowReportModal(true)
+  }
 
+  const handleReportSubmit = async () => {
+    if (!reportReason) {
+      setReportError('Please select a reason')
+      return
+    }
+    setReportError('')
+    setReportSubmitting(true)
     try {
       const postType = getPostType()
       let endpoint
-
       if (postType === 'Event') {
         endpoint = `${API_BASE_URL}/api/content/events/${post._id}/report`
       } else if (postType === 'Opportunity') {
@@ -131,18 +154,20 @@ const PostCard = ({ post, onUpdate }) => {
 
       await axios.post(
         endpoint,
-        { reason },
+        { reason: reportReason, description: reportDescription || '' },
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
           },
         }
       )
-
+      setShowReportModal(false)
       alert('Report submitted successfully. Thank you for your feedback.')
     } catch (error) {
       console.error('Failed to submit report:', error)
-      alert(error.response?.data?.message || 'Failed to submit report. Please try again.')
+      setReportError(error.response?.data?.message || 'Failed to submit report. Please try again.')
+    } finally {
+      setReportSubmitting(false)
     }
   }
 
@@ -296,13 +321,56 @@ const PostCard = ({ post, onUpdate }) => {
           </svg>
           <span>Share</span>
         </button>
-        <button className="post-action" onClick={handleReport}>
+        <button className="post-action" onClick={openReportModal}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#666">
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
           </svg>
           <span>Report</span>
         </button>
       </div>
+
+      {showReportModal && (
+        <div className="report-modal-backdrop" onClick={() => setShowReportModal(false)}>
+          <div className="report-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="report-modal-header">
+              <h3>Report Post</h3>
+              <button type="button" className="report-modal-close" onClick={() => setShowReportModal(false)} aria-label="Close">×</button>
+            </div>
+            <p className="report-modal-desc">Please select a reason for reporting this post:</p>
+            {reportError && <div className="report-modal-error">{reportError}</div>}
+            <div className="report-modal-body">
+              <label>
+                Reason <span className="required">*</span>
+                <select
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  required
+                >
+                  <option value="">Select a reason</option>
+                  {REPORT_REASONS.map((r) => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Additional details (optional)
+                <textarea
+                  value={reportDescription}
+                  onChange={(e) => setReportDescription(e.target.value)}
+                  placeholder="Please provide more details..."
+                  rows={3}
+                />
+              </label>
+            </div>
+            <div className="report-modal-actions">
+              <button type="button" className="linkedin-btn-secondary" onClick={() => setShowReportModal(false)} disabled={reportSubmitting}>Cancel</button>
+              <button type="button" className="linkedin-btn-primary" onClick={handleReportSubmit} disabled={reportSubmitting}>
+                {reportSubmitting ? 'Submitting...' : 'Submit Report'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </article>
   )
 }
