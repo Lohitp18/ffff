@@ -85,7 +85,7 @@ const InstitutionDetail = () => {
     })
     setLogoFile(null)
     setCoverFile(null)
-    openProfileModal()
+    setShowProfileModal(true)
   }
 
   const closeProfileModal = () => {

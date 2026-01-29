@@ -17,14 +17,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
 
   // Professional fields
   final TextEditingController currentCompanyController = TextEditingController();
-  final TextEditingController currentPositionController = TextEditingController();
   final TextEditingController previousCompanyController = TextEditingController();
-  final TextEditingController previousPositionController = TextEditingController();
-  final TextEditingController placementCompanyController = TextEditingController();
-  final TextEditingController placementYearController = TextEditingController();
   final TextEditingController totalExperienceController = TextEditingController();
-  final TextEditingController fieldsWorkedController = TextEditingController();
-  final TextEditingController headlineController = TextEditingController();
   final TextEditingController locationController = TextEditingController();
 
   bool _isLoading = false;
@@ -33,14 +27,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   @override
   void dispose() {
     currentCompanyController.dispose();
-    currentPositionController.dispose();
     previousCompanyController.dispose();
-    previousPositionController.dispose();
-    placementCompanyController.dispose();
-    placementYearController.dispose();
     totalExperienceController.dispose();
-    fieldsWorkedController.dispose();
-    headlineController.dispose();
     locationController.dispose();
     super.dispose();
   }
@@ -69,21 +57,15 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
             'Authorization': 'Bearer $token',
           },
           body: jsonEncode({
-            'headline': headlineController.text.trim(),
             'location': locationController.text.trim(),
             'privateInfo': {
               'currentCompany': currentCompanyController.text.trim(),
-              'currentPosition': currentPositionController.text.trim(),
-              'previousCompany': previousCompanyController.text.trim(),
-              'previousPosition': previousPositionController.text.trim(),
-              'placementCompany': placementCompanyController.text.trim(),
-              'placementYear': placementYearController.text.trim(),
+              'previousCompanies': [
+                {'company': previousCompanyController.text.trim()}
+              ],
               'totalExperience': totalExperienceController.text.trim().isNotEmpty
                   ? int.tryParse(totalExperienceController.text.trim()) ?? 0
                   : 0,
-              'fieldsWorked': fieldsWorkedController.text.trim().isNotEmpty
-                  ? fieldsWorkedController.text.trim().split(',').map((e) => e.trim()).toList()
-                  : [],
             },
           }),
         );
@@ -158,92 +140,33 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                 const SizedBox(height: 16),
               ],
 
-              // Headline
-              TextFormField(
-                controller: headlineController,
-                decoration: _inputDecoration("Professional Headline *", Icons.title, 
-                  hintText: "e.g., Software Engineer at Google"),
-                validator: (value) => value!.isEmpty ? "Enter your professional headline" : null,
-              ),
-              const SizedBox(height: 12),
-
               // Location
               TextFormField(
                 controller: locationController,
-                decoration: _inputDecoration("Current Location *", Icons.location_on_outlined),
-                validator: (value) => value!.isEmpty ? "Enter your current location" : null,
+                decoration: _inputDecoration("Job Location *", Icons.location_on_outlined),
+                validator: (value) => value!.trim().isEmpty ? "Enter your job location" : null,
               ),
               const SizedBox(height: 24),
-
-              // Current Company Section
-              _buildSectionHeader("Current Employment", Icons.business_center),
-              const SizedBox(height: 12),
 
               TextFormField(
                 controller: currentCompanyController,
                 decoration: _inputDecoration("Current Company *", Icons.business_center_outlined),
-                validator: (value) => value!.isEmpty ? "Enter your current company" : null,
-              ),
-              const SizedBox(height: 12),
-
-              TextFormField(
-                controller: currentPositionController,
-                decoration: _inputDecoration("Current Position/Designation *", Icons.badge_outlined),
-                validator: (value) => value!.isEmpty ? "Enter your current position" : null,
+                validator: (value) => value!.trim().isEmpty ? "Enter your current company" : null,
               ),
               const SizedBox(height: 24),
-
-              // Previous Company Section
-              _buildSectionHeader("Previous Employment", Icons.history),
-              const SizedBox(height: 12),
 
               TextFormField(
                 controller: previousCompanyController,
                 decoration: _inputDecoration("Previous Company *", Icons.business_outlined),
-                validator: (value) => value!.isEmpty ? "Enter your previous company" : null,
-              ),
-              const SizedBox(height: 12),
-
-              TextFormField(
-                controller: previousPositionController,
-                decoration: _inputDecoration("Previous Position/Designation *", Icons.work_outline),
-                validator: (value) => value!.isEmpty ? "Enter your previous position" : null,
+                validator: (value) => value!.trim().isEmpty ? "Enter your previous company" : null,
               ),
               const SizedBox(height: 24),
 
-              // Experience & Other Details
-              _buildSectionHeader("Experience & Other Details", Icons.info),
-              const SizedBox(height: 12),
-
               TextFormField(
                 controller: totalExperienceController,
-                decoration: _inputDecoration("Total Years of Experience *", Icons.timer_outlined,
-                  hintText: "e.g., 3"),
+                decoration: _inputDecoration("Years of Experience *", Icons.timer_outlined, hintText: "e.g., 3"),
                 keyboardType: TextInputType.number,
-                validator: (value) => value!.isEmpty ? "Enter your total experience" : null,
-              ),
-              const SizedBox(height: 12),
-
-              TextFormField(
-                controller: fieldsWorkedController,
-                decoration: _inputDecoration("Fields/Domains Worked In *", Icons.category_outlined,
-                  hintText: "e.g., Web Development, Machine Learning (comma-separated)"),
-                validator: (value) => value!.isEmpty ? "Enter fields you have worked in" : null,
-              ),
-              const SizedBox(height: 12),
-
-              TextFormField(
-                controller: placementCompanyController,
-                decoration: _inputDecoration("Campus Placement Company", Icons.celebration_outlined,
-                  hintText: "Company where you got placed (if any)"),
-              ),
-              const SizedBox(height: 12),
-
-              TextFormField(
-                controller: placementYearController,
-                decoration: _inputDecoration("Placement Year", Icons.event,
-                  hintText: "Year of campus placement"),
-                keyboardType: TextInputType.number,
+                validator: (value) => value!.trim().isEmpty ? "Enter your years of experience" : null,
               ),
               const SizedBox(height: 24),
 

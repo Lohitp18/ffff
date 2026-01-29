@@ -17,21 +17,153 @@ class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMix
     defaultValue: 'http://10.0.2.2:5000',
   );
   late TabController _tabController;
+  final _emailCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  bool _authChecked = false;
+  bool _isAuthenticated = false;
+  bool _loggingIn = false;
+  String? _loginError;
+
+  static const String _superAdminEmail = 'patgarlohit818@gmail.com';
+  static const String _superAdminPassword = 'Lohit@2004';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
+    _checkAuth();
+  }
+
+  Future<void> _checkAuth() async {
+    const storage = FlutterSecureStorage();
+    final v = await storage.read(key: 'super_admin_authenticated');
+    if (!mounted) return;
+    setState(() {
+      _isAuthenticated = v == 'true';
+      _authChecked = true;
+    });
+  }
+
+  Future<void> _login() async {
+    setState(() {
+      _loggingIn = true;
+      _loginError = null;
+    });
+    try {
+      final email = _emailCtrl.text.trim();
+      final password = _passwordCtrl.text;
+      if (email != _superAdminEmail || password != _superAdminPassword) {
+        setState(() {
+          _loginError = 'Invalid admin credentials';
+        });
+        return;
+      }
+
+      // Persist a local gate so the admin tabs are not open to everyone.
+      const storage = FlutterSecureStorage();
+      await storage.write(key: 'super_admin_authenticated', value: 'true');
+      if (!mounted) return;
+      setState(() {
+        _isAuthenticated = true;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loggingIn = false;
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_authChecked) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (!_isAuthenticated) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Admin Login'),
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
+          automaticallyImplyLeading: false,
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 16),
+              const Text(
+                'Super Admin',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Sign in to manage users, posts, and institution profiles.',
+                style: TextStyle(color: Colors.grey.shade700),
+              ),
+              const SizedBox(height: 16),
+              if (_loginError != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.08),
+                    border: Border.all(color: Colors.redAccent),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(_loginError!, style: const TextStyle(color: Colors.red)),
+                ),
+                const SizedBox(height: 12),
+              ],
+              TextField(
+                controller: _emailCtrl,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _passwordCtrl,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _loggingIn ? null : _login,
+                  child: _loggingIn
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Sign In'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Admin Dashboard'),

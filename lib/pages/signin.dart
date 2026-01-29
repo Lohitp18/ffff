@@ -81,11 +81,17 @@ class _SignInPageState extends State<SignInPage> {
             final profileData = jsonDecode(profileResponse.body) as Map<String, dynamic>;
             final privateInfo = profileData['privateInfo'] as Map<String, dynamic>?;
             final hasCurrentCompany = privateInfo?['currentCompany']?.toString().trim().isNotEmpty ?? false;
-            final hasHeadline = profileData['headline']?.toString().trim().isNotEmpty ?? false;
             final hasLocation = profileData['location']?.toString().trim().isNotEmpty ?? false;
+            final exp = privateInfo?['totalExperience'];
+            final hasExperience = (exp is num ? exp : num.tryParse(exp?.toString() ?? '')) != null;
+            final previousCompanies = privateInfo?['previousCompanies'];
+            final hasPreviousCompany = (previousCompanies is List && previousCompanies.isNotEmpty)
+                ? (previousCompanies.first is Map &&
+                    (previousCompanies.first['company']?.toString().trim().isNotEmpty ?? false))
+                : false;
             
             // If profile is incomplete, redirect to completion page
-            if (!hasCurrentCompany || !hasHeadline || !hasLocation) {
+            if (!hasCurrentCompany || !hasPreviousCompany || !hasExperience || !hasLocation) {
               Navigator.pushReplacementNamed(context, '/profile-completion');
             } else {
               Navigator.pushReplacementNamed(context, '/home');

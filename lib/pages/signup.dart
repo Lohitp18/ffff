@@ -18,10 +18,14 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController dobController = TextEditingController();
+  final TextEditingController jobLocationController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
-  final TextEditingController favTeacherController = TextEditingController();
-  final TextEditingController socialMediaController = TextEditingController();
+
+  // Professional fields (compulsory at signup)
+  final TextEditingController currentCompanyController = TextEditingController();
+  final TextEditingController previousCompanyController = TextEditingController();
+  final TextEditingController totalExperienceController = TextEditingController();
 
   // Optional fields
   final TextEditingController favTeacherController = TextEditingController();
@@ -31,8 +35,43 @@ class _SignUpPageState extends State<SignUpPage> {
   String? _course;
   String? _year; // year of passed out
 
-  final List<String> _institutions = <String>['AIET','AIT','AIIMS','NIT','IIT'];
-  final List<String> _courses = <String>['CSE','ECE','EEE','MECH','CIVIL','MBA','MCA'];
+  final List<String> _institutions = <String>[
+    "Alva's institute of engineering and technology",
+    "Alva's homeopathic college",
+    "Alva's nursing college",
+    "Alva's college of naturopathy",
+    "Alva's college of allied health sciences",
+    "Alva's law college",
+    "Alva's physiotherapy",
+    "Alva's physical education",
+    "Alva's degree college",
+    "Alva's pu college",
+    "Alva's mba",
+  ];
+
+  final List<String> _courses = <String>[
+    'Bcs nursing',
+    'Msc nursing',
+    'PhD nursing',
+    'Llb',
+    'Bcom llb',
+    'Bballb',
+    'Ballb',
+    'Bnys',
+    'Md clinical naturopathy',
+    'Md clinical yoga',
+    'CSE',
+    'Ise',
+    'Ece',
+    'Aiml',
+    'Csd',
+    'Cs datascience',
+    'Cs iot',
+    'Mechanical',
+    'Civil',
+    'Agriculture',
+    'Electronics',
+  ];
   final List<String> _years = List<String>.generate(30, (i) => (DateTime.now().year - i).toString());
 
   bool _isLoading = false;
@@ -57,9 +96,13 @@ class _SignUpPageState extends State<SignUpPage> {
             'email': emailController.text.trim(),
             'phone': phoneController.text.trim(),
             'dob': DateTime.tryParse(dobController.text) != null ? dobController.text : DateTime.now().toIso8601String(),
+            'location': jobLocationController.text.trim(),
             'institution': _institution ?? '',
             'course': _course ?? '',
             'year': _year ?? '',
+            'currentCompany': currentCompanyController.text.trim(),
+            'previousCompany': previousCompanyController.text.trim(),
+            'totalExperience': totalExperienceController.text.trim(),
             'password': passwordController.text,
             'favTeacher': favTeacherController.text.trim(),
             'socialMedia': socialMediaController.text.trim(),
@@ -187,6 +230,14 @@ class _SignUpPageState extends State<SignUpPage> {
               ),
               const SizedBox(height: 12),
 
+              // Job Location
+              TextFormField(
+                controller: jobLocationController,
+                decoration: _inputDecoration("Job Location *", Icons.location_on_outlined),
+                validator: (value) => value!.trim().isEmpty ? "Enter your job location" : null,
+              ),
+              const SizedBox(height: 24),
+
               // ===== EDUCATION SECTION =====
               _buildSectionHeader("Education Details", Icons.school),
               const SizedBox(height: 12),
@@ -231,6 +282,36 @@ class _SignUpPageState extends State<SignUpPage> {
               TextFormField(
                 controller: favTeacherController,
                 decoration: _inputDecoration("Favourite Teacher", Icons.favorite_outline),
+              ),
+              const SizedBox(height: 24),
+
+              // ===== PROFESSIONAL SECTION =====
+              _buildSectionHeader("Professional Details", Icons.work),
+              const SizedBox(height: 12),
+
+              TextFormField(
+                controller: currentCompanyController,
+                decoration: _inputDecoration("Current Company *", Icons.business_center_outlined),
+                validator: (value) => value!.trim().isEmpty ? "Enter your current company" : null,
+              ),
+              const SizedBox(height: 12),
+
+              TextFormField(
+                controller: previousCompanyController,
+                decoration: _inputDecoration("Previous Company *", Icons.business_outlined),
+                validator: (value) => value!.trim().isEmpty ? "Enter your previous company" : null,
+              ),
+              const SizedBox(height: 12),
+
+              TextFormField(
+                controller: totalExperienceController,
+                decoration: _inputDecoration(
+                  "Years of Experience *",
+                  Icons.timer_outlined,
+                  hintText: "e.g., 3",
+                ),
+                keyboardType: TextInputType.number,
+                validator: (value) => value!.trim().isEmpty ? "Enter your years of experience" : null,
               ),
               const SizedBox(height: 24),
 

@@ -2,17 +2,24 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const generateToken = require("../utils/generateToken");
 
-// ✅ User Registration (Sign Up) - Auto-approved, no verification required
+// ✅ User Registration (Sign Up) - Requires admin approval
 const registerUser = async (req, res) => {
   try {
     const { 
       name, email, phone, dob, institution, course, year, password, 
-      favTeacher, socialMedia
+      favTeacher, socialMedia,
+      // Required professional fields at signup
+      currentCompany, previousCompany, totalExperience, location
     } = req.body;
 
     // Validate required fields
     if (!name || !email || !phone || !institution || !course || !year || !password) {
       return res.status(400).json({ message: "All basic fields are required" });
+    }
+
+    // Validate required professional fields
+    if (!currentCompany || !previousCompany || (totalExperience === undefined || totalExperience === null) || !location) {
+      return res.status(400).json({ message: "Current company, previous company, total experience, and job location are required" });
     }
 
     const userExists = await User.findOne({ email });
@@ -51,6 +58,19 @@ const registerUser = async (req, res) => {
       favouriteTeacher: favTeacher || '', 
       socialMedia: socialMedia || '',
       status: "pending", // Require admin approval
+      location: location || '',
+      privateInfo: {
+        currentCompany: currentCompany || '',
+        totalExperience: Number(totalExperience) || 0,
+        // Keep schema compatibility
+        currentPosition: '',
+        previousCompanies: [
+          {
+            company: previousCompany || '',
+            position: '',
+          }
+        ],
+      },
     });
 
     res.status(201).json({

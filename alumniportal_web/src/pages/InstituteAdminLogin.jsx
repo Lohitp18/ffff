@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import CreateInstitutionPostModal from '../components/CreateInstitutionPostModal'
+import { useAuth } from '../contexts/AuthContext'
 import './Auth.css'
 import './InstituteAdmin.css'
 import '../components/CreatePostModal.css'
@@ -10,6 +11,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000
 
 const InstituteAdminLogin = () => {
   const navigate = useNavigate()
+  const { user, login } = useAuth()
   const [college, setCollege] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -68,6 +70,14 @@ const InstituteAdminLogin = () => {
 
     if (email !== INSTITUTE_EMAIL || password !== INSTITUTE_PASSWORD) {
       setError('Invalid credentials')
+      setLoading(false)
+      return
+    }
+
+    // Also authenticate against backend so profile creation/edit works (admin-only API)
+    const authResult = await login(email, password)
+    if (!authResult.success) {
+      setError(authResult.message || 'Login failed')
       setLoading(false)
       return
     }
@@ -210,6 +220,12 @@ const InstituteAdminLogin = () => {
           <p>{college}</p>
         </div>
         <div className="header-actions">
+          <button
+            onClick={() => navigate(`/institution/${encodeURIComponent(college)}`)}
+            className="create-post-btn-header"
+          >
+            {user?.isAdmin ? 'Create / Edit Profile' : 'View Profile'}
+          </button>
           <button onClick={() => setShowCreateModal(true)} className="create-post-btn-header">
             + Create Post
           </button>
