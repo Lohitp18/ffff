@@ -78,9 +78,10 @@ class _MainAppPageState extends State<MainAppPage> {
           children: [
             Image.asset(
               'assets/logo.png',
-              height: 40,
+              height: 35,
+              fit: BoxFit.contain,
               errorBuilder: (context, error, stackTrace) {
-                return const Icon(Icons.school, size: 40);
+                return const Icon(Icons.school, size: 35);
               },
             ),
             const SizedBox(width: 10),

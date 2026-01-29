@@ -20,8 +20,42 @@ const Alumni = () => {
   const { user } = useAuth()
 
   const years = Array.from({ length: 30 }, (_, i) => (new Date().getFullYear() - i).toString())
-  const institutions = ['AIET', 'AIT', 'AIIMS', 'NIT', 'IIT']
-  const courses = ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'MBA', 'MCA']
+  const institutions = [
+    "Alva's institute of engineering and technology",
+    "Alva's homeopathic college",
+    "Alva's nursing college",
+    "Alva's college of naturopathy",
+    "Alva's college of allied health sciences",
+    "Alva's law college",
+    "Alva's physiotherapy",
+    "Alva's physical education",
+    "Alva's degree college",
+    "Alva's pu college",
+    "Alva's mba",
+  ]
+  const courses = [
+    'Bcs nursing',
+    'Msc nursing',
+    'PhD nursing',
+    'Llb',
+    'Bcom llb',
+    'Bballb',
+    'Ballb',
+    'Bnys',
+    'Md clinical naturopathy',
+    'Md clinical yoga',
+    'CSE',
+    'Ise',
+    'Ece',
+    'Aiml',
+    'Csd',
+    'Cs datascience',
+    'Cs iot',
+    'Mechanical',
+    'Civil',
+    'Agriculture',
+    'Electronics',
+  ]
 
   const getImageUrl = (imagePath) => {
     if (!imagePath) return null

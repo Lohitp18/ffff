@@ -28,8 +28,42 @@ class _AlumniPageState extends State<AlumniPage> {
   // Mock lists for now; populate via API later
   final List<String> _years =
   List<String>.generate(30, (i) => (DateTime.now().year - i).toString());
-  final List<String> _institutions = ['AIET', 'AIT', 'AIIMS', 'NIT', 'IIT'];
-  final List<String> _courses = ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'MBA', 'MCA'];
+  final List<String> _institutions = [
+    "Alva's institute of engineering and technology",
+    "Alva's homeopathic college",
+    "Alva's nursing college",
+    "Alva's college of naturopathy",
+    "Alva's college of allied health sciences",
+    "Alva's law college",
+    "Alva's physiotherapy",
+    "Alva's physical education",
+    "Alva's degree college",
+    "Alva's pu college",
+    "Alva's mba",
+  ];
+  final List<String> _courses = [
+    'Bcs nursing',
+    'Msc nursing',
+    'PhD nursing',
+    'Llb',
+    'Bcom llb',
+    'Bballb',
+    'Ballb',
+    'Bnys',
+    'Md clinical naturopathy',
+    'Md clinical yoga',
+    'CSE',
+    'Ise',
+    'Ece',
+    'Aiml',
+    'Csd',
+    'Cs datascience',
+    'Cs iot',
+    'Mechanical',
+    'Civil',
+    'Agriculture',
+    'Electronics',
+  ];
 
   @override
   void initState() {

@@ -214,12 +214,14 @@ class _HomePageState extends State<HomePage> {
               itemBuilder: (context, index) {
                 final item = _posts[index] as Map<String, dynamic>;
                 final title = (item['title'] ?? '').toString();
-                final subtitle = (item['date'] ??
+                // Don't show email in subtitle - filter out author if it's an email
+                final authorValue = item['author'];
+                final subtitleValue = item['date'] ??
                     item['company'] ??
-                    item['author'] ??
+                    (authorValue != null && !authorValue.toString().contains('@') ? authorValue : null) ??
                     item['institution'] ??
-                    '')
-                    .toString();
+                    '';
+                final subtitle = subtitleValue.toString();
                 final type = item['category'] ?? item['type'] ?? 'Post';
 
                 return Container(
@@ -372,8 +374,9 @@ class _HomePageState extends State<HomePage> {
                             // Show video if exists (institution posts may contain videoUrl)
                             if (item['videoUrl'] != null && item['videoUrl'].toString().isNotEmpty) ...[
                               const SizedBox(height: 12),
-                              _VideoLinkPreview(
+                              _VideoPlayerWidget(
                                 url: _resolveImageUrl(item['videoUrl']),
+                                baseUrl: _baseUrl,
                               ),
                             ],
 
@@ -615,46 +618,110 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class _VideoLinkPreview extends StatelessWidget {
+class _VideoPlayerWidget extends StatelessWidget {
   final String? url;
-  const _VideoLinkPreview({required this.url});
+  final String baseUrl;
+  const _VideoPlayerWidget({required this.url, required this.baseUrl});
 
   @override
   Widget build(BuildContext context) {
     final safeUrl = url?.trim();
     if (safeUrl == null || safeUrl.isEmpty) return const SizedBox.shrink();
 
-    return InkWell(
-      onTap: () async {
-        final uri = Uri.tryParse(safeUrl);
-        if (uri != null) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        }
-      },
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        height: 200,
+    // Check if URL is a direct video file or a link
+    final isVideoFile = safeUrl.toLowerCase().endsWith('.mp4') || 
+                        safeUrl.toLowerCase().endsWith('.mov') ||
+                        safeUrl.toLowerCase().endsWith('.avi') ||
+                        safeUrl.toLowerCase().endsWith('.webm') ||
+                        safeUrl.toLowerCase().contains('/video/') ||
+                        safeUrl.startsWith(baseUrl);
+
+    if (isVideoFile) {
+      // For direct video files, show a playable video widget
+      return Container(
+        height: 250,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: Colors.black12,
+          color: Colors.black,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.play_circle_fill, size: 64, color: Colors.blue.shade700),
-            const SizedBox(height: 8),
-            Text(
-              'Tap to play video',
-              style: TextStyle(
-                color: Colors.grey.shade800,
-                fontWeight: FontWeight.w600,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Video thumbnail/preview
+              Container(
+                color: Colors.black87,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.play_circle_filled, size: 64, color: Colors.white.withOpacity(0.9)),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Tap to play video',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ],
+              // Tap to open video
+              Positioned.fill(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () async {
+                      final uri = Uri.tryParse(safeUrl);
+                      if (uri != null) {
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    } else {
+      // For external video links, open in browser
+      return InkWell(
+        onTap: () async {
+          final uri = Uri.tryParse(safeUrl);
+          if (uri != null) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          }
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          height: 200,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.black12,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.play_circle_fill, size: 64, color: Colors.blue.shade700),
+              const SizedBox(height: 8),
+              Text(
+                'Tap to play video',
+                style: TextStyle(
+                  color: Colors.grey.shade800,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
   }
 }
 

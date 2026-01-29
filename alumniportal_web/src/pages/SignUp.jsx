@@ -16,6 +16,10 @@ const SignUp = () => {
     confirmPassword: '',
     favTeacher: '',
     socialMedia: '',
+    location: '',
+    currentCompany: '',
+    previousCompany: '',
+    totalExperience: '',
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -255,6 +259,50 @@ const SignUp = () => {
               value={formData.favTeacher}
               onChange={handleChange}
               placeholder="Enter favourite teacher name"
+            />
+          </div>
+          <div className="form-group">
+            <label>Job Location *</label>
+            <input
+              type="text"
+              name="location"
+              value={formData.location}
+              onChange={handleChange}
+              required
+              placeholder="Enter your job location"
+            />
+          </div>
+          <div className="form-group">
+            <label>Current Company *</label>
+            <input
+              type="text"
+              name="currentCompany"
+              value={formData.currentCompany}
+              onChange={handleChange}
+              required
+              placeholder="Enter your current company"
+            />
+          </div>
+          <div className="form-group">
+            <label>Previous Company *</label>
+            <input
+              type="text"
+              name="previousCompany"
+              value={formData.previousCompany}
+              onChange={handleChange}
+              required
+              placeholder="Enter your previous company"
+            />
+          </div>
+          <div className="form-group">
+            <label>Years of Experience *</label>
+            <input
+              type="number"
+              name="totalExperience"
+              value={formData.totalExperience}
+              onChange={handleChange}
+              required
+              placeholder="Enter years of experience"
             />
           </div>
           <div className="form-group">

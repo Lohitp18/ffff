@@ -153,8 +153,11 @@ const InstitutionDetail = () => {
       alert('Institution profile saved successfully')
       closeProfileModal()
     } catch (err) {
-      console.error(err)
-      alert(err.response?.data?.message || 'Failed to save profile')
+      console.error('Error saving institution profile:', err)
+      const errorMessage = err.response?.data?.message || 
+                          err.message || 
+                          'Failed to save profile. Please check your connection and try again.'
+      alert(errorMessage)
     } finally {
       setSavingProfile(false)
     }

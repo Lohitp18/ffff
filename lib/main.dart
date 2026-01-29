@@ -102,7 +102,14 @@ class _SplashPageState extends State<_SplashPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset('assets/logo.png', height: 120),
+            Image.asset(
+              'assets/logo.png',
+              height: 100,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(Icons.school, size: 100, color: Colors.blue);
+              },
+            ),
             const SizedBox(height: 12),
             const Text('Alva\'s Alumni', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
           ],

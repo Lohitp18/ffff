@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:http_parser/http_parser.dart';
@@ -1478,6 +1479,7 @@ class _EditInstitutionProfileDialogState extends State<_EditInstitutionProfileDi
   late TextEditingController _contactPersonEmailCtrl;
   late TextEditingController _contactPersonPhoneCtrl;
   bool _saving = false;
+  File? _selectedLogoFile;
 
   @override
   void initState() {
@@ -1529,57 +1531,80 @@ class _EditInstitutionProfileDialogState extends State<_EditInstitutionProfileDi
       final token = await storage.read(key: 'auth_token');
       if (token == null) throw Exception('Authentication required');
 
-      final payload = {
-        'name': _nameCtrl.text.trim(),
-        'phone': _phoneCtrl.text.trim(),
-        'email': _emailCtrl.text.trim(),
-        'address': _addressCtrl.text.trim(),
-        'city': _cityCtrl.text.trim(),
-        'state': _stateCtrl.text.trim(),
-        'pincode': _pincodeCtrl.text.trim(),
-        'website': _websiteCtrl.text.trim(),
-        'establishedYear': _establishedYearCtrl.text.trim(),
-        'type': _typeCtrl.text.trim(),
-        'affiliation': _affiliationCtrl.text.trim(),
-        'description': _descriptionCtrl.text.trim(),
-        'contactPerson': _contactPersonCtrl.text.trim(),
-        'contactPersonEmail': _contactPersonEmailCtrl.text.trim(),
-        'contactPersonPhone': _contactPersonPhoneCtrl.text.trim(),
-      };
+      // Create multipart request to handle image uploads
+      final request = http.MultipartRequest(
+        widget.institutionProfile == null ? 'POST' : 'PUT',
+        Uri.parse(widget.institutionProfile == null
+            ? '${widget.baseUrl}/api/institutions'
+            : '${widget.baseUrl}/api/institutions/${widget.institutionProfile!['_id']}'),
+      );
+      
+      request.headers['Authorization'] = 'Bearer $token';
+      
+      // Add text fields
+      request.fields['name'] = _nameCtrl.text.trim();
+      request.fields['phone'] = _phoneCtrl.text.trim();
+      request.fields['email'] = _emailCtrl.text.trim();
+      request.fields['address'] = _addressCtrl.text.trim();
+      request.fields['city'] = _cityCtrl.text.trim();
+      request.fields['state'] = _stateCtrl.text.trim();
+      request.fields['pincode'] = _pincodeCtrl.text.trim();
+      request.fields['website'] = _websiteCtrl.text.trim();
+      request.fields['establishedYear'] = _establishedYearCtrl.text.trim();
+      request.fields['type'] = _typeCtrl.text.trim();
+      request.fields['affiliation'] = _affiliationCtrl.text.trim();
+      request.fields['description'] = _descriptionCtrl.text.trim();
+      request.fields['contactPerson'] = _contactPersonCtrl.text.trim();
+      request.fields['contactPersonEmail'] = _contactPersonEmailCtrl.text.trim();
+      request.fields['contactPersonPhone'] = _contactPersonPhoneCtrl.text.trim();
 
-      final response = widget.institutionProfile == null
-          ? await http.post(
-              Uri.parse('${widget.baseUrl}/api/institutions'),
-              headers: {
-                'Authorization': 'Bearer $token',
-                'Content-Type': 'application/json',
-              },
-              body: jsonEncode(payload),
-            )
-          : await http.put(
-              Uri.parse('${widget.baseUrl}/api/institutions/${widget.institutionProfile!['_id']}'),
-              headers: {
-                'Authorization': 'Bearer $token',
-                'Content-Type': 'application/json',
-              },
-              body: jsonEncode(payload),
-            );
+      // Add image file if selected
+      if (_selectedLogoFile != null) {
+        final ext = _selectedLogoFile!.path.split('.').last.toLowerCase();
+        final contentType = ext == 'jpg' || ext == 'jpeg' 
+            ? 'image/jpeg' 
+            : ext == 'png' 
+                ? 'image/png' 
+                : 'image/jpeg';
+        request.files.add(await http.MultipartFile.fromPath(
+          'image',
+          _selectedLogoFile!.path,
+          contentType: MediaType.parse(contentType),
+        ));
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      final responseBody = response.body;
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        // Handle cover image upload separately if needed (for now, logo is uploaded with main request)
         widget.onProfileUpdated();
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Institution profile saved successfully')),
-        );
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Institution profile saved successfully')),
+          );
+        }
       } else {
-        throw Exception('Failed to save profile');
+        final errorMsg = responseBody.isNotEmpty 
+            ? (jsonDecode(responseBody)['message'] ?? 'Failed to save profile')
+            : 'Failed to save profile. Status: ${response.statusCode}';
+        throw Exception(errorMsg);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     } finally {
-      setState(() => _saving = false);
+      if (mounted) {
+        setState(() => _saving = false);
+      }
     }
   }
 
@@ -1715,6 +1740,49 @@ class _EditInstitutionProfileDialogState extends State<_EditInstitutionProfileDi
                           border: OutlineInputBorder(),
                         ),
                         maxLines: 4,
+                      ),
+                      const SizedBox(height: 20),
+                      const Divider(),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Logo Image',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () async {
+                              final picker = ImagePicker();
+                              final picked = await picker.pickImage(source: ImageSource.gallery);
+                              if (picked != null) {
+                                setState(() {
+                                  _selectedLogoFile = File(picked.path);
+                                });
+                              }
+                            },
+                            icon: const Icon(Icons.image),
+                            label: const Text('Select Logo'),
+                          ),
+                          if (_selectedLogoFile != null) ...[
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _selectedLogoFile!.path.split('/').last,
+                                style: const TextStyle(fontSize: 12),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: () {
+                                setState(() {
+                                  _selectedLogoFile = null;
+                                });
+                              },
+                            ),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 20),
                       const Divider(),

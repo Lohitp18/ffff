@@ -199,6 +199,7 @@ const PostCard = ({ post, onUpdate }) => {
                 {authorHeadline || 'Alumni'}
                 {post.date && ` • ${formatDate(post.date)}`}
                 {!post.date && post.createdAt && ` • ${formatDate(post.createdAt)}`}
+                {/* Don't display email - email is not shown in post metadata */}
               </div>
             </div>
           </div>
@@ -232,6 +233,8 @@ const PostCard = ({ post, onUpdate }) => {
             <video
               src={getImageUrl(post.videoUrl)}
               controls
+              playsInline
+              webkit-playsinline="true"
               className="post-video"
               style={{
                 width: '100%',
