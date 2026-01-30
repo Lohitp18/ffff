@@ -12,6 +12,13 @@ const Admin = () => {
   const { user, logout } = useAuth()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
+  const [loginError, setLoginError] = useState('')
+  const [loginLoading, setLoginLoading] = useState(false)
+
+  const SUPER_ADMIN_EMAIL = 'patgarlohit818@gmail.com'
+  const SUPER_ADMIN_PASSWORD = 'Lohit@2004'
   const [stats, setStats] = useState({})
   const [users, setUsers] = useState([])
   const [posts, setPosts] = useState([])
@@ -26,14 +33,37 @@ const Admin = () => {
 
   useEffect(() => {
     const adminAuth = localStorage.getItem('admin_authenticated')
-    const token = localStorage.getItem('auth_token')
-    if (adminAuth === 'true' && token) {
+    if (adminAuth === 'true') {
       setIsAuthenticated(true)
       if (user) loadDashboardStats()
     } else {
       setIsAuthenticated(false)
     }
   }, [user])
+
+  const handleAdminLogin = async (e) => {
+    e.preventDefault()
+    setLoginError('')
+    setLoginLoading(true)
+
+    // Check if credentials match super admin
+    if (loginEmail !== SUPER_ADMIN_EMAIL || loginPassword !== SUPER_ADMIN_PASSWORD) {
+      setLoginError('Invalid admin credentials')
+      setLoginLoading(false)
+      return
+    }
+
+    // Set admin authentication
+    localStorage.setItem('admin_authenticated', 'true')
+    setIsAuthenticated(true)
+    setLoginLoading(false)
+    
+    // Load dashboard stats after authentication
+    // Note: This may require a valid auth token for API calls
+    setTimeout(() => {
+      loadDashboardStats()
+    }, 100)
+  }
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem('auth_token')
@@ -244,9 +274,45 @@ const Admin = () => {
     return `${API_BASE_URL}${imagePath.startsWith('/') ? imagePath : '/' + imagePath}`
   }
 
+  // Show login form if not authenticated
   if (!isAuthenticated) {
-    navigate('/super-admin-login', { replace: true })
-    return null
+    return (
+      <div className="auth-container">
+        <div className="auth-card">
+          <h1>Alumni Portal</h1>
+          <h2>Admin Sign In</h2>
+          {loginError && <div className="error-message">{loginError}</div>}
+          <form onSubmit={handleAdminLogin}>
+            <div className="form-group">
+              <label>Email</label>
+              <input
+                type="email"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                required
+                placeholder="Enter admin email"
+              />
+            </div>
+            <div className="form-group">
+              <label>Password</label>
+              <input
+                type="password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                required
+                placeholder="Enter admin password"
+              />
+            </div>
+            <button type="submit" disabled={loginLoading} className="auth-button">
+              {loginLoading ? 'Signing in...' : 'Sign In'}
+            </button>
+          </form>
+          <p className="auth-link">
+            <a href="/signin">Back to Regular Login</a>
+          </p>
+        </div>
+      </div>
+    )
   }
 
   const handleLogout = () => {
