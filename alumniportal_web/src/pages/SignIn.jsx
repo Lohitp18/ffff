@@ -30,6 +30,16 @@ const SignIn = () => {
       {/* Left Panel with Image */}
       <div className="auth-left-panel">
         <div className="auth-image-container">
+          <div className="auth-logo-container">
+            <img 
+              src="/logo.png" 
+              alt="Alva's Alumni" 
+              className="auth-logo"
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+            />
+          </div>
           <img 
             src="/alumni-signin.jpg" 
             alt="Alumni Network" 

@@ -113,7 +113,7 @@ const Profile = () => {
       await axios.put(endpoint, formData, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'multipart/form-data',
+          // Don't set Content-Type - axios will set it automatically with boundary
         },
       })
 

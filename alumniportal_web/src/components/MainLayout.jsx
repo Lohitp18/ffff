@@ -174,7 +174,12 @@ const MainLayout = ({ children }) => {
                     </div>
                   </div>
                   <div className="menu-divider"></div>
-                  <div className="menu-item" onClick={() => { navigate('/profile'); setShowProfileMenu(false); }}>
+                  <div className="menu-item" onClick={() => { 
+                    // Open own profile in web view
+                    const webUrl = `${window.location.origin}/user/${user?._id}`
+                    window.open(webUrl, '_blank')
+                    setShowProfileMenu(false)
+                  }}>
                     <span>View Profile</span>
                   </div>
                   <div className="menu-divider"></div>

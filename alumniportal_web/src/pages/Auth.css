@@ -46,6 +46,24 @@
   padding: var(--spacing-xl);
 }
 
+.auth-logo-container {
+  margin-bottom: var(--spacing-xl);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.auth-logo {
+  max-width: 200px;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  background: rgba(255, 255, 255, 0.1);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(10px);
+}
+
 .auth-image {
   max-width: 400px;
   width: 100%;
