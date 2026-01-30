@@ -6,9 +6,9 @@ const { createNotification } = require("./notificationController");
 
 const VALID_REPORT_REASONS = ['spam', 'inappropriate_content', 'harassment', 'false_information', 'copyright_violation', 'other'];
 const multer = require("multer");
-const { uploadBufferToAzure } = require("../utils/azureStorage");
+const { saveBufferToUploads } = require("../utils/localStorage");
 
-// Configure multer for in-memory uploads (sent to Azure)
+// Configure multer for in-memory uploads (saved to local /uploads)
 const storage = multer.memoryStorage();
 
 const upload = multer({
@@ -52,11 +52,11 @@ const uploadInstitutionPostMiddleware = multer({
   { name: "video", maxCount: 1 },
 ]);
 
-const uploadToAzure = async (file, folder = "uploads") => {
+const uploadToLocal = async (file, folder = "uploads") => {
   if (!file || !file.buffer) return null;
   const originalName = file.originalname || "file";
   const mimeType = file.mimetype || "application/octet-stream";
-  return uploadBufferToAzure(file.buffer, originalName, folder, mimeType);
+  return saveBufferToUploads(file.buffer, originalName, folder, mimeType);
 };
 
 const listApproved = async (Model, res, userId = null) => {
@@ -160,7 +160,7 @@ module.exports = {
       };
 
       if (req.file) {
-        eventData.imageUrl = await uploadToAzure(req.file, "events");
+        eventData.imageUrl = await uploadToLocal(req.file, "events");
       }
 
       const event = await Event.create(eventData);
@@ -189,7 +189,7 @@ module.exports = {
       };
 
       if (req.file) {
-        opportunityData.imageUrl = await uploadToAzure(req.file, "opportunities");
+        opportunityData.imageUrl = await uploadToLocal(req.file, "opportunities");
       }
 
       const opportunity = await Opportunity.create(opportunityData);
@@ -261,14 +261,14 @@ module.exports = {
       
       // Handle image upload (from req.files.image or req.file for backward compatibility)
       if (req.files && req.files.image && req.files.image[0]) {
-        data.imageUrl = await uploadToAzure(req.files.image[0], "institution-posts");
+        data.imageUrl = await uploadToLocal(req.files.image[0], "institution-posts");
       } else if (req.file) {
-        data.imageUrl = await uploadToAzure(req.file, "institution-posts");
+        data.imageUrl = await uploadToLocal(req.file, "institution-posts");
       }
       
       // Handle video upload
       if (req.files && req.files.video && req.files.video[0]) {
-        data.videoUrl = await uploadToAzure(req.files.video[0], "institution-posts");
+        data.videoUrl = await uploadToLocal(req.files.video[0], "institution-posts");
       }
       
       const post = await InstitutionPost.create(data);

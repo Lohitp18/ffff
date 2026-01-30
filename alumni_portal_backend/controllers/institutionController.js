@@ -2,7 +2,7 @@ const Institution = require('../models/Institution');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { uploadBufferToAzure } = require("../utils/azureStorage");
+const { saveBufferToUploads } = require("../utils/localStorage");
 
 // Configure multer for image uploads (in-memory)
 const imageUpload = multer({
@@ -16,29 +16,14 @@ const imageUpload = multer({
   }
 }).single('image');
 
-/** Upload image: Azure only when configured; otherwise always use local uploads/. Returns URL path. */
+/** Upload image: always use local /uploads (Azure disabled). Returns URL path. */
 async function uploadInstitutionImage(buffer, originalname, purpose = 'logo') {
   const ext = path.extname(originalname) || '.jpg';
   const safeName = (originalname || 'image').replace(/\s+/g, '-').toLowerCase();
   const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
   const filename = `institution-${purpose}-${unique}-${path.basename(safeName, path.extname(safeName))}${ext}`;
-
-  const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
-  const azureConfigured = connectionString && String(connectionString).trim().length > 0;
-
-  if (azureConfigured) {
-    try {
-      return await uploadBufferToAzure(buffer, filename, 'institutions', 'image/jpeg');
-    } catch (err) {
-      console.warn('[institution] Azure upload failed, using local:', err.message);
-    }
-  }
-
-  const dir = path.join(process.cwd(), 'uploads');
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  const filePath = path.join(dir, filename);
-  fs.writeFileSync(filePath, buffer);
-  return `/uploads/${filename}`;
+  // Store under /uploads/institutions
+  return saveBufferToUploads(buffer, filename, 'institutions', 'image/jpeg');
 }
 
 // Middleware wrapper to handle Multer errors cleanly

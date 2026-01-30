@@ -444,7 +444,7 @@
   max-width: 1128px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 1fr 312px;
+  grid-template-columns: 1fr;
   gap: 24px;
   padding: 24px;
   box-sizing: border-box;

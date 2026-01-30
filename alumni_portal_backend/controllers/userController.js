@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
-const { uploadBufferToAzure } = require("../utils/azureStorage");
+const { saveBufferToUploads } = require("../utils/localStorage");
 
 // GET /api/users/approved?year=&institution=&course=&q=
 // NOTE: Email and phone are NOT returned for privacy - users should connect to see contact details
@@ -238,7 +238,7 @@ const uploadProfileImage = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'No image uploaded' });
     const userId = req.user._id;
-    const imageUrl = await uploadBufferToAzure(
+    const imageUrl = await saveBufferToUploads(
       req.file.buffer,
       req.file.originalname || 'profile.jpg',
       "users",
@@ -262,7 +262,7 @@ const uploadCoverImage = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'No image uploaded' });
     const userId = req.user._id;
-    const imageUrl = await uploadBufferToAzure(
+    const imageUrl = await saveBufferToUploads(
       req.file.buffer,
       req.file.originalname || 'cover.jpg',
       "users",

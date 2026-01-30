@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import MainLayout from '../components/MainLayout'
 import PostCard from '../components/PostCard'
 import { useAuth } from '../contexts/AuthContext'
 import './Profile.css'
@@ -9,7 +7,6 @@ import './Profile.css'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
 const Profile = () => {
-  const navigate = useNavigate()
   const { user: currentUser } = useAuth()
   const [user, setUser] = useState(null)
   const [posts, setPosts] = useState([])
@@ -17,6 +14,7 @@ const Profile = () => {
   const [loadingPosts, setLoadingPosts] = useState(true)
   const [editing, setEditing] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [error, setError] = useState('')
   const fileInputRef = useRef(null)
   const coverInputRef = useRef(null)
   const [formData, setFormData] = useState({
@@ -161,22 +159,22 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <MainLayout>
+      <div className="user-profile-full">
         <div className="loading">Loading profile...</div>
-      </MainLayout>
+      </div>
     )
   }
 
   if (!user) {
     return (
-      <MainLayout>
+      <div className="user-profile-full">
         <div className="error">Failed to load profile</div>
-      </MainLayout>
+      </div>
     )
   }
 
   return (
-    <MainLayout>
+    <div className="user-profile-full">
       <div className="linkedin-profile">
         {/* Cover Image Section */}
         <div className="profile-cover">
@@ -455,41 +453,9 @@ const Profile = () => {
               )}
             </div>
           </div>
-
-          {/* Sidebar */}
-          <div className="profile-sidebar">
-            <div className="sidebar-card">
-              <h3>Profile Information</h3>
-              {user.email && (
-                <div className="info-item">
-                  <strong>Email:</strong> {user.email}
-                </div>
-              )}
-              {user.phone && (
-                <div className="info-item">
-                  <strong>Phone:</strong> {user.phone}
-                </div>
-              )}
-              {user.institution && (
-                <div className="info-item">
-                  <strong>Institution:</strong> {user.institution}
-                </div>
-              )}
-              {user.course && (
-                <div className="info-item">
-                  <strong>Course:</strong> {user.course}
-                </div>
-              )}
-              {user.year && (
-                <div className="info-item">
-                  <strong>Year:</strong> {user.year}
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </div>
-    </MainLayout>
+    </div>
   )
 }
 
