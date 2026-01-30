@@ -101,7 +101,21 @@ const Profile = () => {
     const file = e.target.files[0]
     if (!file) return
 
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file')
+      return
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size must be less than 5MB')
+      return
+    }
+
     setUploadingImage(true)
+    setError('')
+    
     try {
       const formData = new FormData()
       formData.append('image', file)
@@ -110,19 +124,32 @@ const Profile = () => {
         ? `${API_BASE_URL}/api/users/cover-image`
         : `${API_BASE_URL}/api/users/profile-image`
 
-      await axios.put(endpoint, formData, {
+      const response = await axios.put(endpoint, formData, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
           // Don't set Content-Type - axios will set it automatically with boundary
         },
       })
 
-      loadProfile()
+      if (response.data) {
+        // Reload profile to show updated image
+        await loadProfile()
+        alert(isCover ? 'Cover image updated successfully!' : 'Profile image updated successfully!')
+      }
     } catch (error) {
       console.error('Failed to upload image:', error)
-      alert('Failed to upload image')
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to upload image'
+      alert(errorMessage)
+      setError(errorMessage)
     } finally {
       setUploadingImage(false)
+      // Reset file input
+      if (isCover && coverInputRef.current) {
+        coverInputRef.current.value = ''
+      }
+      if (!isCover && fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
     }
   }
 
