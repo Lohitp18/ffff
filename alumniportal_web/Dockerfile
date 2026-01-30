@@ -14,8 +14,8 @@ RUN npm ci
 COPY . .
 
 # Build the application
-ARG VITE_API_URL=http://localhost:5000
-ENV VITE_API_URL=$VITE_API_URL
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 RUN npm run build
 
 # Production stage - serve with nginx
