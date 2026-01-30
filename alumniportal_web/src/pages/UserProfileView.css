@@ -1,9 +1,11 @@
 .user-profile-full {
-  width: 100%;
+  width: 100vw;
+  max-width: 100vw;
   min-height: 100vh;
   background: var(--bg-secondary, #f3f2ef);
   padding: 0;
   margin: 0;
+  overflow-x: hidden;
 }
 
 .linkedin-profile {
@@ -11,17 +13,20 @@
   max-width: 100%;
   padding: 0;
   background: transparent;
-  margin: 0 auto;
+  margin: 0;
 }
 
-/* Cover Image */
+/* Cover Image - Full Width */
 .profile-cover {
   position: relative;
-  width: 100%;
-  height: 200px;
+  width: 100vw;
+  max-width: 100vw;
+  height: 300px;
   background: #e0e0e0;
   overflow: hidden;
   border-radius: 0;
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
 }
 
 .profile-cover img {
@@ -48,12 +53,15 @@
 
 .profile-header-content {
   width: 100%;
+  max-width: 1128px;
+  margin: 0 auto;
   padding: 0 24px;
   position: relative;
   display: flex;
   align-items: flex-end;
   gap: 24px;
   padding-top: 16px;
+  box-sizing: border-box;
 }
 
 .profile-picture-container {
@@ -199,12 +207,15 @@
 
 .profile-header-content {
   width: 100%;
+  max-width: 1128px;
+  margin: 0 auto;
   padding: 0 24px;
   position: relative;
   display: flex;
   align-items: flex-end;
   gap: 24px;
   padding-top: 16px;
+  box-sizing: border-box;
 }
 
 .profile-picture-container {
@@ -277,7 +288,8 @@
 /* Main Content */
 .profile-content {
   width: 100%;
-  max-width: 100%;
+  max-width: 1128px;
+  margin: 0 auto;
   display: grid;
   grid-template-columns: 1fr 312px;
   gap: 24px;

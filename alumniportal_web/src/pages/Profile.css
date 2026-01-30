@@ -248,12 +248,15 @@
 
 .profile-header-content {
   width: 100%;
+  max-width: 1128px;
+  margin: 0 auto;
   padding: 0 24px;
   position: relative;
   display: flex;
   align-items: flex-end;
   gap: 24px;
   padding-top: 16px;
+  box-sizing: border-box;
 }
 
 .profile-picture-container {
@@ -438,9 +441,13 @@
 /* Main Content */
 .profile-content {
   width: 100%;
+  max-width: 1128px;
+  margin: 0 auto;
   display: grid;
   grid-template-columns: 1fr 312px;
   gap: 24px;
+  padding: 24px;
+  box-sizing: border-box;
 }
 
 .profile-main {
