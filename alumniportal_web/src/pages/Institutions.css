@@ -99,6 +99,9 @@
   font-weight: 600;
   color: #000000e6;
   line-height: 1.5;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  text-align: left;
 }
 
 .institution-info p {

@@ -24,8 +24,7 @@ const InstituteAdminLogin = () => {
   const [editingPost, setEditingPost] = useState(null)
   const [showEditModal, setShowEditModal] = useState(false)
 
-  const INSTITUTE_EMAIL = 'patgarlohit818@gmail.com'
-  const INSTITUTE_PASSWORD = 'Lohit@2004'
+  const INSTITUTE_PASSWORD = 'Alvas@123'
 
   const institutions = [
     "Alva's Pre-University College, Vidyagiri",
@@ -46,6 +45,13 @@ const InstituteAdminLogin = () => {
     "Alva's College of Nursing (Affiliated with Rajiv Gandhi University of Health Sciences, Bangalore)",
     "Alva's Institute of Engineering & Technology (AIET) (Affiliated with Visvesvaraya Technological University, Belgaum)",
   ]
+
+  // Get institution email based on selected college index
+  const getInstitutionEmail = (collegeName) => {
+    const index = institutions.indexOf(collegeName)
+    if (index === -1) return null
+    return `institution${index + 1}@alvas.edu.in`
+  }
 
   useEffect(() => {
     const instituteAuth = localStorage.getItem('institute_admin_authenticated')
@@ -68,7 +74,8 @@ const InstituteAdminLogin = () => {
       return
     }
 
-    if (email !== INSTITUTE_EMAIL || password !== INSTITUTE_PASSWORD) {
+    const expectedEmail = getInstitutionEmail(college)
+    if (!expectedEmail || email !== expectedEmail || password !== INSTITUTE_PASSWORD) {
       setError('Invalid credentials')
       setLoading(false)
       return
@@ -190,8 +197,13 @@ const InstituteAdminLogin = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                placeholder="Enter email"
+                placeholder={college ? `e.g., ${getInstitutionEmail(college)}` : "Enter email"}
               />
+              {college && (
+                <small style={{ color: '#666', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                  Expected: {getInstitutionEmail(college)}
+                </small>
+              )}
             </div>
             <div className="form-group">
               <label>Password</label>
@@ -438,7 +450,7 @@ const EditInstitutionPostModal = ({ post, institution, onClose, onPostUpdated })
             />
             {video && (
               <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                Selected: {video.name} (Max 100MB)
+                Selected: {video.name} (Max 50MB)
               </p>
             )}
             {post.videoUrl && !video && (

@@ -161,8 +161,9 @@ class _InstitutionsPageState extends State<InstitutionsPage> {
                           fontWeight: FontWeight.bold,
                           color: Colors.black87,
                         ),
-                        maxLines: 2,
+                        maxLines: 3,
                         overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.left,
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -882,6 +883,20 @@ class _CreateInstitutionPostDialogState extends State<_CreateInstitutionPostDial
     final picker = ImagePicker();
     final file = await picker.pickVideo(source: ImageSource.gallery);
     if (file != null) {
+      // Check file size (50MB limit)
+      final fileSize = await File(file.path).length();
+      const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+      if (fileSize > maxSize) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Video file is too large. Maximum size is 50MB.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
       setState(() {
         _selectedVideo = file;
         _selectedImage = null; // Clear image if video is selected
@@ -935,12 +950,26 @@ class _CreateInstitutionPostDialogState extends State<_CreateInstitutionPostDial
           const SnackBar(content: Text('Post created successfully')),
         );
       } else {
-        throw Exception('Failed to create post');
+        // Parse error message from response
+        String errorMessage = 'Failed to create post';
+        try {
+          final errorData = jsonDecode(response.body);
+          errorMessage = errorData['message'] ?? errorMessage;
+        } catch (_) {
+          errorMessage = 'Failed to create post (Status: ${response.statusCode})';
+        }
+        throw Exception(errorMessage);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     } finally {
       setState(() => _submitting = false);
     }

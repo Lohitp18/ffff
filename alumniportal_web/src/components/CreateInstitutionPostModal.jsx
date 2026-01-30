@@ -100,13 +100,25 @@ const CreateInstitutionPostModal = ({ institution, onClose, onPostCreated }) => 
               type="file"
               accept="video/*"
               onChange={(e) => {
-                setVideo(e.target.files[0])
-                if (e.target.files[0]) setImage(null) // Clear image if video is selected
+                const file = e.target.files[0]
+                if (file) {
+                  // Check file size (50MB limit)
+                  const maxSize = 50 * 1024 * 1024 // 50MB in bytes
+                  if (file.size > maxSize) {
+                    setError('Video file is too large. Maximum size is 50MB.')
+                    e.target.value = '' // Clear the input
+                    setVideo(null)
+                    return
+                  }
+                  setVideo(file)
+                  setImage(null) // Clear image if video is selected
+                  setError('') // Clear any previous errors
+                }
               }}
             />
             {video && (
               <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                Selected: {video.name} (Max 100MB)
+                Selected: {video.name} ({(video.size / (1024 * 1024)).toFixed(2)} MB / Max 50MB)
               </p>
             )}
           </div>

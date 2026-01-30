@@ -39,7 +39,7 @@ const uploadOptional = multer({
 // Upload middleware for institution posts (accepts both images and videos)
 const uploadInstitutionPostMiddleware = multer({
   storage,
-  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit for videos
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit for videos
   fileFilter: (req, file, cb) => {
     if (file.mimetype && (file.mimetype.startsWith("image/") || file.mimetype.startsWith("video/"))) {
       cb(null, true);
@@ -536,7 +536,7 @@ module.exports = {
     uploadInstitutionPostMiddleware(req, res, (err) => {
       if (err instanceof multer.MulterError) {
         if (err.code === "LIMIT_FILE_SIZE") {
-          return res.status(400).json({ message: "File too large. Maximum size is 100MB." });
+          return res.status(400).json({ message: "File too large. Maximum size is 50MB." });
         }
         return res.status(400).json({ message: err.message });
       } else if (err) {
