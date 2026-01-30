@@ -81,7 +81,7 @@ const InstituteAdminLogin = () => {
       return
     }
 
-    // Also authenticate against backend so profile creation/edit works (admin-only API)
+    // Authenticate with backend - backend will auto-create institution admin accounts if needed
     const authResult = await login(email, password)
     if (!authResult.success) {
       setError(authResult.message || 'Login failed')
@@ -91,6 +91,7 @@ const InstituteAdminLogin = () => {
 
     localStorage.setItem('institute_admin_authenticated', 'true')
     localStorage.setItem('institute_admin_college', college)
+    localStorage.setItem('institute_admin_email', email)
     setIsAuthenticated(true)
     loadPosts(college)
     setLoading(false)

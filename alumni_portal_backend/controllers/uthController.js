@@ -110,7 +110,34 @@ const loginUser = async (req, res) => {
     }
 
     // Find user by email (case-insensitive)
-    const user = await User.findOne({ email: trimmedEmail });
+    let user = await User.findOne({ email: trimmedEmail });
+    
+    // Auto-create institution admin accounts if they match the pattern
+    if (!user && trimmedEmail.startsWith('institution') && trimmedEmail.includes('@alvas.edu.in')) {
+      const INSTITUTION_PASSWORD = 'Alvas@123';
+      // Check if password matches institution admin password
+      if (password === INSTITUTION_PASSWORD) {
+        // Extract institution number from email (e.g., institution1@alvas.edu.in -> 1)
+        const match = trimmedEmail.match(/institution(\d+)@alvas\.edu\.in/);
+        if (match) {
+          const institutionNumber = match[1];
+          // Hash the password
+          const hashedPassword = await bcrypt.hash(INSTITUTION_PASSWORD, 10);
+          
+          // Create institution admin account
+          user = await User.create({
+            name: `Institution Admin ${institutionNumber}`,
+            email: trimmedEmail,
+            password: hashedPassword,
+            status: 'approved',
+            isAdmin: true, // Grant admin privileges
+            institution: `Institution ${institutionNumber}`,
+          });
+          console.log(`Auto-created institution admin account: ${trimmedEmail}`);
+        }
+      }
+    }
+    
     if (!user) {
       console.log(`Login attempt failed: User not found for email: ${trimmedEmail}`);
       return res.status(400).json({ message: "Invalid email or password" });
