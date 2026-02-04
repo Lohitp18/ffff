@@ -188,6 +188,8 @@ class _SignUpPageState extends State<SignUpPage> {
               Text(
                 "Fill in all required details to create your profile",
                 style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
               ),
               const SizedBox(height: 16),
               
@@ -200,7 +202,12 @@ class _SignUpPageState extends State<SignUpPage> {
                     border: Border.all(color: Colors.redAccent),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(_error!, style: const TextStyle(color: Colors.red)),
+                  child: Text(
+                    _error!,
+                    style: const TextStyle(color: Colors.red),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 3,
+                  ),
                 ),
                 const SizedBox(height: 16),
               ],
@@ -214,6 +221,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 controller: nameController,
                 decoration: _inputDecoration("Full Name *", Icons.person_outline),
                 validator: (value) => value!.isEmpty ? "Enter your full name" : null,
+                style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 12),
 
@@ -222,6 +230,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 controller: emailController,
                 decoration: _inputDecoration("Email *", Icons.email_outlined),
                 keyboardType: TextInputType.emailAddress,
+                style: const TextStyle(fontSize: 16),
                 validator: (value) {
                   if (value!.isEmpty) return "Enter your email";
                   if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
@@ -237,6 +246,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 controller: phoneController,
                 decoration: _inputDecoration("Phone Number *", Icons.phone_outlined),
                 keyboardType: TextInputType.phone,
+                style: const TextStyle(fontSize: 16),
                 validator: (value) => value!.isEmpty ? "Enter your phone number" : null,
               ),
               const SizedBox(height: 12),
@@ -246,6 +256,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 controller: dobController,
                 decoration: _inputDecoration("Date of Birth *", Icons.calendar_today_outlined),
                 readOnly: true,
+                style: const TextStyle(fontSize: 16),
                 onTap: () async {
                   FocusScope.of(context).requestFocus(FocusNode());
                   DateTime? pickedDate = await showDatePicker(
@@ -270,11 +281,22 @@ class _SignUpPageState extends State<SignUpPage> {
               DropdownButtonFormField<String>(
                 value: _institution,
                 items: [
-                  ..._institutions.map((i) => DropdownMenuItem(value: i, child: Text(i)))
+                  ..._institutions.map((i) => DropdownMenuItem(
+                    value: i,
+                    child: Text(
+                      i,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ))
                 ],
                 onChanged: (v) => setState(() { _institution = v; }),
                 decoration: _inputDecoration("Institution *", Icons.business),
                 validator: (v) => (v == null || v.isEmpty) ? 'Select your institution' : null,
+                isExpanded: true,
+                menuMaxHeight: 300,
+                style: const TextStyle(fontSize: 14),
               ),
               const SizedBox(height: 12),
 
@@ -282,11 +304,22 @@ class _SignUpPageState extends State<SignUpPage> {
               DropdownButtonFormField<String>(
                 value: _course,
                 items: [
-                  ..._courses.map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                  ..._courses.map((c) => DropdownMenuItem(
+                    value: c,
+                    child: Text(
+                      c,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ))
                 ],
                 onChanged: (v) => setState(() { _course = v; }),
                 decoration: _inputDecoration("Course *", Icons.menu_book),
                 validator: (v) => (v == null || v.isEmpty) ? 'Select your course' : null,
+                isExpanded: true,
+                menuMaxHeight: 300,
+                style: const TextStyle(fontSize: 14),
               ),
               const SizedBox(height: 12),
 
@@ -294,11 +327,22 @@ class _SignUpPageState extends State<SignUpPage> {
               DropdownButtonFormField<String>(
                 value: _year,
                 items: [
-                  ..._years.map((y) => DropdownMenuItem(value: y, child: Text(y)))
+                  ..._years.map((y) => DropdownMenuItem(
+                    value: y,
+                    child: Text(
+                      y,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ))
                 ],
                 onChanged: (v) => setState(() { _year = v; }),
                 decoration: _inputDecoration("Year of Graduation *", Icons.date_range),
                 validator: (v) => (v == null || v.isEmpty) ? 'Select your graduation year' : null,
+                isExpanded: true,
+                menuMaxHeight: 300,
+                style: const TextStyle(fontSize: 14),
               ),
               const SizedBox(height: 24),
 
@@ -309,13 +353,24 @@ class _SignUpPageState extends State<SignUpPage> {
               DropdownButtonFormField<String>(
                 value: _status,
                 items: const [
-                  DropdownMenuItem(value: 'working', child: Text('Currently Working')),
-                  DropdownMenuItem(value: 'masters', child: Text('Doing Masters')),
-                  DropdownMenuItem(value: 'entrepreneurs', child: Text('Entrepreneurs')),
+                  DropdownMenuItem(
+                    value: 'working',
+                    child: Text('Currently Working', overflow: TextOverflow.ellipsis, maxLines: 1),
+                  ),
+                  DropdownMenuItem(
+                    value: 'masters',
+                    child: Text('Doing Masters', overflow: TextOverflow.ellipsis, maxLines: 1),
+                  ),
+                  DropdownMenuItem(
+                    value: 'entrepreneurs',
+                    child: Text('Entrepreneurs', overflow: TextOverflow.ellipsis, maxLines: 1),
+                  ),
                 ],
                 onChanged: (v) => setState(() { _status = v; }),
                 decoration: _inputDecoration("Current Status *", Icons.work_outline),
                 validator: (v) => (v == null) ? 'Select your current status' : null,
+                isExpanded: true,
+                style: const TextStyle(fontSize: 14),
               ),
               const SizedBox(height: 24),
 
@@ -326,18 +381,21 @@ class _SignUpPageState extends State<SignUpPage> {
                 TextFormField(
                   controller: jobLocationController,
                   decoration: _inputDecoration("Job Location *", Icons.location_on_outlined),
+                  style: const TextStyle(fontSize: 16),
                   validator: (value) => value!.trim().isEmpty ? "Enter your job location" : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: currentCompanyController,
                   decoration: _inputDecoration("Company Name *", Icons.business_center_outlined),
+                  style: const TextStyle(fontSize: 16),
                   validator: (value) => value!.trim().isEmpty ? "Enter your company name" : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: positionController,
                   decoration: _inputDecoration("Position *", Icons.badge_outlined),
+                  style: const TextStyle(fontSize: 16),
                   validator: (value) => value!.trim().isEmpty ? "Enter your position" : null,
                 ),
                 const SizedBox(height: 12),
@@ -349,6 +407,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     hintText: "e.g., 3",
                   ),
                   keyboardType: TextInputType.number,
+                  style: const TextStyle(fontSize: 16),
                   validator: (value) => value!.trim().isEmpty ? "Enter your years of experience" : null,
                 ),
                 const SizedBox(height: 24),
@@ -360,12 +419,14 @@ class _SignUpPageState extends State<SignUpPage> {
                 TextFormField(
                   controller: mastersCollegeController,
                   decoration: _inputDecoration("College Name *", Icons.business),
+                  style: const TextStyle(fontSize: 16),
                   validator: (value) => value!.trim().isEmpty ? "Enter college name" : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: mastersCourseController,
                   decoration: _inputDecoration("Course Name *", Icons.menu_book),
+                  style: const TextStyle(fontSize: 16),
                   validator: (value) => value!.trim().isEmpty ? "Enter course name" : null,
                 ),
                 const SizedBox(height: 24),
@@ -377,12 +438,14 @@ class _SignUpPageState extends State<SignUpPage> {
                 TextFormField(
                   controller: entrepreneurCompanyController,
                   decoration: _inputDecoration("Company Name *", Icons.business_center_outlined),
+                  style: const TextStyle(fontSize: 16),
                   validator: (value) => value!.trim().isEmpty ? "Enter your company name" : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: companyTypeController,
                   decoration: _inputDecoration("Company Type *", Icons.category_outlined, hintText: "e.g., Tech, Healthcare"),
+                  style: const TextStyle(fontSize: 16),
                   validator: (value) => value!.trim().isEmpty ? "Enter company type" : null,
                 ),
                 const SizedBox(height: 24),
@@ -396,6 +459,8 @@ class _SignUpPageState extends State<SignUpPage> {
               TextFormField(
                 controller: socialMediaController,
                 decoration: _inputDecoration("LinkedIn Profile URL", Icons.link),
+                style: const TextStyle(fontSize: 16),
+                keyboardType: TextInputType.url,
               ),
               const SizedBox(height: 12),
 
@@ -404,6 +469,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 controller: passwordController,
                 obscureText: true,
                 decoration: _inputDecoration("Password *", Icons.lock_outline),
+                style: const TextStyle(fontSize: 16),
                 validator: (value) {
                   if (value!.isEmpty) return "Enter a password";
                   if (value.length < 6) return "Password must be at least 6 characters";
@@ -417,6 +483,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 controller: confirmPasswordController,
                 obscureText: true,
                 decoration: _inputDecoration("Confirm Password *", Icons.lock_outline),
+                style: const TextStyle(fontSize: 16),
                 validator: (value) => value != passwordController.text ? "Passwords don't match" : null,
               ),
               const SizedBox(height: 24),
@@ -484,12 +551,16 @@ class _SignUpPageState extends State<SignUpPage> {
         children: [
           Icon(icon, color: Colors.blue.shade700, size: 20),
           const SizedBox(width: 8),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.blue.shade700,
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue.shade700,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ),
         ],

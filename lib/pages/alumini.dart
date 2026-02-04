@@ -177,35 +177,74 @@ class _AlumniPageState extends State<AlumniPage> {
           LayoutBuilder(
             builder: (context, constraints) {
               final isWide = constraints.maxWidth > 600;
-              final dropdownWidth = isWide ? 180.0 : (constraints.maxWidth - 24) / 3 - 8;
+              final availableWidth = constraints.maxWidth - 24; // Account for padding
+              final dropdownWidth = isWide 
+                ? (availableWidth - 16) / 3 // 3 columns with 8px gaps
+                : availableWidth; // Full width on mobile
 
-              return Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _buildDropdown(
-                    label: 'Year',
-                    value: _selectedYear,
-                    items: ['Any', ..._years],
-                    width: dropdownWidth,
-                    onChanged: (v) => setState(() => _selectedYear = v == 'Any' ? null : v),
-                  ),
-                  _buildDropdown(
-                    label: 'Institution',
-                    value: _selectedInstitution,
-                    items: ['Any', ..._institutions],
-                    width: dropdownWidth,
-                    onChanged: (v) => setState(() => _selectedInstitution = v == 'Any' ? null : v),
-                  ),
-                  _buildDropdown(
-                    label: 'Course',
-                    value: _selectedCourse,
-                    items: ['Any', ..._courses],
-                    width: dropdownWidth,
-                    onChanged: (v) => setState(() => _selectedCourse = v == 'Any' ? null : v),
-                  ),
-                ],
-              );
+              if (isWide) {
+                return Row(
+                  children: [
+                    Expanded(
+                      child: _buildDropdown(
+                        label: 'Year',
+                        value: _selectedYear,
+                        items: ['Any', ..._years],
+                        width: dropdownWidth,
+                        onChanged: (v) => setState(() => _selectedYear = v == 'Any' ? null : v),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildDropdown(
+                        label: 'Institution',
+                        value: _selectedInstitution,
+                        items: ['Any', ..._institutions],
+                        width: dropdownWidth,
+                        onChanged: (v) => setState(() => _selectedInstitution = v == 'Any' ? null : v),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildDropdown(
+                        label: 'Course',
+                        value: _selectedCourse,
+                        items: ['Any', ..._courses],
+                        width: dropdownWidth,
+                        onChanged: (v) => setState(() => _selectedCourse = v == 'Any' ? null : v),
+                      ),
+                    ),
+                  ],
+                );
+              } else {
+                return Column(
+                  children: [
+                    _buildDropdown(
+                      label: 'Year',
+                      value: _selectedYear,
+                      items: ['Any', ..._years],
+                      width: dropdownWidth,
+                      onChanged: (v) => setState(() => _selectedYear = v == 'Any' ? null : v),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildDropdown(
+                      label: 'Institution',
+                      value: _selectedInstitution,
+                      items: ['Any', ..._institutions],
+                      width: dropdownWidth,
+                      onChanged: (v) => setState(() => _selectedInstitution = v == 'Any' ? null : v),
+                    ),
+                    const SizedBox(height: 8),
+                    _buildDropdown(
+                      label: 'Course',
+                      value: _selectedCourse,
+                      items: ['Any', ..._courses],
+                      width: dropdownWidth,
+                      onChanged: (v) => setState(() => _selectedCourse = v == 'Any' ? null : v),
+                    ),
+                  ],
+                );
+              }
             },
           ),
         ],
@@ -224,14 +263,26 @@ class _AlumniPageState extends State<AlumniPage> {
       width: width,
       child: DropdownButtonFormField<String>(
         value: value ?? 'Any',
-        items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+        items: items.map((e) => DropdownMenuItem(
+          value: e,
+          child: Text(
+            e,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            style: const TextStyle(fontSize: 14),
+          ),
+        )).toList(),
         onChanged: onChanged,
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
           isDense: true,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          labelStyle: const TextStyle(fontSize: 14),
         ),
+        style: const TextStyle(fontSize: 14),
+        isExpanded: true,
+        menuMaxHeight: 300,
       ),
     );
   }
@@ -352,7 +403,7 @@ class _AlumniTileState extends State<_AlumniTile> {
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
                       ),
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
@@ -368,6 +419,7 @@ class _AlumniTileState extends State<_AlumniTile> {
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
+                      softWrap: true,
                     ),
                     if (u['headline'] != null && u['headline'].toString().isNotEmpty) ...[
                       const SizedBox(height: 2),

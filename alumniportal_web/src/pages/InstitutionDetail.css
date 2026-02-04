@@ -506,6 +506,7 @@
   box-shadow: none;
   padding: 24px;
   margin-bottom: 0;
+  margin-top: 24px;
   max-width: 1128px;
   margin-left: auto;
   margin-right: auto;
@@ -649,7 +650,6 @@
 
 .institution-header-main {
   display: flex;
-  flex-wrap: wrap;
   align-items: flex-end;
   gap: 16px;
   padding: 0 24px 24px;
@@ -659,6 +659,13 @@
   margin: 0 auto;
   width: 100%;
   box-sizing: border-box;
+  flex-wrap: nowrap;
+}
+
+@media (max-width: 768px) {
+  .institution-header-main {
+    flex-wrap: wrap;
+  }
 }
 
 .institution-avatar {
@@ -695,11 +702,14 @@
 .institution-header-info {
   flex: 1;
   min-width: 0;
-  padding-bottom: 8px;
+  padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 }
 
 .institution-header-info h1 {
-  margin: 0 0 6px 0;
+  margin: 0 0 4px 0;
   font-size: clamp(1.25rem, 4vw + 0.5rem, 2rem);
   font-weight: 600;
   color: #000000;
@@ -712,11 +722,18 @@
   hyphens: auto;
 }
 
+.institution-header-info p {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  color: #666666;
+  line-height: 1.4;
+}
+
 .institution-contact {
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .institution-contact span {
@@ -732,12 +749,18 @@
   color: #0a66c2;
   text-decoration: none;
   font-size: 14px;
-  margin-top: 8px;
+  margin-top: 4px;
   display: inline-block;
   word-wrap: break-word;
   overflow-wrap: break-word;
   word-break: break-all;
   max-width: 100%;
+}
+
+.institution-header-main .linkedin-btn-primary {
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin-left: auto;
 }
 
 .institution-website:hover {
