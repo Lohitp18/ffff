@@ -530,6 +530,8 @@ class _InstitutionDetailPageState extends State<InstitutionDetailPage> {
                               fontSize: 14,
                               color: Colors.grey.shade600,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ],

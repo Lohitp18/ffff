@@ -9,6 +9,7 @@ const {
   handleImageUpload,
   uploadProfileImage,
   uploadCoverImage,
+  getAlumniByInstitution,
 } = require("../controllers/userController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
@@ -18,6 +19,8 @@ const router = express.Router();
 
 // Public routes
 router.get("/approved", getApprovedAlumni);
+// Institution dashboard route (before /:id)
+router.get("/institution-dashboard/:institutionName", getAlumniByInstitution);
 
 // Authenticated routes
 router.get("/profile", authMiddleware, getProfile);

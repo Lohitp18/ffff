@@ -318,12 +318,20 @@ class _UsersAdminState extends State<_UsersAdmin> {
                           return Card(
                             child: ListTile(
                               leading: const CircleAvatar(child: Icon(Icons.person)),
-                              title: Text((u['name'] ?? 'Unknown User').toString()),
-                              subtitle: Text([
-                                (u['institution'] ?? '').toString(),
-                                (u['course'] ?? '').toString(),
-                                (u['year'] ?? '').toString(),
-                              ].where((s) => s.isNotEmpty).join(' • ')),
+                              title: Text(
+                                (u['name'] ?? 'Unknown User').toString(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              subtitle: Text(
+                                [
+                                  (u['institution'] ?? '').toString(),
+                                  (u['course'] ?? '').toString(),
+                                  (u['year'] ?? '').toString(),
+                                ].where((s) => s.isNotEmpty).join(' • '),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                               trailing: showApproved
                                   ? null
                                   : Wrap(spacing: 4, children: [
@@ -353,9 +361,19 @@ class _StatCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 12, color: Colors.black54),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             const SizedBox(height: 4),
-            Text(value.toString(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              value.toString(),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
       ),
@@ -620,8 +638,16 @@ class _PostsAdminState extends State<_PostsAdmin> {
                 final p = items[i] as Map<String, dynamic>;
                 return ListTile(
                   leading: const Icon(Icons.article),
-                  title: Text((p['title'] ?? '').toString()),
-                  subtitle: Text((p['author'] ?? '').toString()),
+                  title: Text(
+                    (p['title'] ?? '').toString(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    (p['author'] ?? '').toString(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   trailing: showApproved
                       ? null
                       : Row(
@@ -732,8 +758,16 @@ class _PendingEventsState extends State<_PendingEvents> {
         itemBuilder: (_, i) {
           final e = _items[i] as Map<String, dynamic>;
           return ListTile(
-            title: Text((e['title'] ?? '').toString()),
-            subtitle: Text((e['description'] ?? '').toString()),
+            title: Text(
+              (e['title'] ?? '').toString(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            subtitle: Text(
+              (e['description'] ?? '').toString(),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -825,8 +859,16 @@ class _PendingOpportunitiesState extends State<_PendingOpportunities> {
         itemBuilder: (_, i) {
           final e = _items[i] as Map<String, dynamic>;
           return ListTile(
-            title: Text((e['title'] ?? '').toString()),
-            subtitle: Text((e['company'] ?? '').toString()),
+            title: Text(
+              (e['title'] ?? '').toString(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            subtitle: Text(
+              (e['company'] ?? '').toString(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -996,8 +1038,16 @@ class _InstitutionUsersAdminState extends State<_InstitutionUsersAdmin> {
                                   leading: const CircleAvatar(
                                     child: Icon(Icons.school),
                                   ),
-                                  title: Text(user['name'] ?? institutionName),
-                                  subtitle: Text(institutionName),
+                                  title: Text(
+                                    user['name'] ?? institutionName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  subtitle: Text(
+                                    institutionName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                   trailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [

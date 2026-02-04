@@ -35,6 +35,31 @@ exports.getApprovedAlumni = async (req, res) => {
   }
 };
 
+// GET /api/users/institution-dashboard/:institutionName - Get all alumni for an institution (for dashboard)
+// This endpoint returns ALL data including email and phone for institution dashboard
+exports.getAlumniByInstitution = async (req, res) => {
+  try {
+    const { institutionName } = req.params;
+    
+    if (!institutionName) {
+      return res.status(400).json({ message: "Institution name is required" });
+    }
+
+    // Find all users with matching institution (case-insensitive)
+    const users = await User.find({
+      institution: { $regex: new RegExp(`^${institutionName}$`, "i") },
+      status: "approved" // Only approved users
+    })
+      .select("-password") // Exclude password
+      .sort({ createdAt: -1 });
+
+    return res.json(users);
+  } catch (err) {
+    console.error("getAlumniByInstitution error", err);
+    return res.status(500).json({ message: "Failed to fetch alumni" });
+  }
+};
+
 // GET /api/users/profile - Get current user's profile
 exports.getProfile = async (req, res) => {
   try {

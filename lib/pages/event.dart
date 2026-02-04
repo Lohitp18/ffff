@@ -149,6 +149,8 @@ class _EventsPageState extends State<EventsPage> {
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       if (authorInstitution.isNotEmpty || authorYear.isNotEmpty)
                         Text(
@@ -159,6 +161,8 @@ class _EventsPageState extends State<EventsPage> {
                             fontSize: 12,
                             color: Colors.grey.shade600,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                     ],
                   ),
@@ -169,6 +173,8 @@ class _EventsPageState extends State<EventsPage> {
                     fontSize: 12,
                     color: Colors.grey.shade500,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -181,6 +187,8 @@ class _EventsPageState extends State<EventsPage> {
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 8),
 
@@ -197,12 +205,16 @@ class _EventsPageState extends State<EventsPage> {
                   children: [
                     const Icon(Icons.event, size: 16, color: Colors.blue),
                     const SizedBox(width: 8),
-                    Text(
-                      formattedDate,
-                      style: const TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 16,
+                    Expanded(
+                      child: Text(
+                        formattedDate,
+                        style: const TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 16,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -218,9 +230,13 @@ class _EventsPageState extends State<EventsPage> {
                   const Icon(Icons.location_on,
                       size: 16, color: Colors.grey),
                   const SizedBox(width: 4),
-                  Text(
-                    location,
-                    style: const TextStyle(color: Colors.grey),
+                  Expanded(
+                    child: Text(
+                      location,
+                      style: const TextStyle(color: Colors.grey),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),
@@ -232,6 +248,8 @@ class _EventsPageState extends State<EventsPage> {
               Text(
                 description,
                 style: const TextStyle(fontSize: 16),
+                maxLines: 10,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 12),
             ],

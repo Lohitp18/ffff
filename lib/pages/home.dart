@@ -288,6 +288,8 @@ class _HomePageState extends State<HomePage> {
                                 color: Colors.black87,
                                 height: 1.3,
                               ),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
                             ),
 
                             const SizedBox(height: 8),
@@ -301,12 +303,16 @@ class _HomePageState extends State<HomePage> {
                                   color: Colors.grey[600],
                                 ),
                                 const SizedBox(width: 4),
-                                Text(
-                                  subtitle,
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
+                                Expanded(
+                                  child: Text(
+                                    subtitle,
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ],
@@ -324,6 +330,8 @@ class _HomePageState extends State<HomePage> {
                                   color: Colors.grey[800],
                                   height: 1.5,
                                 ),
+                                maxLines: 5,
+                                overflow: TextOverflow.ellipsis,
                               ),
 
                             const SizedBox(height: 12),

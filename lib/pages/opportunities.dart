@@ -153,6 +153,8 @@ class _OpportunitiesPageState extends State<OpportunitiesPage> {
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       if (authorInstitution.isNotEmpty || authorYear.isNotEmpty)
                         Text(
@@ -163,6 +165,8 @@ class _OpportunitiesPageState extends State<OpportunitiesPage> {
                             fontSize: 12,
                             color: Colors.grey.shade600,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                     ],
                   ),
@@ -173,6 +177,8 @@ class _OpportunitiesPageState extends State<OpportunitiesPage> {
                     fontSize: 12,
                     color: Colors.grey.shade500,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -185,6 +191,8 @@ class _OpportunitiesPageState extends State<OpportunitiesPage> {
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 8),
 
@@ -201,12 +209,16 @@ class _OpportunitiesPageState extends State<OpportunitiesPage> {
                   children: [
                     const Icon(Icons.business, size: 16, color: Colors.green),
                     const SizedBox(width: 8),
-                    Text(
-                      company,
-                      style: const TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 16,
+                    Expanded(
+                      child: Text(
+                        company,
+                        style: const TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 16,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -221,9 +233,13 @@ class _OpportunitiesPageState extends State<OpportunitiesPage> {
                 children: [
                   const Icon(Icons.location_on, size: 16, color: Colors.grey),
                   const SizedBox(width: 4),
-                  Text(
-                    location,
-                    style: const TextStyle(color: Colors.grey),
+                  Expanded(
+                    child: Text(
+                      location,
+                      style: const TextStyle(color: Colors.grey),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),
@@ -235,6 +251,8 @@ class _OpportunitiesPageState extends State<OpportunitiesPage> {
               Text(
                 description,
                 style: const TextStyle(fontSize: 16),
+                maxLines: 10,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 16),
             ],
