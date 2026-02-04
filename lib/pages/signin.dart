@@ -17,7 +17,7 @@ class _SignInPageState extends State<SignInPage> {
   bool _isLoading = false;
   String? _error;
 
-  static const String _baseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:5000');
+  static const String _baseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'https://alvasglobalalumni.org');
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   void _signIn() async {
@@ -265,7 +265,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   final _confirmCtrl = TextEditingController();
   bool _loading = false;
   String? _error;
-  static const String _baseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:5000');
+  static const String _baseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'https://alvasglobalalumni.org');
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;

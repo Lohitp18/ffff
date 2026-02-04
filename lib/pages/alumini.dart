@@ -12,7 +12,7 @@ class AlumniPage extends StatefulWidget {
 class _AlumniPageState extends State<AlumniPage> {
   final String _baseUrl = const String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:5000',
+    defaultValue: 'https://alvasglobalalumni.org',
   );
 
   bool _loading = true;

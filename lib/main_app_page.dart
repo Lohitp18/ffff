@@ -43,7 +43,7 @@ class _MainAppPageState extends State<MainAppPage> {
       
       if (token != null && token.isNotEmpty) {
         final response = await http.get(
-          Uri.parse('${const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:5000')}/api/notifications/unread-count'),
+          Uri.parse('${const String.fromEnvironment('API_BASE_URL', defaultValue: 'https://alvasglobalalumni.org')}/api/notifications/unread-count'),
           headers: {
             'Authorization': 'Bearer $token',
             'Content-Type': 'application/json',

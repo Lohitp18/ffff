@@ -12,7 +12,7 @@ class ProfileCompletionPage extends StatefulWidget {
 
 class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   final _formKey = GlobalKey<FormState>();
-  final String _baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:5000');
+  final String _baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'https://alvasglobalalumni.org');
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   // Professional fields

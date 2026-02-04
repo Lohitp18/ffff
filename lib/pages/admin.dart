@@ -14,7 +14,7 @@ class AdminPage extends StatefulWidget {
 class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMixin {
   final String _baseUrl = const String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:5000',
+    defaultValue: 'https://alvasglobalalumni.org',
   );
   late TabController _tabController;
   final _emailCtrl = TextEditingController();

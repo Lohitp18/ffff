@@ -208,7 +208,7 @@ class InstitutionDetailPage extends StatefulWidget {
 }
 
 class _InstitutionDetailPageState extends State<InstitutionDetailPage> {
-  final String _baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:5000');
+  final String _baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'https://alvasglobalalumni.org');
   bool _loading = true;
   String? _error;
   List<dynamic> _posts = [];

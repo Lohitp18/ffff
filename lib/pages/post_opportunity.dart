@@ -14,7 +14,7 @@ class PostOpportunityPage extends StatefulWidget {
 }
 
 class _PostOpportunityPageState extends State<PostOpportunityPage> {
-  final String _baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:5000');
+  final String _baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'https://alvasglobalalumni.org');
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();

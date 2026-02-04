@@ -18,17 +18,27 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController dobController = TextEditingController();
-  final TextEditingController jobLocationController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
 
-  // Professional fields (compulsory at signup)
+  // Status selection
+  String? _status; // 'working', 'masters', 'entrepreneurs'
+
+  // Conditional fields for "Currently Working"
+  final TextEditingController jobLocationController = TextEditingController();
   final TextEditingController currentCompanyController = TextEditingController();
-  final TextEditingController previousCompanyController = TextEditingController();
+  final TextEditingController positionController = TextEditingController();
   final TextEditingController totalExperienceController = TextEditingController();
 
+  // Conditional fields for "Masters"
+  final TextEditingController mastersCollegeController = TextEditingController();
+  final TextEditingController mastersCourseController = TextEditingController();
+
+  // Conditional fields for "Entrepreneurs"
+  final TextEditingController entrepreneurCompanyController = TextEditingController();
+  final TextEditingController companyTypeController = TextEditingController();
+
   // Optional fields
-  final TextEditingController favTeacherController = TextEditingController();
   final TextEditingController socialMediaController = TextEditingController();
 
   String? _institution;
@@ -76,37 +86,59 @@ class _SignUpPageState extends State<SignUpPage> {
 
   bool _isLoading = false;
   String? _error;
-  static const String _baseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:5000');
+  static const String _baseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'https://alvasglobalalumni.org');
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   void _signUp() async {
     if (_formKey.currentState!.validate()) {
+      if (_status == null) {
+        setState(() { _error = 'Please select your current status'; });
+        return;
+      }
+
       setState(() {
         _isLoading = true;
       });
       setState(() { _error = null; });
 
       try {
+        // Build request body based on status
+        Map<String, dynamic> requestBody = {
+          'name': nameController.text.trim(),
+          'email': emailController.text.trim(),
+          'phone': phoneController.text.trim(),
+          'dob': DateTime.tryParse(dobController.text) != null ? dobController.text : DateTime.now().toIso8601String(),
+          'institution': _institution ?? '',
+          'course': _course ?? '',
+          'year': _year ?? '',
+          'password': passwordController.text,
+          'socialMedia': socialMediaController.text.trim(),
+        };
+
+        // Add conditional fields based on status
+        if (_status == 'working') {
+          requestBody['location'] = jobLocationController.text.trim();
+          requestBody['currentCompany'] = currentCompanyController.text.trim();
+          requestBody['position'] = positionController.text.trim();
+          requestBody['totalExperience'] = totalExperienceController.text.trim();
+          requestBody['previousCompany'] = '';
+        } else if (_status == 'masters') {
+          requestBody['location'] = mastersCollegeController.text.trim();
+          requestBody['currentCompany'] = mastersCourseController.text.trim();
+          requestBody['previousCompany'] = '';
+          requestBody['totalExperience'] = '0';
+        } else if (_status == 'entrepreneurs') {
+          requestBody['location'] = '';
+          requestBody['currentCompany'] = entrepreneurCompanyController.text.trim();
+          requestBody['previousCompany'] = companyTypeController.text.trim();
+          requestBody['totalExperience'] = '0';
+        }
+
         final uri = Uri.parse('$_baseUrl/api/auth/signup');
         final response = await http.post(
           uri,
           headers: { 'Content-Type': 'application/json' },
-          body: jsonEncode({
-            'name': nameController.text.trim(),
-            'email': emailController.text.trim(),
-            'phone': phoneController.text.trim(),
-            'dob': DateTime.tryParse(dobController.text) != null ? dobController.text : DateTime.now().toIso8601String(),
-            'location': jobLocationController.text.trim(),
-            'institution': _institution ?? '',
-            'course': _course ?? '',
-            'year': _year ?? '',
-            'currentCompany': currentCompanyController.text.trim(),
-            'previousCompany': previousCompanyController.text.trim(),
-            'totalExperience': totalExperienceController.text.trim(),
-            'password': passwordController.text,
-            'favTeacher': favTeacherController.text.trim(),
-            'socialMedia': socialMediaController.text.trim(),
-          }),
+          body: jsonEncode(requestBody),
         );
 
         if (!mounted) return;
@@ -230,14 +262,6 @@ class _SignUpPageState extends State<SignUpPage> {
               ),
               const SizedBox(height: 12),
 
-              // Job Location
-              TextFormField(
-                controller: jobLocationController,
-                decoration: _inputDecoration("Job Location *", Icons.location_on_outlined),
-                validator: (value) => value!.trim().isEmpty ? "Enter your job location" : null,
-              ),
-              const SizedBox(height: 24),
-
               // ===== EDUCATION SECTION =====
               _buildSectionHeader("Education Details", Icons.school),
               const SizedBox(height: 12),
@@ -276,44 +300,93 @@ class _SignUpPageState extends State<SignUpPage> {
                 decoration: _inputDecoration("Year of Graduation *", Icons.date_range),
                 validator: (v) => (v == null || v.isEmpty) ? 'Select your graduation year' : null,
               ),
+              const SizedBox(height: 24),
+
+              // ===== CURRENT STATUS SECTION =====
+              _buildSectionHeader("Current Status", Icons.info_outline),
               const SizedBox(height: 12),
 
-              // Favorite Teacher
-              TextFormField(
-                controller: favTeacherController,
-                decoration: _inputDecoration("Favourite Teacher", Icons.favorite_outline),
+              DropdownButtonFormField<String>(
+                value: _status,
+                items: const [
+                  DropdownMenuItem(value: 'working', child: Text('Currently Working')),
+                  DropdownMenuItem(value: 'masters', child: Text('Doing Masters')),
+                  DropdownMenuItem(value: 'entrepreneurs', child: Text('Entrepreneurs')),
+                ],
+                onChanged: (v) => setState(() { _status = v; }),
+                decoration: _inputDecoration("Current Status *", Icons.work_outline),
+                validator: (v) => (v == null) ? 'Select your current status' : null,
               ),
               const SizedBox(height: 24),
 
-              // ===== PROFESSIONAL SECTION =====
-              _buildSectionHeader("Professional Details", Icons.work),
-              const SizedBox(height: 12),
-
-              TextFormField(
-                controller: currentCompanyController,
-                decoration: _inputDecoration("Current Company *", Icons.business_center_outlined),
-                validator: (value) => value!.trim().isEmpty ? "Enter your current company" : null,
-              ),
-              const SizedBox(height: 12),
-
-              TextFormField(
-                controller: previousCompanyController,
-                decoration: _inputDecoration("Previous Company *", Icons.business_outlined),
-                validator: (value) => value!.trim().isEmpty ? "Enter your previous company" : null,
-              ),
-              const SizedBox(height: 12),
-
-              TextFormField(
-                controller: totalExperienceController,
-                decoration: _inputDecoration(
-                  "Years of Experience *",
-                  Icons.timer_outlined,
-                  hintText: "e.g., 3",
+              // Conditional fields based on status
+              if (_status == 'working') ...[
+                _buildSectionHeader("Professional Details", Icons.work),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: jobLocationController,
+                  decoration: _inputDecoration("Job Location *", Icons.location_on_outlined),
+                  validator: (value) => value!.trim().isEmpty ? "Enter your job location" : null,
                 ),
-                keyboardType: TextInputType.number,
-                validator: (value) => value!.trim().isEmpty ? "Enter your years of experience" : null,
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: currentCompanyController,
+                  decoration: _inputDecoration("Company Name *", Icons.business_center_outlined),
+                  validator: (value) => value!.trim().isEmpty ? "Enter your company name" : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: positionController,
+                  decoration: _inputDecoration("Position *", Icons.badge_outlined),
+                  validator: (value) => value!.trim().isEmpty ? "Enter your position" : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: totalExperienceController,
+                  decoration: _inputDecoration(
+                    "Years of Experience *",
+                    Icons.timer_outlined,
+                    hintText: "e.g., 3",
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) => value!.trim().isEmpty ? "Enter your years of experience" : null,
+                ),
+                const SizedBox(height: 24),
+              ],
+
+              if (_status == 'masters') ...[
+                _buildSectionHeader("Masters Details", Icons.school),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: mastersCollegeController,
+                  decoration: _inputDecoration("College Name *", Icons.business),
+                  validator: (value) => value!.trim().isEmpty ? "Enter college name" : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: mastersCourseController,
+                  decoration: _inputDecoration("Course Name *", Icons.menu_book),
+                  validator: (value) => value!.trim().isEmpty ? "Enter course name" : null,
+                ),
+                const SizedBox(height: 24),
+              ],
+
+              if (_status == 'entrepreneurs') ...[
+                _buildSectionHeader("Entrepreneur Details", Icons.business),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: entrepreneurCompanyController,
+                  decoration: _inputDecoration("Company Name *", Icons.business_center_outlined),
+                  validator: (value) => value!.trim().isEmpty ? "Enter your company name" : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: companyTypeController,
+                  decoration: _inputDecoration("Company Type *", Icons.category_outlined, hintText: "e.g., Tech, Healthcare"),
+                  validator: (value) => value!.trim().isEmpty ? "Enter company type" : null,
+                ),
+                const SizedBox(height: 24),
+              ],
 
               // ===== SOCIAL & SECURITY SECTION =====
               _buildSectionHeader("Social & Security", Icons.lock),
