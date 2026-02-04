@@ -40,27 +40,57 @@ exports.getApprovedAlumni = async (req, res) => {
 exports.getAlumniByInstitution = async (req, res) => {
   try {
     // Support both query parameter and URL parameter for flexibility
+    // Also check raw query string if needed
     let institutionName = req.query.institutionName || req.params.institutionName;
     
-    if (!institutionName) {
-      return res.status(400).json({ message: "Institution name is required" });
+    // If still not found, try parsing from raw query string
+    if (!institutionName && req.url) {
+      const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+      institutionName = url.searchParams.get('institutionName');
+    }
+    
+    // Log for debugging
+    console.log('Request URL:', req.url);
+    console.log('Request query:', JSON.stringify(req.query));
+    console.log('Request params:', JSON.stringify(req.params));
+    console.log('Institution name received:', institutionName);
+    console.log('Type:', typeof institutionName);
+    
+    if (!institutionName || (typeof institutionName === 'string' && institutionName.trim() === '')) {
+      return res.status(400).json({ 
+        message: "Institution name is required",
+        received: institutionName,
+        query: req.query,
+        params: req.params,
+        url: req.url
+      });
     }
 
-    // Decode URL-encoded institution name if needed
-    try {
-      institutionName = decodeURIComponent(institutionName);
-    } catch (e) {
-      // If already decoded, use as is
+    // Express automatically decodes query parameters, but handle edge cases
+    if (typeof institutionName === 'string') {
+      // Trim whitespace first
+      institutionName = institutionName.trim();
+      
+      // If it looks like it's still encoded (contains %), try decoding
+      if (institutionName.includes('%')) {
+        try {
+          institutionName = decodeURIComponent(institutionName);
+        } catch (e) {
+          console.log('Decode failed, using as is:', e.message);
+        }
+      }
     }
     
-    // Escape special regex characters in the institution name
-    const escapedName = institutionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    console.log(`Searching for institution: "${institutionName}"`);
     
-    console.log(`Searching for institution: ${institutionName}`);
-    
-    // Try exact match first (case-insensitive)
+    // First, try a simple case-insensitive match without regex (faster and more reliable)
     let users = await User.find({
-      institution: { $regex: new RegExp(`^${escapedName}$`, "i") },
+      $expr: {
+        $eq: [
+          { $toLower: "$institution" },
+          { $toLower: institutionName }
+        ]
+      },
       status: "approved"
     })
       .select("-password")
@@ -68,8 +98,11 @@ exports.getAlumniByInstitution = async (req, res) => {
 
     console.log(`Exact match found: ${users.length} users`);
 
-    // If no exact match, try partial match (contains)
+    // If no exact match, try case-insensitive contains match
     if (users.length === 0) {
+      // Escape special regex characters
+      const escapedName = institutionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      
       users = await User.find({
         institution: { $regex: new RegExp(escapedName, "i") },
         status: "approved"
@@ -78,6 +111,21 @@ exports.getAlumniByInstitution = async (req, res) => {
         .sort({ createdAt: -1 });
       
       console.log(`Partial match found: ${users.length} users`);
+    }
+
+    // If still no results, try a more flexible search (removing special characters)
+    if (users.length === 0) {
+      const simplifiedName = institutionName.replace(/[()&,]/g, '').trim();
+      const escapedName = simplifiedName.replace(/[.*+?^${}|[\]\\]/g, '\\$&');
+      
+      users = await User.find({
+        institution: { $regex: new RegExp(escapedName, "i") },
+        status: "approved"
+      })
+        .select("-password")
+        .sort({ createdAt: -1 });
+      
+      console.log(`Simplified match found: ${users.length} users`);
     }
 
     return res.json(users);
