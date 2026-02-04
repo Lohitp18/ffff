@@ -438,7 +438,7 @@ const InstitutionDetail = () => {
             )}
           </div>
         ) : (
-          <div className="linkedin-feed">
+          <div className="linkedin-feed institution-feed">
             {posts.map((post) => (
               <PostCard key={post._id} post={post} onUpdate={loadPosts} />
             ))}

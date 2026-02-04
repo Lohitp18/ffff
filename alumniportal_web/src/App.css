@@ -2,3 +2,37 @@
   min-height: 100vh;
   background-color: #f7f8fa;
 }
+
+/* Global Text Overflow Prevention */
+* {
+  box-sizing: border-box;
+}
+
+/* Ensure all text elements wrap properly */
+h1, h2, h3, h4, h5, h6, p, span, div, a, label, button {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+/* Prevent horizontal scrolling */
+body, html {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+/* Text containers should not overflow */
+.text-container, .card, .post, .feed-item {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+/* Input and textarea should wrap text */
+input, textarea {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}

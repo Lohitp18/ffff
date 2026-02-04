@@ -6,13 +6,16 @@ import './MainLayout.css'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
-const MainLayout = ({ children }) => {
+const MainLayout = ({ children, fullWidth = false }) => {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [connectionsCount, setConnectionsCount] = useState(0)
+  
+  // Check if current route is institution detail page
+  const isInstitutionPage = location.pathname.startsWith('/institution/')
 
   useEffect(() => {
     loadUnreadNotificationCount()
@@ -189,8 +192,9 @@ const MainLayout = ({ children }) => {
       </header>
 
       {/* Main Content Area */}
-      <div className="linkedin-main">
-        {/* Left Sidebar */}
+      <div className={`linkedin-main ${fullWidth || isInstitutionPage ? 'full-width' : ''}`}>
+        {/* Left Sidebar - Hidden for full-width pages */}
+        {!(fullWidth || isInstitutionPage) && (
         <aside className="linkedin-sidebar left-sidebar">
           <div className="sidebar-card">
             {user && (
@@ -229,13 +233,15 @@ const MainLayout = ({ children }) => {
             </div>
           </div>
         </aside>
+        )}
 
         {/* Main Content */}
-        <main className="linkedin-content">
+        <main className={`linkedin-content ${fullWidth || isInstitutionPage ? 'full-width-content' : ''}`}>
           {children}
         </main>
 
-        {/* Right Sidebar */}
+        {/* Right Sidebar - Hidden for full-width pages */}
+        {!(fullWidth || isInstitutionPage) && (
         <aside className="linkedin-sidebar right-sidebar">
           <div className="sidebar-card">
             <h3 className="sidebar-title">Alumni News</h3>
@@ -259,6 +265,7 @@ const MainLayout = ({ children }) => {
             </div>
           </div>
         </aside>
+        )}
       </div>
     </div>
   )

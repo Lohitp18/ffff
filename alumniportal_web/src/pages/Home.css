@@ -1,5 +1,7 @@
 .linkedin-home {
   width: 100%;
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
 /* Loading State */

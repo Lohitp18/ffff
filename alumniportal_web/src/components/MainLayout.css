@@ -263,8 +263,22 @@
   align-items: start;
 }
 
+/* Full-width mode (for institution pages) */
+.linkedin-main.full-width {
+  max-width: 100%;
+  padding: 0;
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
 .linkedin-content {
   min-width: 0;
+}
+
+.linkedin-content.full-width-content {
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
 }
 
 /* Sidebars */

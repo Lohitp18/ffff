@@ -6,6 +6,22 @@
   margin-bottom: 8px;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.08);
   transition: box-shadow 0.2s;
+  overflow: hidden;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Post card in institution feed (full-width mode) */
+.institution-feed .linkedin-post-card {
+  border-radius: 0;
+  padding: 16px 24px;
+  margin-bottom: 0;
+  box-shadow: none;
+  border-top: 1px solid #e0e0e0;
+  max-width: 1128px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
 }
 
 .linkedin-post-card:hover {
