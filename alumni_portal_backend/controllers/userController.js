@@ -35,28 +35,55 @@ exports.getApprovedAlumni = async (req, res) => {
   }
 };
 
-// GET /api/users/institution-dashboard/:institutionName - Get all alumni for an institution (for dashboard)
+// GET /api/users/institution-dashboard?institutionName=... - Get all alumni for an institution (for dashboard)
 // This endpoint returns ALL data including email and phone for institution dashboard
 exports.getAlumniByInstitution = async (req, res) => {
   try {
-    const { institutionName } = req.params;
+    // Support both query parameter and URL parameter for flexibility
+    let institutionName = req.query.institutionName || req.params.institutionName;
     
     if (!institutionName) {
       return res.status(400).json({ message: "Institution name is required" });
     }
 
-    // Find all users with matching institution (case-insensitive)
-    const users = await User.find({
-      institution: { $regex: new RegExp(`^${institutionName}$`, "i") },
-      status: "approved" // Only approved users
+    // Decode URL-encoded institution name if needed
+    try {
+      institutionName = decodeURIComponent(institutionName);
+    } catch (e) {
+      // If already decoded, use as is
+    }
+    
+    // Escape special regex characters in the institution name
+    const escapedName = institutionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    
+    console.log(`Searching for institution: ${institutionName}`);
+    
+    // Try exact match first (case-insensitive)
+    let users = await User.find({
+      institution: { $regex: new RegExp(`^${escapedName}$`, "i") },
+      status: "approved"
     })
-      .select("-password") // Exclude password
+      .select("-password")
       .sort({ createdAt: -1 });
+
+    console.log(`Exact match found: ${users.length} users`);
+
+    // If no exact match, try partial match (contains)
+    if (users.length === 0) {
+      users = await User.find({
+        institution: { $regex: new RegExp(escapedName, "i") },
+        status: "approved"
+      })
+        .select("-password")
+        .sort({ createdAt: -1 });
+      
+      console.log(`Partial match found: ${users.length} users`);
+    }
 
     return res.json(users);
   } catch (err) {
     console.error("getAlumniByInstitution error", err);
-    return res.status(500).json({ message: "Failed to fetch alumni" });
+    return res.status(500).json({ message: "Failed to fetch alumni", error: err.message });
   }
 };
 

@@ -71,13 +71,20 @@ const InstitutionDashboard = () => {
     try {
       setLoading(true)
       setError('')
+      // Use query parameter instead of URL parameter to avoid encoding issues
       const response = await axios.get(
-        `${API_BASE_URL}/api/users/institution-dashboard/${encodeURIComponent(institutionName)}`
+        `${API_BASE_URL}/api/users/institution-dashboard`,
+        {
+          params: {
+            institutionName: institutionName
+          }
+        }
       )
       setAlumni(response.data)
     } catch (error) {
       console.error('Failed to load alumni:', error)
-      setError('Failed to load alumni data')
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to load alumni data'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

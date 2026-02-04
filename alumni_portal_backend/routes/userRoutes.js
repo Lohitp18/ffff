@@ -19,8 +19,8 @@ const router = express.Router();
 
 // Public routes
 router.get("/approved", getApprovedAlumni);
-// Institution dashboard route (before /:id)
-router.get("/institution-dashboard/:institutionName", getAlumniByInstitution);
+// Institution dashboard route (before /:id) - using query parameter to avoid URL encoding issues
+router.get("/institution-dashboard", getAlumniByInstitution);
 
 // Authenticated routes
 router.get("/profile", authMiddleware, getProfile);
