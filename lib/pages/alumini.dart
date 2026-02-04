@@ -279,6 +279,8 @@ class _AlumniPageState extends State<AlumniPage> {
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           labelStyle: const TextStyle(fontSize: 14),
+          filled: false,
+          fillColor: Colors.transparent,
         ),
         style: const TextStyle(fontSize: 14),
         isExpanded: true,
