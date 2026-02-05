@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import './Landing.css'
-import img from '../banner-4.jpg'
+import img from '../front.jpeg'
 
 const Landing = () => {
   const navigate = useNavigate()
