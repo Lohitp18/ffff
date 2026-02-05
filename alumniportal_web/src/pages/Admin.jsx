@@ -227,6 +227,7 @@ const Admin = () => {
       if (activeTab === 'events') loadEvents()
       if (activeTab === 'opportunities') loadOpportunities()
       if (activeTab === 'reports') loadReports()
+      if (activeTab === 'whatsapp') loadUsers() // Load users for WhatsApp tab
     }
   }, [activeTab, isAuthenticated])
 
@@ -384,6 +385,16 @@ const Admin = () => {
       }
       if (filters.year) {
         filtered = filtered.filter(u => u.year === filters.year)
+      }
+      if (filters.company) {
+        const companyFilter = filters.company.toLowerCase()
+        filtered = filtered.filter(u => {
+          const currentCompany = u.privateInfo?.currentCompany || ''
+          const previousCompanies = u.privateInfo?.previousCompanies || []
+          const companyMatch = currentCompany.toLowerCase().includes(companyFilter) ||
+            previousCompanies.some(pc => pc.company && pc.company.toLowerCase().includes(companyFilter))
+          return companyMatch
+        })
       }
     } else if (type === 'posts') {
       if (filters.institution) {
@@ -616,6 +627,12 @@ const Admin = () => {
         >
           🚩 Reports
         </button>
+        <button
+          className={activeTab === 'whatsapp' ? 'active' : ''}
+          onClick={() => setActiveTab('whatsapp')}
+        >
+          💬 WhatsApp Messages
+        </button>
       </div>
 
       <div className="admin-content-full">
@@ -764,6 +781,14 @@ const Admin = () => {
                   <option key={year} value={year}>{year}</option>
                 ))}
               </select>
+              
+              <input
+                type="text"
+                value={filters.company}
+                onChange={(e) => handleFilterChange('company', e.target.value)}
+                placeholder="Filter by Company"
+                className="filter-input"
+              />
               
               <button onClick={clearFilters} className="clear-filters-btn">Clear Filters</button>
             </div>
@@ -919,7 +944,10 @@ const Admin = () => {
                       />
                     )}
                     <div className="content-meta">
-                      <span>By: {post.authorId?.name || post.postedBy?.name || 'Unknown'}</span>
+                      <span><strong>User:</strong> {post.authorId?.name || post.postedBy?.name || 'Unknown'}</span>
+                      <span><strong>Institution:</strong> {post.authorId?.institution || post.postedBy?.institution || 'N/A'}</span>
+                      <span><strong>Course:</strong> {post.authorId?.course || post.postedBy?.course || 'N/A'}</span>
+                      <span><strong>Year:</strong> {post.authorId?.year || post.postedBy?.year || 'N/A'}</span>
                       <span>Created: {new Date(post.createdAt).toLocaleDateString()}</span>
                       {post.likes && <span>Likes: {post.likes.length || 0}</span>}
                     </div>
@@ -1027,7 +1055,10 @@ const Admin = () => {
                       />
                     )}
                     <div className="content-meta">
-                      <span>By: {event.postedBy?.name || 'Unknown'}</span>
+                      <span><strong>User:</strong> {event.postedBy?.name || 'Unknown'}</span>
+                      <span><strong>Institution:</strong> {event.postedBy?.institution || 'N/A'}</span>
+                      <span><strong>Course:</strong> {event.postedBy?.course || 'N/A'}</span>
+                      <span><strong>Year:</strong> {event.postedBy?.year || 'N/A'}</span>
                       <span>Date: {event.date || new Date(event.createdAt).toLocaleDateString()}</span>
                       <span>Location: {event.location || 'N/A'}</span>
                       {event.likes && <span>Likes: {event.likes.length || 0}</span>}
@@ -1147,8 +1178,10 @@ const Admin = () => {
                       />
                     )}
                     <div className="content-meta">
-                      <span>Company: {opp.company || 'N/A'}</span>
-                      <span>By: {opp.postedBy?.name || 'Unknown'}</span>
+                      <span><strong>Company:</strong> {opp.company || 'N/A'}</span>
+                      <span><strong>Institution:</strong> {opp.postedBy?.institution || 'N/A'}</span>
+                      <span><strong>Course:</strong> {opp.postedBy?.course || 'N/A'}</span>
+                      <span><strong>Year:</strong> {opp.postedBy?.year || 'N/A'}</span>
                       <span>Type: {opp.type || 'Full-time'}</span>
                       {opp.applyLink && <span>🔗 <a href={opp.applyLink} target="_blank" rel="noopener noreferrer">Apply Link</a></span>}
                       {opp.likes && <span>Likes: {opp.likes.length || 0}</span>}
@@ -1275,6 +1308,47 @@ const Admin = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'whatsapp' && (
+          <div className="admin-section-full">
+            <h2>WhatsApp Messages to Users</h2>
+            {usersLoading ? (
+              <div className="loading">Loading users...</div>
+            ) : users.length === 0 ? (
+              <div className="empty-state">No users found</div>
+            ) : (
+              <div className="whatsapp-users-list">
+                <div className="whatsapp-header">
+                  <p>Total Users: {users.length}</p>
+                </div>
+                <div className="users-grid">
+                  {users.map((user) => (
+                    <div key={user._id} className="whatsapp-user-card">
+                      <div className="user-avatar-small">
+                        {user.profileImage ? (
+                          <img src={getImageUrl(user.profileImage)} alt={user.name} />
+                        ) : (
+                          <span>{user.name?.charAt(0)?.toUpperCase() || 'U'}</span>
+                        )}
+                      </div>
+                      <div className="user-name">{user.name || 'N/A'}</div>
+                      {user.phone && (
+                        <a
+                          href={`https://wa.me/${user.phone.replace(/[^0-9]/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="whatsapp-link"
+                        >
+                          💬 Message on WhatsApp
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
