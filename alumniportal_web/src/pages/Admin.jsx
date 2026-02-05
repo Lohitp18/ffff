@@ -31,6 +31,24 @@ const Admin = () => {
   const [opportunitiesLoading, setOpportunitiesLoading] = useState(false)
   const [reportsLoading, setReportsLoading] = useState(false)
 
+  // Filter states
+  const [filters, setFilters] = useState({
+    institution: '',
+    course: '',
+    year: '',
+    company: ''
+  })
+  
+  // Statistics state
+  const [statistics, setStatistics] = useState({
+    byYear: {},
+    byInstitution: {},
+    byCourse: {},
+    byCompany: {},
+    entrepreneurs: 0,
+    higherEducation: 0
+  })
+
   useEffect(() => {
     const adminAuth = localStorage.getItem('admin_authenticated')
     if (adminAuth === 'true') {
@@ -124,7 +142,9 @@ const Admin = () => {
         axios.get(`${API_BASE_URL}/api/admin/approved-users`, { headers: getAuthHeaders() }).catch(() => ({ data: [] })),
         axios.get(`${API_BASE_URL}/api/admin/blocked-users`, { headers: getAuthHeaders() }).catch(() => ({ data: [] }))
       ])
-      setUsers([...pendingRes.data, ...approvedRes.data, ...blockedRes.data])
+      const allUsers = [...pendingRes.data, ...approvedRes.data, ...blockedRes.data]
+      setUsers(allUsers)
+      calculateStatistics(allUsers, posts, events, opportunities)
     } catch (error) {
       console.error('Failed to load users:', error)
       setUsers([])
@@ -140,7 +160,9 @@ const Admin = () => {
         axios.get(`${API_BASE_URL}/api/admin/pending-posts`, { headers: getAuthHeaders() }),
         axios.get(`${API_BASE_URL}/api/admin/approved-posts`, { headers: getAuthHeaders() })
       ])
-      setPosts([...pendingRes.data, ...approvedRes.data])
+      const allPosts = [...pendingRes.data, ...approvedRes.data]
+      setPosts(allPosts)
+      calculateStatistics(users, allPosts, events, opportunities)
     } catch (error) {
       console.error('Failed to load posts:', error)
       setPosts([])
@@ -156,7 +178,9 @@ const Admin = () => {
         axios.get(`${API_BASE_URL}/api/admin/pending-events`, { headers: getAuthHeaders() }),
         axios.get(`${API_BASE_URL}/api/admin/approved-events`, { headers: getAuthHeaders() })
       ])
-      setEvents([...pendingRes.data, ...approvedRes.data])
+      const allEvents = [...pendingRes.data, ...approvedRes.data]
+      setEvents(allEvents)
+      calculateStatistics(users, posts, allEvents, opportunities)
     } catch (error) {
       console.error('Failed to load events:', error)
       setEvents([])
@@ -172,7 +196,9 @@ const Admin = () => {
         axios.get(`${API_BASE_URL}/api/admin/pending-opportunities`, { headers: getAuthHeaders() }),
         axios.get(`${API_BASE_URL}/api/admin/approved-opportunities`, { headers: getAuthHeaders() })
       ])
-      setOpportunities([...pendingRes.data, ...approvedRes.data])
+      const allOpportunities = [...pendingRes.data, ...approvedRes.data]
+      setOpportunities(allOpportunities)
+      calculateStatistics(users, posts, events, allOpportunities)
     } catch (error) {
       console.error('Failed to load opportunities:', error)
       setOpportunities([])
@@ -203,6 +229,13 @@ const Admin = () => {
       if (activeTab === 'reports') loadReports()
     }
   }, [activeTab, isAuthenticated])
+
+  // Recalculate statistics when data changes
+  useEffect(() => {
+    if (users.length > 0 || posts.length > 0 || events.length > 0 || opportunities.length > 0) {
+      calculateStatistics(users, posts, events, opportunities)
+    }
+  }, [users, posts, events, opportunities])
 
   const handleUserAction = async (userId, action) => {
     try {
@@ -272,6 +305,162 @@ const Admin = () => {
     if (!imagePath) return null
     if (imagePath.startsWith('http')) return imagePath
     return `${API_BASE_URL}${imagePath.startsWith('/') ? imagePath : '/' + imagePath}`
+  }
+
+  // Calculate statistics
+  const calculateStatistics = (allUsers, allPosts, allEvents, allOpportunities) => {
+    const stats = {
+      byYear: {},
+      byInstitution: {},
+      byCourse: {},
+      byCompany: {},
+      entrepreneurs: 0,
+      higherEducation: 0
+    }
+
+    // User statistics
+    allUsers.forEach(user => {
+      // By year
+      if (user.year) {
+        stats.byYear[user.year] = (stats.byYear[user.year] || 0) + 1
+      }
+      // By institution
+      if (user.institution) {
+        stats.byInstitution[user.institution] = (stats.byInstitution[user.institution] || 0) + 1
+      }
+      // By course
+      if (user.course) {
+        stats.byCourse[user.course] = (stats.byCourse[user.course] || 0) + 1
+      }
+      // Entrepreneurs (check if has entrepreneur company or currentStatus)
+      if (user.privateInfo?.currentCompany && user.privateInfo?.currentCompany.toLowerCase().includes('entrepreneur')) {
+        stats.entrepreneurs++
+      }
+      // Higher education (hasMasters or mastersUniversity)
+      if (user.privateInfo?.hasMasters || user.privateInfo?.mastersUniversity) {
+        stats.higherEducation++
+      }
+    })
+
+    // Company statistics from opportunities
+    allOpportunities.forEach(opp => {
+      if (opp.company) {
+        stats.byCompany[opp.company] = (stats.byCompany[opp.company] || 0) + 1
+      }
+    })
+
+    setStatistics(stats)
+  }
+
+  // Get unique values for filters
+  const getUniqueValues = (data, field) => {
+    const values = new Set()
+    data.forEach(item => {
+      let value = null
+      if (item[field]) {
+        value = item[field]
+      } else if (item.authorId && typeof item.authorId === 'object' && item.authorId[field]) {
+        value = item.authorId[field]
+      } else if (item.postedBy && typeof item.postedBy === 'object' && item.postedBy[field]) {
+        value = item.postedBy[field]
+      }
+      if (value && value.trim() !== '') {
+        values.add(value)
+      }
+    })
+    return Array.from(values).sort()
+  }
+
+  // Filter data based on active filters
+  const getFilteredData = (data, type) => {
+    let filtered = [...data]
+
+    if (type === 'users') {
+      if (filters.institution) {
+        filtered = filtered.filter(u => u.institution === filters.institution)
+      }
+      if (filters.course) {
+        filtered = filtered.filter(u => u.course === filters.course)
+      }
+      if (filters.year) {
+        filtered = filtered.filter(u => u.year === filters.year)
+      }
+    } else if (type === 'posts') {
+      if (filters.institution) {
+        filtered = filtered.filter(p => {
+          const userInstitution = p.authorId?.institution || p.postedBy?.institution
+          return userInstitution === filters.institution
+        })
+      }
+      if (filters.course) {
+        filtered = filtered.filter(p => {
+          const userCourse = p.authorId?.course || p.postedBy?.course
+          return userCourse === filters.course
+        })
+      }
+      if (filters.year) {
+        filtered = filtered.filter(p => {
+          const userYear = p.authorId?.year || p.postedBy?.year
+          return userYear === filters.year
+        })
+      }
+    } else if (type === 'events') {
+      if (filters.institution) {
+        filtered = filtered.filter(e => {
+          const userInstitution = e.postedBy?.institution
+          return userInstitution === filters.institution
+        })
+      }
+      if (filters.course) {
+        filtered = filtered.filter(e => {
+          const userCourse = e.postedBy?.course
+          return userCourse === filters.course
+        })
+      }
+      if (filters.year) {
+        filtered = filtered.filter(e => {
+          const userYear = e.postedBy?.year
+          return userYear === filters.year
+        })
+      }
+    } else if (type === 'opportunities') {
+      if (filters.company) {
+        filtered = filtered.filter(o => o.company === filters.company)
+      }
+      if (filters.institution) {
+        filtered = filtered.filter(o => {
+          const userInstitution = o.postedBy?.institution
+          return userInstitution === filters.institution
+        })
+      }
+      if (filters.course) {
+        filtered = filtered.filter(o => {
+          const userCourse = o.postedBy?.course
+          return userCourse === filters.course
+        })
+      }
+      if (filters.year) {
+        filtered = filtered.filter(o => {
+          const userYear = o.postedBy?.year
+          return userYear === filters.year
+        })
+      }
+    }
+
+    return filtered
+  }
+
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({ ...prev, [field]: value }))
+  }
+
+  const clearFilters = () => {
+    setFilters({
+      institution: '',
+      course: '',
+      year: '',
+      company: ''
+    })
   }
 
   // Show login form if not authenticated
@@ -457,6 +646,82 @@ const Admin = () => {
                   </div>
                 </div>
               </div>
+              
+              {/* Statistics Cards */}
+              <div className="dashboard-card-full">
+                <h3>Statistics</h3>
+                <div className="statistics-grid">
+                  <div className="stat-item">
+                    <h4>By Year</h4>
+                    <div className="stat-list">
+                      {Object.entries(statistics.byYear)
+                        .sort((a, b) => b[0].localeCompare(a[0]))
+                        .slice(0, 5)
+                        .map(([year, count]) => (
+                          <div key={year} className="stat-row">
+                            <span>{year}:</span>
+                            <strong>{count}</strong>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                  
+                  <div className="stat-item">
+                    <h4>By Institution</h4>
+                    <div className="stat-list">
+                      {Object.entries(statistics.byInstitution)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 5)
+                        .map(([institution, count]) => (
+                          <div key={institution} className="stat-row">
+                            <span>{institution.substring(0, 30)}...</span>
+                            <strong>{count}</strong>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                  
+                  <div className="stat-item">
+                    <h4>By Course</h4>
+                    <div className="stat-list">
+                      {Object.entries(statistics.byCourse)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 5)
+                        .map(([course, count]) => (
+                          <div key={course} className="stat-row">
+                            <span>{course}:</span>
+                            <strong>{count}</strong>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                  
+                  <div className="stat-item">
+                    <h4>By Company</h4>
+                    <div className="stat-list">
+                      {Object.entries(statistics.byCompany)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 5)
+                        .map(([company, count]) => (
+                          <div key={company} className="stat-row">
+                            <span>{company.substring(0, 30)}...</span>
+                            <strong>{count}</strong>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                  
+                  <div className="stat-item">
+                    <h4>Entrepreneurs</h4>
+                    <div className="stat-big-number">{statistics.entrepreneurs}</div>
+                  </div>
+                  
+                  <div className="stat-item">
+                    <h4>Higher Education</h4>
+                    <div className="stat-big-number">{statistics.higherEducation}</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -464,9 +729,48 @@ const Admin = () => {
         {activeTab === 'users' && (
           <div className="admin-section-full">
             <h2>All Users</h2>
+            
+            {/* Filters */}
+            <div className="admin-filters">
+              <select
+                value={filters.institution}
+                onChange={(e) => handleFilterChange('institution', e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Institutions</option>
+                {getUniqueValues(users, 'institution').map(inst => (
+                  <option key={inst} value={inst}>{inst}</option>
+                ))}
+              </select>
+              
+              <select
+                value={filters.course}
+                onChange={(e) => handleFilterChange('course', e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Courses</option>
+                {getUniqueValues(users, 'course').map(course => (
+                  <option key={course} value={course}>{course}</option>
+                ))}
+              </select>
+              
+              <select
+                value={filters.year}
+                onChange={(e) => handleFilterChange('year', e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Years</option>
+                {getUniqueValues(users, 'year').map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+              
+              <button onClick={clearFilters} className="clear-filters-btn">Clear Filters</button>
+            </div>
+            
             {usersLoading ? (
               <div className="loading">Loading users...</div>
-            ) : users.length === 0 ? (
+            ) : getFilteredData(users, 'users').length === 0 ? (
               <div className="empty-state">No users found</div>
             ) : (
               <div className="data-table">
@@ -484,7 +788,7 @@ const Admin = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map((user) => (
+                    {getFilteredData(users, 'users').map((user) => (
                       <tr key={user._id}>
                         <td>
                           <div className="user-avatar-small">
@@ -553,13 +857,52 @@ const Admin = () => {
         {activeTab === 'posts' && (
           <div className="admin-section-full">
             <h2>All Posts</h2>
+            
+            {/* Filters */}
+            <div className="admin-filters">
+              <select
+                value={filters.institution}
+                onChange={(e) => handleFilterChange('institution', e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Institutions</option>
+                {getUniqueValues(posts, 'institution').map(inst => (
+                  <option key={inst} value={inst}>{inst}</option>
+                ))}
+              </select>
+              
+              <select
+                value={filters.course}
+                onChange={(e) => handleFilterChange('course', e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Courses</option>
+                {getUniqueValues(posts, 'course').map(course => (
+                  <option key={course} value={course}>{course}</option>
+                ))}
+              </select>
+              
+              <select
+                value={filters.year}
+                onChange={(e) => handleFilterChange('year', e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Years</option>
+                {getUniqueValues(posts, 'year').map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+              
+              <button onClick={clearFilters} className="clear-filters-btn">Clear Filters</button>
+            </div>
+            
             {postsLoading ? (
               <div className="loading">Loading posts...</div>
-            ) : posts.length === 0 ? (
+            ) : getFilteredData(posts, 'posts').length === 0 ? (
               <div className="empty-state">No posts found</div>
             ) : (
               <div className="content-list">
-                {posts.map((post) => (
+                {getFilteredData(posts, 'posts').map((post) => (
                   <div key={post._id} className="content-item">
                     <div className="content-header">
                       <h3>{post.title || 'Untitled Post'}</h3>
@@ -622,13 +965,52 @@ const Admin = () => {
         {activeTab === 'events' && (
           <div className="admin-section-full">
             <h2>All Events</h2>
+            
+            {/* Filters */}
+            <div className="admin-filters">
+              <select
+                value={filters.institution}
+                onChange={(e) => handleFilterChange('institution', e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Institutions</option>
+                {getUniqueValues(events, 'institution').map(inst => (
+                  <option key={inst} value={inst}>{inst}</option>
+                ))}
+              </select>
+              
+              <select
+                value={filters.course}
+                onChange={(e) => handleFilterChange('course', e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Courses</option>
+                {getUniqueValues(events, 'course').map(course => (
+                  <option key={course} value={course}>{course}</option>
+                ))}
+              </select>
+              
+              <select
+                value={filters.year}
+                onChange={(e) => handleFilterChange('year', e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Years</option>
+                {getUniqueValues(events, 'year').map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+              
+              <button onClick={clearFilters} className="clear-filters-btn">Clear Filters</button>
+            </div>
+            
             {eventsLoading ? (
               <div className="loading">Loading events...</div>
-            ) : events.length === 0 ? (
+            ) : getFilteredData(events, 'events').length === 0 ? (
               <div className="empty-state">No events found</div>
             ) : (
               <div className="content-list">
-                {events.map((event) => (
+                {getFilteredData(events, 'events').map((event) => (
                   <div key={event._id} className="content-item">
                     <div className="content-header">
                       <h3>{event.title || 'Untitled Event'}</h3>
@@ -692,13 +1074,63 @@ const Admin = () => {
         {activeTab === 'opportunities' && (
           <div className="admin-section-full">
             <h2>All Opportunities</h2>
+            
+            {/* Filters */}
+            <div className="admin-filters">
+              <select
+                value={filters.company}
+                onChange={(e) => handleFilterChange('company', e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Companies</option>
+                {getUniqueValues(opportunities, 'company').map(company => (
+                  <option key={company} value={company}>{company}</option>
+                ))}
+              </select>
+              
+              <select
+                value={filters.institution}
+                onChange={(e) => handleFilterChange('institution', e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Institutions</option>
+                {getUniqueValues(opportunities, 'institution').map(inst => (
+                  <option key={inst} value={inst}>{inst}</option>
+                ))}
+              </select>
+              
+              <select
+                value={filters.course}
+                onChange={(e) => handleFilterChange('course', e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Courses</option>
+                {getUniqueValues(opportunities, 'course').map(course => (
+                  <option key={course} value={course}>{course}</option>
+                ))}
+              </select>
+              
+              <select
+                value={filters.year}
+                onChange={(e) => handleFilterChange('year', e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Years</option>
+                {getUniqueValues(opportunities, 'year').map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+              
+              <button onClick={clearFilters} className="clear-filters-btn">Clear Filters</button>
+            </div>
+            
             {opportunitiesLoading ? (
               <div className="loading">Loading opportunities...</div>
-            ) : opportunities.length === 0 ? (
+            ) : getFilteredData(opportunities, 'opportunities').length === 0 ? (
               <div className="empty-state">No opportunities found</div>
             ) : (
               <div className="content-list">
-                {opportunities.map((opp) => (
+                {getFilteredData(opportunities, 'opportunities').map((opp) => (
                   <div key={opp._id} className="content-item">
                     <div className="content-header">
                       <h3>{opp.title || 'Untitled Opportunity'}</h3>

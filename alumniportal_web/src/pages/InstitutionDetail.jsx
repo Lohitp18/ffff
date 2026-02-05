@@ -288,10 +288,13 @@ const InstitutionDetail = () => {
             Back to Institutions
           </button>
           <div className="institution-header-content">
+            {/* Cover Image - Full Width at Top */}
             <div className="institution-cover" style={{ backgroundImage: profile?.coverImage ? `url(${getImageUrl(profile.coverImage)})` : undefined }}>
               {!profile?.coverImage && <div className="cover-placeholder">Cover image</div>}
             </div>
-            <div className="institution-header-main">
+            
+            {/* Profile Image - Overlapping slightly on bottom edge of cover */}
+            <div className="institution-avatar-container">
               <div className="institution-avatar">
                 {profile?.image ? (
                   <img src={getImageUrl(profile.image)} alt={decodedInstitutionName} />
@@ -299,15 +302,18 @@ const InstitutionDetail = () => {
                   <div className="institution-avatar-fallback">{decodedInstitutionName.charAt(0)}</div>
                 )}
               </div>
+            </div>
+            
+            {/* Institution Name and Info - Below Cover Image */}
+            <div className="institution-header-main">
               <div className="institution-header-info">
                 <h1>{decodedInstitutionName}</h1>
-                <p>{posts.length} {posts.length === 1 ? 'post' : 'posts'}</p>
-                {profile && (
-                  <div className="institution-contact">
-                    {/* Do not display email/phone publicly */}
-                    {profile.address && <span>{profile.address}</span>}
-                  </div>
-                )}
+                <div className="institution-meta">
+                  <p>{posts.length} {posts.length === 1 ? 'post' : 'posts'}</p>
+                  {profile && profile.address && (
+                    <span className="institution-location">{profile.address}</span>
+                  )}
+                </div>
                 {profile?.website && (
                   <a href={profile.website} target="_blank" rel="noreferrer" className="institution-website">
                     {profile.website}

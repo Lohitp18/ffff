@@ -115,6 +115,106 @@
   flex-shrink: 0;
 }
 
+.institution-statistics-section {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.institution-statistics-section h2 {
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #000000;
+}
+
+.statistics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, #0a66c2 0%, #004182 100%);
+  border-radius: 8px;
+  padding: 20px;
+  color: white;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+}
+
+.stat-value {
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 14px;
+  opacity: 0.95;
+  font-weight: 500;
+}
+
+.institution-stats-list {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.institution-stats-list h3 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #000000;
+}
+
+.stats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: #f3f2ef;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.stat-row:hover {
+  background: #e3f2fd;
+}
+
+.stat-institution {
+  flex: 1;
+  font-size: 14px;
+  color: #000000;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  margin-right: 12px;
+}
+
+.stat-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0a66c2;
+  white-space: nowrap;
+}
+
 .filter-section {
   background: white;
   border-radius: 12px;
@@ -270,6 +370,15 @@
 
   .institution-select-info p {
     font-size: 11px;
+  }
+
+  .institution-statistics-section {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .statistics-grid {
+    grid-template-columns: 1fr;
   }
 
   .filter-section {

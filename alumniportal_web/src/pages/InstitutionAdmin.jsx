@@ -19,6 +19,10 @@ const InstitutionAdmin = () => {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedInstitution, setSelectedInstitution] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
+  const [statistics, setStatistics] = useState({
+    byInstitution: {},
+    totalPosts: 0
+  })
 
   const institutions = [
     "Alva's Pre-University College, Vidyagiri",
@@ -97,12 +101,28 @@ const InstitutionAdmin = () => {
         })
 
       setPosts(institutionPosts)
+      calculateStatistics(institutionPosts)
     } catch (err) {
       setError('Failed to load posts')
       console.error(err)
     } finally {
       setLoading(false)
     }
+  }
+
+  const calculateStatistics = (allPosts) => {
+    const stats = {
+      byInstitution: {},
+      totalPosts: allPosts.length
+    }
+
+    allPosts.forEach(post => {
+      if (post.institution) {
+        stats.byInstitution[post.institution] = (stats.byInstitution[post.institution] || 0) + 1
+      }
+    })
+
+    setStatistics(stats)
   }
 
   const filterPosts = () => {
@@ -180,6 +200,36 @@ const InstitutionAdmin = () => {
               )
             })}
           </div>
+        </div>
+
+        {/* Statistics Section */}
+        <div className="institution-statistics-section">
+          <h2>Statistics</h2>
+          <div className="statistics-grid">
+            <div className="stat-card">
+              <div className="stat-value">{statistics.totalPosts}</div>
+              <div className="stat-label">Total Posts</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value">{Object.keys(statistics.byInstitution).length}</div>
+              <div className="stat-label">Institutions with Posts</div>
+            </div>
+          </div>
+          {Object.keys(statistics.byInstitution).length > 0 && (
+            <div className="institution-stats-list">
+              <h3>Posts by Institution</h3>
+              <div className="stats-list">
+                {Object.entries(statistics.byInstitution)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([institution, count]) => (
+                    <div key={institution} className="stat-row">
+                      <span className="stat-institution">{institution}</span>
+                      <strong className="stat-count">{count} {count === 1 ? 'post' : 'posts'}</strong>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Filter Section */}
