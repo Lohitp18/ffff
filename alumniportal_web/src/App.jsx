@@ -21,6 +21,8 @@ import UserProfileView from './pages/UserProfileView'
 import PostEvent from './pages/PostEvent'
 import PostOpportunity from './pages/PostOpportunity'
 import InstitutionDashboard from './pages/InstitutionDashboard'
+import Privacy from './pages/Privacy'
+
 import './App.css'
 
 function App() {
@@ -33,6 +35,8 @@ function App() {
         <Route path="/super-admin-login" element={<SuperAdminLogin />} />
         <Route path="/instituteadmin" element={<InstituteAdminLogin />} />
         <Route path="/institutiondashboard" element={<InstitutionDashboard />} />
+        <Route path="/privacy-policy" element={<Privacy />} />
+
         <Route
           path="/home"
           element={
