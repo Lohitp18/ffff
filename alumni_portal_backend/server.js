@@ -2,6 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
+const fs = require("fs");
+const path = require("path");
 
 dotenv.config();
 
@@ -22,6 +24,25 @@ app.use('/uploads', express.static('uploads'));
 connectDB();
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+
+// Endpoint to provide enrollment hierarchy
+app.get("/api/constants/enrollment-hierarchy", (req, res) => {
+  try {
+    const filePath = path.join(__dirname, "data", "enrollmentHierarchy.json");
+    const data = fs.readFileSync(filePath, "utf8");
+    const hierarchy = JSON.parse(data);
+
+    // Set headers to prevent aggressive caching
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    res.json(hierarchy);
+  } catch (error) {
+    console.error("Error loading hierarchy:", error);
+    res.status(500).json({ message: "Error loading enrollment hierarchy", error: error.message });
+  }
+});
 
 // Test endpoint to verify database connection
 app.get("/api/test-db", async (_req, res) => {
@@ -66,7 +87,7 @@ app.get('/admin', (_req, res) => {
   </html>`);
 });
 app.get('/admin/pending-events', (_req, res) => {
-    res.type('html').send(`<!doctype html>
+  res.type('html').send(`<!doctype html>
     <html>
       <head>
         <meta charset="utf-8" />
@@ -131,10 +152,10 @@ app.get('/admin/pending-events', (_req, res) => {
         </script>
       </body>
     </html>`);
-  });
-  
-  app.get('/admin/pending-opportunities', (_req, res) => {
-    res.type('html').send(`<!doctype html>
+});
+
+app.get('/admin/pending-opportunities', (_req, res) => {
+  res.type('html').send(`<!doctype html>
     <html>
       <head>
         <meta charset="utf-8" />
@@ -201,7 +222,7 @@ app.get('/admin/pending-events', (_req, res) => {
         </script>
       </body>
     </html>`);
-  });
+});
 
 // 404 handler - must be after all routes
 app.use((req, res) => {

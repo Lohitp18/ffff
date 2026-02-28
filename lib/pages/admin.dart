@@ -397,26 +397,31 @@ class _CreateInstitutionPostPageState
   final _contentCtrl = TextEditingController();
   String? _institution;
   bool _submitting = false;
+  List<String> _institutions = [];
+  bool _loadingInstitutions = true;
 
-  final List<String> _institutions = const [
-    "Alva’s Pre-University College, Vidyagiri",
-    "Alva’s Degree College, Vidyagiri",
-    "Alva’s Centre for Post Graduate Studies and Research, Vidyagiri",
-    "Alva’s College of Education, Vidyagiri",
-    "Alva’s College of Physical Education, Vidyagiri",
-    "Alva’s Institute of Engineering & Technology (AIET), Mijar",
-    "Alva’s Ayurvedic Medical College, Vidyagiri",
-    "Alva’s Homeopathic Medical College, Mijar",
-    "Alva’s College of Naturopathy and Yogic Science, Mijar",
-    "Alva’s College of Physiotherapy, Moodbidri",
-    "Alva’s College of Nursing, Moodbidri",
-    "Alva’s Institute of Nursing, Moodbidri",
-    "Alva’s College of Medical Laboratory Technology, Moodbidri",
-    "Alva’s Law College, Moodbidri",
-    "Alva’s College, Moodbidri (Affiliated with Mangalore University)",
-    "Alva’s College of Nursing (Affiliated with Rajiv Gandhi University of Health Sciences, Bangalore)",
-    "Alva’s Institute of Engineering & Technology (AIET) (Affiliated with Visvesvaraya Technological University, Belgaum)",
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchInstitutions();
+  }
+
+  Future<void> _fetchInstitutions() async {
+    try {
+      final res = await http.get(Uri.parse('${widget.baseUrl}/api/institutions'));
+      if (res.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(res.body);
+        setState(() {
+          _institutions = data.map((e) => e['name'].toString()).toList();
+          _loadingInstitutions = false;
+        });
+      }
+    } catch (_) {
+      setState(() {
+        _loadingInstitutions = false;
+      });
+    }
+  }
 
   Future<Map<String, String>> _authHeaders() async {
     const storage = FlutterSecureStorage();
@@ -480,12 +485,14 @@ class _CreateInstitutionPostPageState
           child: ListView(
             children: [
               DropdownButtonFormField<String>(
-                value: _institution, // ✅ shows current selection
-                items: _institutions
-                    .map((e) =>
-                    DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-                onChanged: (v) {
+                value: _institution,
+                items: _loadingInstitutions
+                    ? [const DropdownMenuItem(value: null, child: Text('Loading institutions...'))]
+                    : _institutions
+                        .map((e) =>
+                        DropdownMenuItem(value: e, child: Text(e)))
+                        .toList(),
+                onChanged: _loadingInstitutions ? null : (v) {
                   setState(() {
                     _institution = v;
                   });

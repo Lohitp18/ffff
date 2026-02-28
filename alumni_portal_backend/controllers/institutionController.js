@@ -47,6 +47,7 @@ exports.getAllInstitutions = async (req, res) => {
     const institutions = await Institution.find({ isActive: true })
       .sort({ name: 1 })
       .select('-createdBy -updatedBy');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     return res.json(institutions);
   } catch (err) {
     console.error('Error fetching institutions:', err);
@@ -60,11 +61,11 @@ exports.getInstitutionByName = async (req, res) => {
     const { name } = req.params;
     const institution = await Institution.findOne({ name, isActive: true })
       .select('-createdBy -updatedBy');
-    
+
     if (!institution) {
       return res.status(404).json({ message: 'Institution not found' });
     }
-    
+
     return res.json(institution);
   } catch (err) {
     console.error('Error fetching institution:', err);
@@ -81,7 +82,7 @@ exports.createInstitution = async (req, res) => {
       createdBy: userId,
       updatedBy: userId
     };
-    
+
     // Handle image upload (logo)
     if (req.file) {
       institutionData.image = await uploadInstitutionImage(
@@ -90,7 +91,7 @@ exports.createInstitution = async (req, res) => {
         'logo'
       );
     }
-    
+
     const institution = await Institution.create(institutionData);
     return res.status(201).json(institution);
   } catch (err) {
@@ -107,12 +108,12 @@ exports.updateInstitution = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user._id;
-    
+
     const updateData = {
       ...req.body,
       updatedBy: userId
     };
-    
+
     // Handle image upload (logo)
     if (req.file) {
       updateData.image = await uploadInstitutionImage(
@@ -121,17 +122,17 @@ exports.updateInstitution = async (req, res) => {
         'logo'
       );
     }
-    
+
     const institution = await Institution.findByIdAndUpdate(
       id,
       updateData,
       { new: true, runValidators: true }
     ).select('-createdBy -updatedBy');
-    
+
     if (!institution) {
       return res.status(404).json({ message: 'Institution not found' });
     }
-    
+
     return res.json(institution);
   } catch (err) {
     console.error('Error updating institution:', err);
@@ -143,11 +144,11 @@ exports.updateInstitution = async (req, res) => {
 exports.updateCoverImage = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     if (!req.file) {
       return res.status(400).json({ message: 'No image uploaded' });
     }
-    
+
     const coverImageUrl = await uploadInstitutionImage(
       req.file.buffer,
       req.file.originalname || 'institution-cover.jpg',
@@ -158,11 +159,11 @@ exports.updateCoverImage = async (req, res) => {
       { coverImage: coverImageUrl },
       { new: true }
     ).select('-createdBy -updatedBy');
-    
+
     if (!institution) {
       return res.status(404).json({ message: 'Institution not found' });
     }
-    
+
     return res.json({ message: 'Cover image updated', institution });
   } catch (err) {
     console.error('Error updating cover image:', err);
@@ -174,17 +175,17 @@ exports.updateCoverImage = async (req, res) => {
 exports.deleteInstitution = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const institution = await Institution.findByIdAndUpdate(
       id,
       { isActive: false },
       { new: true }
     );
-    
+
     if (!institution) {
       return res.status(404).json({ message: 'Institution not found' });
     }
-    
+
     return res.json({ message: 'Institution deleted successfully' });
   } catch (err) {
     console.error('Error deleting institution:', err);

@@ -1,20 +1,22 @@
 const express = require('express');
 const router = express.Router();
-const { 
-  getPendingUsers, 
-  getApprovedUsers, 
-  approveUser, 
-  rejectUser, 
+const {
+  getPendingUsers,
+  getApprovedUsers,
+  approveUser,
+  rejectUser,
   blockUser,
   unblockUser,
   getBlockedUsers,
-  getInstitutionUsers, 
-  createInstitutionUser, 
-  deleteInstitutionUser 
+  getInstitutionUsers,
+  createInstitutionUser,
+  deleteInstitutionUser,
+  getAllUsersFullData,
+  getDetailedStatistics
 } = require('../controllers/adminController');
-const { 
-  getPendingEvents, 
-  getPendingOpportunities, 
+const {
+  getPendingEvents,
+  getPendingOpportunities,
   getPendingPosts,
   getPendingInstitutionPosts,
   getApprovedInstitutionPostsForAdmin,
@@ -45,6 +47,10 @@ router.patch('/unblock/:id', authMiddleware, unblockUser);    // Unblock user
 router.get('/institution-users', authMiddleware, getInstitutionUsers); // Get all institution users
 router.post('/institution-users', authMiddleware, createInstitutionUser); // Create institution user
 router.delete('/institution-users/:id', authMiddleware, deleteInstitutionUser); // Delete institution user
+
+// Super Admin extra routes
+router.get('/all-users-data', authMiddleware, getAllUsersFullData);
+router.get('/detailed-stats', authMiddleware, getDetailedStatistics);
 
 // Content management routes
 router.get('/pending-events', authMiddleware, getPendingEvents);

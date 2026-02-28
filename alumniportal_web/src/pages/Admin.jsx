@@ -10,7 +10,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000
 const Admin = () => {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(localStorage.getItem('admin_authenticated') === 'true')
   const [activeTab, setActiveTab] = useState('dashboard')
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
@@ -38,7 +38,7 @@ const Admin = () => {
     year: '',
     company: ''
   })
-  
+
   // Statistics state
   const [statistics, setStatistics] = useState({
     byYear: {},
@@ -49,15 +49,14 @@ const Admin = () => {
     higherEducation: 0
   })
 
+  const [detailedStats, setDetailedStats] = useState(null)
+  const [detailedStatsLoading, setDetailedStatsLoading] = useState(false)
+
   useEffect(() => {
-    const adminAuth = localStorage.getItem('admin_authenticated')
-    if (adminAuth === 'true') {
-      setIsAuthenticated(true)
-      if (user) loadDashboardStats()
-    } else {
-      setIsAuthenticated(false)
+    if (isAuthenticated && user) {
+      loadDashboardStats()
     }
-  }, [user])
+  }, [user, isAuthenticated])
 
   const handleAdminLogin = async (e) => {
     e.preventDefault()
@@ -75,7 +74,7 @@ const Admin = () => {
     localStorage.setItem('admin_authenticated', 'true')
     setIsAuthenticated(true)
     setLoginLoading(false)
-    
+
     // Load dashboard stats after authentication
     // Note: This may require a valid auth token for API calls
     setTimeout(() => {
@@ -129,10 +128,26 @@ const Admin = () => {
         totalReports: reportsRes.data.total,
         pendingReports: reportsRes.data.pending,
       })
+
+      // Also load detailed statistics if on dashboard
+      loadDetailedStatistics()
     } catch (error) {
       console.error('Failed to load stats:', error)
     }
   }
+
+  const loadDetailedStatistics = async () => {
+    setDetailedStatsLoading(true)
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/admin/detailed-stats`, { headers: getAuthHeaders() })
+      setDetailedStats(response.data)
+    } catch (error) {
+      console.error('Failed to load detailed stats:', error)
+    } finally {
+      setDetailedStatsLoading(false)
+    }
+  }
+
 
   const loadUsers = async () => {
     setUsersLoading(true)
@@ -516,11 +531,58 @@ const Admin = () => {
   }
 
   const handleLogout = () => {
-    if (window.confirm('Are you sure you want to log out?')) {
-      localStorage.removeItem('admin_authenticated')
-      logout()
-      navigate('/signin')
+    localStorage.removeItem('admin_authenticated')
+    logout()
+    navigate('/signin')
+  }
+
+  const downloadCSV = (data, filename) => {
+    if (!data || data.length === 0) return
+
+    // Get headers from the first object
+    // Flatting nested objects for CSV
+    const flattenObject = (obj, prefix = '') => {
+      let result = {}
+      for (const key in obj) {
+        if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key]) && !(obj[key] instanceof Date)) {
+          const flatChild = flattenObject(obj[key], `${prefix}${key}_`)
+          result = { ...result, ...flatChild }
+        } else if (Array.isArray(obj[key])) {
+          result[`${prefix}${key}`] = JSON.stringify(obj[key])
+        } else {
+          result[`${prefix}${key}`] = obj[key]
+        }
+      }
+      return result
     }
+
+    const flattenedData = data.map(item => flattenObject(item))
+
+    // Get all unique headers from all objects
+    const allHeadersSet = new Set()
+    flattenedData.forEach(item => Object.keys(item).forEach(key => allHeadersSet.add(key)))
+    const headers = Array.from(allHeadersSet)
+
+    const csvContent = [
+      headers.join(','),
+      ...flattenedData.map(row =>
+        headers.map(header => {
+          const value = row[header] === undefined || row[header] === null ? '' : row[header]
+          const stringValue = String(value).replace(/"/g, '""')
+          return `"${stringValue}"`
+        }).join(',')
+      )
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `${filename}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   return (
@@ -528,7 +590,7 @@ const Admin = () => {
       <div className="admin-header-full">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <h1>Super Admin Dashboard</h1>
-          <button 
+          <button
             onClick={handleLogout}
             style={{
               padding: '8px 16px',
@@ -663,90 +725,129 @@ const Admin = () => {
                   </div>
                 </div>
               </div>
-              
+
               {/* Statistics Cards */}
               <div className="dashboard-card-full">
                 <h3>Statistics</h3>
-                <div className="statistics-grid">
-                  <div className="stat-item">
-                    <h4>By Year</h4>
-                    <div className="stat-list">
-                      {Object.entries(statistics.byYear)
-                        .sort((a, b) => b[0].localeCompare(a[0]))
-                        .slice(0, 5)
-                        .map(([year, count]) => (
-                          <div key={year} className="stat-row">
-                            <span>{year}:</span>
-                            <strong>{count}</strong>
-                          </div>
+                {/* Use detailedStats if available, otherwise fallback to local statistics */}
+                {detailedStats ? (
+                  <>
+                    <div className="stat-item">
+                      <h4>Total Institutions</h4>
+                      <div className="stat-big-number">{detailedStats.counts.institutions}</div>
+                    </div>
+
+                    <div className="stat-item">
+                      <h4>Users by Institution (Top 5)</h4>
+                      <div className="stat-list">
+                        {Object.entries(detailedStats.distribution.institution)
+                          .map(([inst, count]) => (
+                            <div key={inst} className="stat-row">
+                              <span title={inst}>{inst.substring(0, 20)}{inst.length > 20 ? '...' : ''}:</span>
+                              <strong>{count}</strong>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+
+                    <div className="stat-item">
+                      <h4>Users by Year</h4>
+                      <div className="stat-list">
+                        {Object.entries(detailedStats.distribution.year)
+                          .map(([year, count]) => (
+                            <div key={year} className="stat-row">
+                              <span>{year}:</span>
+                              <strong>{count}</strong>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+
+                    <div className="stat-item">
+                      <h4>Career Insights</h4>
+                      <div className="stat-list">
+                        <div className="stat-row">
+                          <span>Entrepreneurs:</span>
+                          <strong>{detailedStats.career.entrepreneurs}</strong>
+                        </div>
+                        <div className="stat-row">
+                          <span>Higher Ed:</span>
+                          <strong>{detailedStats.career.higherEducation}</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="stat-item" style={{ gridColumn: 'span 2' }}>
+                      <h4>Registration Trend (Last 30 Days)</h4>
+                      <div style={{ height: '100px', display: 'flex', alignItems: 'flex-end', gap: '4px', padding: '10px 0' }}>
+                        {detailedStats.registrationsTrend.map(day => (
+                          <div
+                            key={day._id}
+                            title={`${day._id}: ${day.count} registrations`}
+                            style={{
+                              flex: 1,
+                              background: '#0a66c2',
+                              height: `${Math.min(100, (day.count / (Math.max(...detailedStats.registrationsTrend.map(d => d.count)) || 1)) * 100)}%`,
+                              borderRadius: '2px 2px 0 0'
+                            }}
+                          ></div>
                         ))}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="statistics-grid">
+                    <div className="stat-item">
+                      <h4>By Year</h4>
+                      <div className="stat-list">
+                        {Object.entries(statistics.byYear)
+                          .sort((a, b) => b[0].localeCompare(a[0]))
+                          .slice(0, 5)
+                          .map(([year, count]) => (
+                            <div key={year} className="stat-row">
+                              <span>{year}:</span>
+                              <strong>{count}</strong>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+
+                    <div className="stat-item">
+                      <h4>By Institution</h4>
+                      <div className="stat-list">
+                        {Object.entries(statistics.byInstitution)
+                          .sort((a, b) => b[1] - a[1])
+                          .slice(0, 5)
+                          .map(([institution, count]) => (
+                            <div key={institution} className="stat-row">
+                              <span>{institution.substring(0, 30)}...</span>
+                              <strong>{count}</strong>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+
+                    <div className="stat-item">
+                      <h4>Entrepreneurs</h4>
+                      <div className="stat-big-number">{statistics.entrepreneurs}</div>
+                    </div>
+
+                    <div className="stat-item">
+                      <h4>Higher Education</h4>
+                      <div className="stat-big-number">{statistics.higherEducation}</div>
                     </div>
                   </div>
-                  
-                  <div className="stat-item">
-                    <h4>By Institution</h4>
-                    <div className="stat-list">
-                      {Object.entries(statistics.byInstitution)
-                        .sort((a, b) => b[1] - a[1])
-                        .slice(0, 5)
-                        .map(([institution, count]) => (
-                          <div key={institution} className="stat-row">
-                            <span>{institution.substring(0, 30)}...</span>
-                            <strong>{count}</strong>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                  
-                  <div className="stat-item">
-                    <h4>By Course</h4>
-                    <div className="stat-list">
-                      {Object.entries(statistics.byCourse)
-                        .sort((a, b) => b[1] - a[1])
-                        .slice(0, 5)
-                        .map(([course, count]) => (
-                          <div key={course} className="stat-row">
-                            <span>{course}:</span>
-                            <strong>{count}</strong>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                  
-                  <div className="stat-item">
-                    <h4>By Company</h4>
-                    <div className="stat-list">
-                      {Object.entries(statistics.byCompany)
-                        .sort((a, b) => b[1] - a[1])
-                        .slice(0, 5)
-                        .map(([company, count]) => (
-                          <div key={company} className="stat-row">
-                            <span>{company.substring(0, 30)}...</span>
-                            <strong>{count}</strong>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                  
-                  <div className="stat-item">
-                    <h4>Entrepreneurs</h4>
-                    <div className="stat-big-number">{statistics.entrepreneurs}</div>
-                  </div>
-                  
-                  <div className="stat-item">
-                    <h4>Higher Education</h4>
-                    <div className="stat-big-number">{statistics.higherEducation}</div>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
         )}
 
+
         {activeTab === 'users' && (
           <div className="admin-section-full">
             <h2>All Users</h2>
-            
+
             {/* Filters */}
             <div className="admin-filters">
               <select
@@ -759,7 +860,7 @@ const Admin = () => {
                   <option key={inst} value={inst}>{inst}</option>
                 ))}
               </select>
-              
+
               <select
                 value={filters.course}
                 onChange={(e) => handleFilterChange('course', e.target.value)}
@@ -770,7 +871,7 @@ const Admin = () => {
                   <option key={course} value={course}>{course}</option>
                 ))}
               </select>
-              
+
               <select
                 value={filters.year}
                 onChange={(e) => handleFilterChange('year', e.target.value)}
@@ -781,7 +882,7 @@ const Admin = () => {
                   <option key={year} value={year}>{year}</option>
                 ))}
               </select>
-              
+
               <input
                 type="text"
                 value={filters.company}
@@ -789,10 +890,10 @@ const Admin = () => {
                 placeholder="Filter by Company"
                 className="filter-input"
               />
-              
+
               <button onClick={clearFilters} className="clear-filters-btn">Clear Filters</button>
             </div>
-            
+
             {usersLoading ? (
               <div className="loading">Loading users...</div>
             ) : getFilteredData(users, 'users').length === 0 ? (
@@ -882,7 +983,7 @@ const Admin = () => {
         {activeTab === 'posts' && (
           <div className="admin-section-full">
             <h2>All Posts</h2>
-            
+
             {/* Filters */}
             <div className="admin-filters">
               <select
@@ -895,7 +996,7 @@ const Admin = () => {
                   <option key={inst} value={inst}>{inst}</option>
                 ))}
               </select>
-              
+
               <select
                 value={filters.course}
                 onChange={(e) => handleFilterChange('course', e.target.value)}
@@ -906,7 +1007,7 @@ const Admin = () => {
                   <option key={course} value={course}>{course}</option>
                 ))}
               </select>
-              
+
               <select
                 value={filters.year}
                 onChange={(e) => handleFilterChange('year', e.target.value)}
@@ -917,10 +1018,10 @@ const Admin = () => {
                   <option key={year} value={year}>{year}</option>
                 ))}
               </select>
-              
+
               <button onClick={clearFilters} className="clear-filters-btn">Clear Filters</button>
             </div>
-            
+
             {postsLoading ? (
               <div className="loading">Loading posts...</div>
             ) : getFilteredData(posts, 'posts').length === 0 ? (
@@ -937,8 +1038,8 @@ const Admin = () => {
                     </div>
                     <p>{post.content || post.description || 'No content'}</p>
                     {post.imageUrl && (
-                      <img 
-                        src={`${API_BASE_URL}${post.imageUrl}`} 
+                      <img
+                        src={`${API_BASE_URL}${post.imageUrl}`}
                         alt={post.title}
                         className="content-image"
                       />
@@ -993,7 +1094,7 @@ const Admin = () => {
         {activeTab === 'events' && (
           <div className="admin-section-full">
             <h2>All Events</h2>
-            
+
             {/* Filters */}
             <div className="admin-filters">
               <select
@@ -1006,7 +1107,7 @@ const Admin = () => {
                   <option key={inst} value={inst}>{inst}</option>
                 ))}
               </select>
-              
+
               <select
                 value={filters.course}
                 onChange={(e) => handleFilterChange('course', e.target.value)}
@@ -1017,7 +1118,7 @@ const Admin = () => {
                   <option key={course} value={course}>{course}</option>
                 ))}
               </select>
-              
+
               <select
                 value={filters.year}
                 onChange={(e) => handleFilterChange('year', e.target.value)}
@@ -1028,10 +1129,10 @@ const Admin = () => {
                   <option key={year} value={year}>{year}</option>
                 ))}
               </select>
-              
+
               <button onClick={clearFilters} className="clear-filters-btn">Clear Filters</button>
             </div>
-            
+
             {eventsLoading ? (
               <div className="loading">Loading events...</div>
             ) : getFilteredData(events, 'events').length === 0 ? (
@@ -1048,8 +1149,8 @@ const Admin = () => {
                     </div>
                     <p>{event.description || event.content || 'No description'}</p>
                     {event.imageUrl && (
-                      <img 
-                        src={`${API_BASE_URL}${event.imageUrl}`} 
+                      <img
+                        src={`${API_BASE_URL}${event.imageUrl}`}
                         alt={event.title}
                         className="content-image"
                       />
@@ -1105,7 +1206,7 @@ const Admin = () => {
         {activeTab === 'opportunities' && (
           <div className="admin-section-full">
             <h2>All Opportunities</h2>
-            
+
             {/* Filters */}
             <div className="admin-filters">
               <select
@@ -1118,7 +1219,7 @@ const Admin = () => {
                   <option key={company} value={company}>{company}</option>
                 ))}
               </select>
-              
+
               <select
                 value={filters.institution}
                 onChange={(e) => handleFilterChange('institution', e.target.value)}
@@ -1129,7 +1230,7 @@ const Admin = () => {
                   <option key={inst} value={inst}>{inst}</option>
                 ))}
               </select>
-              
+
               <select
                 value={filters.course}
                 onChange={(e) => handleFilterChange('course', e.target.value)}
@@ -1140,7 +1241,7 @@ const Admin = () => {
                   <option key={course} value={course}>{course}</option>
                 ))}
               </select>
-              
+
               <select
                 value={filters.year}
                 onChange={(e) => handleFilterChange('year', e.target.value)}
@@ -1151,10 +1252,10 @@ const Admin = () => {
                   <option key={year} value={year}>{year}</option>
                 ))}
               </select>
-              
+
               <button onClick={clearFilters} className="clear-filters-btn">Clear Filters</button>
             </div>
-            
+
             {opportunitiesLoading ? (
               <div className="loading">Loading opportunities...</div>
             ) : getFilteredData(opportunities, 'opportunities').length === 0 ? (
@@ -1171,8 +1272,8 @@ const Admin = () => {
                     </div>
                     <p>{opp.description || opp.content || 'No description'}</p>
                     {opp.imageUrl && (
-                      <img 
-                        src={`${API_BASE_URL}${opp.imageUrl}`} 
+                      <img
+                        src={`${API_BASE_URL}${opp.imageUrl}`}
                         alt={opp.title}
                         className="content-image"
                       />
@@ -1354,7 +1455,7 @@ const Admin = () => {
           </div>
         )}
       </div>
-    </div>
+    </div >
   )
 }
 

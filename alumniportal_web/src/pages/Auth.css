@@ -6,6 +6,11 @@
   overflow: hidden;
 }
 
+.auth-container.centered {
+  justify-content: center;
+  align-items: center;
+}
+
 .auth-container::before {
   content: '';
   position: absolute;

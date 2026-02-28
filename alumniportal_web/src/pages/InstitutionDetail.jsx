@@ -113,25 +113,25 @@ const InstitutionDetail = () => {
 
   const validateForm = () => {
     const errors = {}
-    
+
     if (!profileForm.name || profileForm.name.trim() === '') {
       errors.name = 'Institution name is required'
     }
-    
+
     if (profileForm.email && profileForm.email.trim() !== '') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       if (!emailRegex.test(profileForm.email)) {
         errors.email = 'Please enter a valid email address'
       }
     }
-    
+
     if (profileForm.website && profileForm.website.trim() !== '') {
       const urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/
       if (!urlRegex.test(profileForm.website) && !profileForm.website.startsWith('http')) {
         errors.website = 'Please enter a valid website URL'
       }
     }
-    
+
     setFormErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -139,7 +139,7 @@ const InstitutionDetail = () => {
   const handleSaveProfile = async () => {
     setProfileError('')
     setFormErrors({})
-    
+
     // Validate form
     if (!validateForm()) {
       setProfileError('Please fix the errors in the form')
@@ -156,7 +156,7 @@ const InstitutionDetail = () => {
 
       // Ensure name is set - use decoded institution name if not provided
       const institutionName = (profileForm.name && profileForm.name.trim()) || decodedInstitutionName
-      
+
       const formData = new FormData()
       formData.append('name', institutionName.trim())
       if (profileForm.phone) formData.append('phone', profileForm.phone.trim())
@@ -219,10 +219,10 @@ const InstitutionDetail = () => {
       }, 100)
     } catch (err) {
       console.error('Error saving institution profile:', err)
-      const errorMessage = err.response?.data?.message || 
-                          err.response?.data?.error ||
-                          err.message || 
-                          'Failed to save profile. Please check your connection and try again.'
+      const errorMessage = err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        'Failed to save profile. Please check your connection and try again.'
       setProfileError(errorMessage)
     } finally {
       setSavingProfile(false)
@@ -240,7 +240,7 @@ const InstitutionDetail = () => {
       }
 
       const response = await axios.get(`${API_BASE_URL}/api/content/institution-posts`, { headers })
-      
+
       // Filter posts for this specific institution
       const institutionPosts = response.data
         .filter(post => post.institution === decodedInstitutionName)
@@ -281,7 +281,7 @@ const InstitutionDetail = () => {
       <div className="institution-detail-container">
         {/* Institution Header */}
         <div className="institution-detail-header">
-          <button 
+          <button
             className="back-button"
             onClick={() => navigate('/institutions')}
           >
@@ -292,7 +292,7 @@ const InstitutionDetail = () => {
             <div className="institution-cover" style={{ backgroundImage: profile?.coverImage ? `url(${getImageUrl(profile.coverImage)})` : undefined }}>
               {!profile?.coverImage && <div className="cover-placeholder">Cover image</div>}
             </div>
-            
+
             {/* Profile Image - Overlapping slightly on bottom edge of cover */}
             <div className="institution-avatar-container">
               <div className="institution-avatar">
@@ -303,7 +303,7 @@ const InstitutionDetail = () => {
                 )}
               </div>
             </div>
-            
+
             {/* Institution Name and Info - Below Cover Image */}
             <div className="institution-header-main">
               <div className="institution-header-info">
@@ -328,6 +328,7 @@ const InstitutionDetail = () => {
             </div>
           </div>
         </div>
+
 
         {/* College / Institution profile – all filled details */}
         {profile && (profile.phone || profile.email || profile.address || profile.city || profile.state || profile.pincode || profile.country || profile.website || profile.establishedYear || profile.type || profile.affiliation || profile.description || (profile.facilities && profile.facilities.length > 0) || (profile.courses && profile.courses.length > 0) || profile.contactPerson || profile.contactPersonEmail || profile.contactPersonPhone || profile.facebook || profile.twitter || profile.linkedin || profile.instagram) && (
@@ -417,7 +418,7 @@ const InstitutionDetail = () => {
                   </div>
                 )}
               </div>
-              <button 
+              <button
                 className="post-box-input"
                 onClick={() => setShowCreateModal(true)}
               >
@@ -467,14 +468,14 @@ const InstitutionDetail = () => {
                 <button className="modal-close" onClick={closeProfileModal} aria-label="Close">×</button>
               </div>
               <p className="modal-description">Fill in the details below to create or update your institution profile. This information will be displayed on the institution page.</p>
-              
+
               {profileError && (
                 <div className="modal-error">
                   <span className="error-icon">⚠️</span>
                   <span>{profileError}</span>
                 </div>
               )}
-              
+
               <div className="modal-grid">
                 <label className={formErrors.name ? 'error' : ''}>
                   Institution Name <span className="required">*</span>
@@ -492,7 +493,7 @@ const InstitutionDetail = () => {
                   />
                   {formErrors.name && <span className="field-error">{formErrors.name}</span>}
                 </label>
-                
+
                 <label className={formErrors.email ? 'error' : ''}>
                   Email
                   <input
@@ -508,7 +509,7 @@ const InstitutionDetail = () => {
                   />
                   {formErrors.email && <span className="field-error">{formErrors.email}</span>}
                 </label>
-                
+
                 <label>
                   Phone
                   <input
@@ -518,7 +519,7 @@ const InstitutionDetail = () => {
                     placeholder="+1 (555) 123-4567"
                   />
                 </label>
-                
+
                 <label className="full-width">
                   Address
                   <input
@@ -528,7 +529,7 @@ const InstitutionDetail = () => {
                     placeholder="Street address, City, State, ZIP"
                   />
                 </label>
-                
+
                 <label className={`full-width ${formErrors.website ? 'error' : ''}`}>
                   Website
                   <input
@@ -545,13 +546,13 @@ const InstitutionDetail = () => {
                   {formErrors.website && <span className="field-error">{formErrors.website}</span>}
                   <small className="field-hint">Include http:// or https:// or leave blank</small>
                 </label>
-                
+
                 <label className="file-upload-label">
                   <span>Logo Image</span>
                   <div className="file-upload-wrapper">
-                    <input 
-                      type="file" 
-                      accept="image/*" 
+                    <input
+                      type="file"
+                      accept="image/*"
                       onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
                       className="file-input"
                     />
@@ -567,13 +568,13 @@ const InstitutionDetail = () => {
                   </div>
                   <small className="field-hint">Recommended: Square image, max 5MB</small>
                 </label>
-                
+
                 <label className="file-upload-label">
                   <span>Cover Image</span>
                   <div className="file-upload-wrapper">
-                    <input 
-                      type="file" 
-                      accept="image/*" 
+                    <input
+                      type="file"
+                      accept="image/*"
                       onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
                       className="file-input"
                     />
@@ -590,18 +591,18 @@ const InstitutionDetail = () => {
                   <small className="field-hint">Recommended: Wide image (16:9), max 5MB</small>
                 </label>
               </div>
-              
+
               <div className="modal-actions">
-                <button 
-                  className="linkedin-btn-secondary" 
+                <button
+                  className="linkedin-btn-secondary"
                   onClick={closeProfileModal}
                   disabled={savingProfile}
                 >
                   Cancel
                 </button>
-                <button 
-                  className="linkedin-btn-primary" 
-                  onClick={handleSaveProfile} 
+                <button
+                  className="linkedin-btn-primary"
+                  onClick={handleSaveProfile}
                   disabled={savingProfile}
                 >
                   {savingProfile ? (

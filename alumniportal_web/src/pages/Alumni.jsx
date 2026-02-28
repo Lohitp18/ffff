@@ -16,23 +16,11 @@ const Alumni = () => {
   const [selectedCourse, setSelectedCourse] = useState('')
   const [connections, setConnections] = useState([])
   const [connecting, setConnecting] = useState({})
+  const [institutions, setInstitutions] = useState([])
   const navigate = useNavigate()
   const { user } = useAuth()
 
   const years = Array.from({ length: 30 }, (_, i) => (new Date().getFullYear() - i).toString())
-  const institutions = [
-    "Alva's institute of engineering and technology",
-    "Alva's homeopathic college",
-    "Alva's nursing college",
-    "Alva's college of naturopathy",
-    "Alva's college of allied health sciences",
-    "Alva's law college",
-    "Alva's physiotherapy",
-    "Alva's physical education",
-    "Alva's degree college",
-    "Alva's pu college",
-    "Alva's mba",
-  ]
   const courses = [
     'Bcs nursing',
     'Msc nursing',
@@ -87,9 +75,19 @@ const Alumni = () => {
   }
 
   useEffect(() => {
+    fetchInstitutions()
     loadAlumni()
     loadConnections()
   }, [selectedYear, selectedInstitution, selectedCourse, searchTerm, user])
+
+  const fetchInstitutions = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/institutions`)
+      setInstitutions(response.data.map(inst => inst.name))
+    } catch (err) {
+      console.error('Failed to load institutions:', err)
+    }
+  }
 
   const loadConnections = async () => {
     try {
@@ -107,7 +105,7 @@ const Alumni = () => {
 
   const getConnectionStatus = (alumId) => {
     if (!user || alumId === user._id) return null
-    
+
     const connection = connections.find(conn => {
       const requesterId = conn.requester?._id || conn.requester
       const recipientId = conn.recipient?._id || conn.recipient
@@ -116,12 +114,12 @@ const Alumni = () => {
         (requesterId === alumId && recipientId === user._id)
       )
     })
-    
+
     if (!connection) return { status: 'none', connection: null, isRequester: false }
-    
+
     const requesterId = connection.requester?._id || connection.requester
     const isRequester = requesterId === user._id
-    
+
     return {
       status: connection.status,
       connection: connection,
@@ -131,9 +129,9 @@ const Alumni = () => {
 
   const handleConnect = async (alumId, e) => {
     e.stopPropagation() // Prevent navigation when clicking connect button
-    
+
     if (connecting[alumId]) return
-    
+
     try {
       setConnecting({ ...connecting, [alumId]: true })
       await axios.post(
@@ -159,11 +157,11 @@ const Alumni = () => {
 
   const handleDisconnect = async (connectionId, e) => {
     e.stopPropagation()
-    
+
     if (!window.confirm('Are you sure you want to disconnect?')) return
-    
+
     if (connecting[connectionId]) return
-    
+
     try {
       setConnecting({ ...connecting, [connectionId]: true })
       await axios.delete(
@@ -188,9 +186,9 @@ const Alumni = () => {
 
   const handleWithdraw = async (connectionId, e) => {
     e.stopPropagation()
-    
+
     if (connecting[connectionId]) return
-    
+
     try {
       setConnecting({ ...connecting, [connectionId]: true })
       await axios.delete(
@@ -271,7 +269,7 @@ const Alumni = () => {
             const connectionInfo = getConnectionStatus(alum._id)
             const isCurrentUser = user && alum._id === user._id
             const connectionId = connectionInfo?.connection?._id
-            
+
             return (
               <div
                 key={alum._id}

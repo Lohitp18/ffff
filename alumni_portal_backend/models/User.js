@@ -6,14 +6,17 @@ const userSchema = new mongoose.Schema({
     phone: String,
     dob: Date,
     institution: String,
+    program: String,
     course: String,
+    specialization: String,
     year: String,
     password: { type: String, required: true },
     favouriteTeacher: String,
     socialMedia: String,
     status: { type: String, default: "pending" }, // pending, approved, rejected
     isAdmin: { type: Boolean, default: false },
-    
+    role: { type: String, default: "user" }, // user, institution, admin
+
     // LinkedIn-like profile fields
     profileImage: String,
     coverImage: String,
@@ -24,7 +27,7 @@ const userSchema = new mongoose.Schema({
     linkedin: String,
     twitter: String,
     github: String,
-    
+
     // Professional experience
     experience: [{
         title: String,
@@ -35,7 +38,7 @@ const userSchema = new mongoose.Schema({
         current: { type: Boolean, default: false },
         description: String
     }],
-    
+
     // Education
     education: [{
         school: String,
@@ -46,10 +49,10 @@ const userSchema = new mongoose.Schema({
         current: { type: Boolean, default: false },
         description: String
     }],
-    
+
     // Skills
     skills: [String],
-    
+
     // Privacy settings
     privacySettings: {
         profileVisibility: { type: String, enum: ['public', 'private'], default: 'public' },
@@ -61,7 +64,7 @@ const userSchema = new mongoose.Schema({
         showConnections: { type: Boolean, default: true },
         allowMessages: { type: Boolean, default: true }
     },
-    
+
     // Private fields (not disclosed to others)
     privateInfo: {
         placementCompany: String, // Company they got placed in

@@ -5,8 +5,8 @@ const generateToken = require("../utils/generateToken");
 // ✅ User Registration (Sign Up) - Requires admin approval
 const registerUser = async (req, res) => {
   try {
-    const { 
-      name, email, phone, dob, institution, course, year, password, 
+    const {
+      name, email, phone, dob, institution, program, course, specialization, year, password,
       favTeacher, socialMedia,
       // Required professional fields at signup
       currentCompany, previousCompany, totalExperience, location
@@ -17,10 +17,6 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ message: "All basic fields are required" });
     }
 
-    // Validate required professional fields
-    if (!currentCompany || !previousCompany || (totalExperience === undefined || totalExperience === null) || !location) {
-      return res.status(400).json({ message: "Current company, previous company, total experience, and job location are required" });
-    }
 
     const userExists = await User.findOne({ email });
     if (userExists) return res.status(400).json({ message: "User already exists" });
@@ -47,15 +43,17 @@ const registerUser = async (req, res) => {
     }
 
     const user = await User.create({
-      name, 
-      email, 
-      phone, 
-      dob: parsedDob, 
-      institution, 
-      course, 
+      name,
+      email,
+      phone,
+      dob: parsedDob,
+      institution,
+      program,
+      course,
+      specialization,
       year,
-      password: hashedPassword, 
-      favouriteTeacher: favTeacher || '', 
+      password: hashedPassword,
+      favouriteTeacher: favTeacher || '',
       socialMedia: socialMedia || '',
       status: "pending", // Require admin approval
       location: location || '',
@@ -111,7 +109,9 @@ const loginUser = async (req, res) => {
 
     // Find user by email (case-insensitive)
     let user = await User.findOne({ email: trimmedEmail });
-    
+    console.log(`Debug Login: Found user for ${trimmedEmail}? ${!!user}`);
+    if (user) console.log(`Debug Login: User status: ${user.status}, role: ${user.role}`);
+
     // Auto-create institution admin accounts if they match the pattern
     if (!user && trimmedEmail.startsWith('institution') && trimmedEmail.includes('@alvas.edu.in')) {
       const INSTITUTION_PASSWORD = 'Alvas@123';
@@ -123,7 +123,7 @@ const loginUser = async (req, res) => {
           const institutionNumber = match[1];
           // Hash the password
           const hashedPassword = await bcrypt.hash(INSTITUTION_PASSWORD, 10);
-          
+
           // Create institution admin account
           user = await User.create({
             name: `Institution Admin ${institutionNumber}`,
@@ -137,7 +137,7 @@ const loginUser = async (req, res) => {
         }
       }
     }
-    
+
     if (!user) {
       console.log(`Login attempt failed: User not found for email: ${trimmedEmail}`);
       return res.status(400).json({ message: "Invalid email or password" });
@@ -145,6 +145,7 @@ const loginUser = async (req, res) => {
 
     // Compare password
     const isPasswordMatch = await bcrypt.compare(password, user.password);
+    console.log(`Debug Login: Password match for ${trimmedEmail}? ${isPasswordMatch}`);
     if (!isPasswordMatch) {
       console.log(`Login attempt failed: Invalid password for email: ${trimmedEmail}`);
       return res.status(400).json({ message: "Invalid email or password" });
@@ -152,8 +153,8 @@ const loginUser = async (req, res) => {
 
     // Check if admin approved
     if (user.status !== "approved") {
-      return res.status(403).json({ 
-        message: `Account is ${user.status}. Please wait for admin approval.` 
+      return res.status(403).json({
+        message: `Account is ${user.status}. Please wait for admin approval.`
       });
     }
 
@@ -175,9 +176,9 @@ const loginUser = async (req, res) => {
     });
   } catch (error) {
     console.error("Login error:", error);
-    res.status(500).json({ 
-      message: "Server error during login", 
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+    res.status(500).json({
+      message: "Server error during login",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };

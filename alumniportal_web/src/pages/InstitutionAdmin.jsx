@@ -16,6 +16,7 @@ const InstitutionAdmin = () => {
   const [filteredPosts, setFilteredPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [institutions, setInstitutions] = useState([])
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedInstitution, setSelectedInstitution] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
@@ -23,42 +24,21 @@ const InstitutionAdmin = () => {
     byInstitution: {},
     totalPosts: 0
   })
-
-  const institutions = [
-    "Alva's Pre-University College, Vidyagiri",
-    "Alva's Degree College, Vidyagiri",
-    "Alva's Centre for Post Graduate Studies and Research, Vidyagiri",
-    "Alva's College of Education, Vidyagiri",
-    "Alva's College of Physical Education, Vidyagiri",
-    "Alva's Institute of Engineering & Technology (AIET), Mijar",
-    "Alva's Ayurvedic Medical College, Vidyagiri",
-    "Alva's Homeopathic Medical College, Mijar",
-    "Alva's College of Naturopathy and Yogic Science, Mijar",
-    "Alva's College of Physiotherapy, Moodbidri",
-    "Alva's College of Nursing, Moodbidri",
-    "Alva's Institute of Nursing, Moodbidri",
-    "Alva's College of Medical Laboratory Technology, Moodbidri",
-    "Alva's Law College, Moodbidri",
-    "Alva's College, Moodbidri (Affiliated with Mangalore University)",
-    "Alva's College of Nursing (Affiliated with Rajiv Gandhi University of Health Sciences, Bangalore)",
-    "Alva's Institute of Engineering & Technology (AIET) (Affiliated with Visvesvaraya Technological University, Belgaum)",
-  ]
-
   useEffect(() => {
     // Wait for auth to finish loading
     if (authLoading) {
       return
     }
-    
+
     // If no user after loading, redirect to signin
     if (!user) {
       navigate('/signin', { replace: true })
       return
     }
-    
+
     // Check if user is admin - check both isAdmin and role fields
     const userIsAdmin = user.isAdmin === true || user.role === 'admin' || user.isAdmin === 'true'
-    
+
     if (userIsAdmin) {
       setIsAdmin(true)
     } else {
@@ -73,8 +53,19 @@ const InstitutionAdmin = () => {
   useEffect(() => {
     if (isAdmin) {
       loadPosts()
+      loadInstitutions()
     }
   }, [isAdmin])
+
+  const loadInstitutions = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/institutions`)
+      setInstitutions(response.data.map(inst => inst.name))
+    } catch (err) {
+      console.error('Failed to load institutions:', err)
+      // Fallback or error handling if needed
+    }
+  }
 
   useEffect(() => {
     filterPosts()
@@ -91,7 +82,7 @@ const InstitutionAdmin = () => {
       }
 
       const response = await axios.get(`${API_BASE_URL}/api/content/institution-posts`, { headers })
-      
+
       const institutionPosts = response.data
         .map(post => ({ ...post, category: 'InstitutionPost' }))
         .sort((a, b) => {
@@ -273,8 +264,8 @@ const InstitutionAdmin = () => {
         {filteredPosts.length === 0 ? (
           <div className="linkedin-empty-state">
             <p>
-              {selectedInstitution 
-                ? `No posts yet for ${selectedInstitution}.` 
+              {selectedInstitution
+                ? `No posts yet for ${selectedInstitution}.`
                 : 'No posts found. Select an institution to create a post.'}
             </p>
             {selectedInstitution && (

@@ -1,4 +1,10 @@
 const User = require('../models/User');
+const Post = require('../models/Post');
+const Event = require('../models/Event');
+const Opportunity = require('../models/Opportunity');
+const InstitutionPost = require('../models/InstitutionPost');
+const Report = require('../models/Report');
+const Institution = require('../models/Institution');
 const bcrypt = require('bcryptjs');
 const { sendApprovalEmail, sendRejectionEmail } = require('../utils/emailService');
 
@@ -11,9 +17,9 @@ exports.getPendingUsers = async (req, res) => {
     return res.json(users);
   } catch (err) {
     console.error('Error fetching pending users:', err);
-    return res.status(500).json({ 
-      message: 'Failed to fetch pending users', 
-      error: err.message 
+    return res.status(500).json({
+      message: 'Failed to fetch pending users',
+      error: err.message
     });
   }
 };
@@ -27,9 +33,9 @@ exports.getApprovedUsers = async (req, res) => {
     return res.json(users);
   } catch (err) {
     console.error('Error fetching approved users:', err);
-    return res.status(500).json({ 
-      message: 'Failed to fetch approved users', 
-      error: err.message 
+    return res.status(500).json({
+      message: 'Failed to fetch approved users',
+      error: err.message
     });
   }
 };
@@ -47,28 +53,28 @@ exports.approveUser = async (req, res) => {
 
     // Validate user ID
     if (!userId) {
-      return res.status(400).json({ 
-        message: 'User ID is required' 
+      return res.status(400).json({
+        message: 'User ID is required'
       });
     }
 
     // Find and update user status
     const user = await User.findByIdAndUpdate(
-      userId, 
-      { status: 'approved' }, 
+      userId,
+      { status: 'approved' },
       { new: true }
     ).select('-password');
 
     if (!user) {
-      return res.status(404).json({ 
-        message: 'User not found' 
+      return res.status(404).json({
+        message: 'User not found'
       });
     }
 
     // Send approval email (non-blocking)
     try {
       const emailResult = await sendApprovalEmail(user.email, user.name);
-      
+
       if (emailResult.success) {
         console.log(`✅ Approval email sent successfully to ${user.email}`);
       } else {
@@ -87,9 +93,9 @@ exports.approveUser = async (req, res) => {
     });
   } catch (err) {
     console.error('Error approving user:', err);
-    return res.status(500).json({ 
-      message: 'Failed to approve user', 
-      error: err.message 
+    return res.status(500).json({
+      message: 'Failed to approve user',
+      error: err.message
     });
   }
 };
@@ -107,28 +113,28 @@ exports.rejectUser = async (req, res) => {
 
     // Validate user ID
     if (!userId) {
-      return res.status(400).json({ 
-        message: 'User ID is required' 
+      return res.status(400).json({
+        message: 'User ID is required'
       });
     }
 
     // Find and update user status
     const user = await User.findByIdAndUpdate(
-      userId, 
-      { status: 'rejected' }, 
+      userId,
+      { status: 'rejected' },
       { new: true }
     ).select('-password');
 
     if (!user) {
-      return res.status(404).json({ 
-        message: 'User not found' 
+      return res.status(404).json({
+        message: 'User not found'
       });
     }
 
     // Send rejection email (non-blocking)
     try {
       const emailResult = await sendRejectionEmail(user.email, user.name);
-      
+
       if (emailResult.success) {
         console.log(`✅ Rejection email sent successfully to ${user.email}`);
       } else {
@@ -147,9 +153,9 @@ exports.rejectUser = async (req, res) => {
     });
   } catch (err) {
     console.error('Error rejecting user:', err);
-    return res.status(500).json({ 
-      message: 'Failed to reject user', 
-      error: err.message 
+    return res.status(500).json({
+      message: 'Failed to reject user',
+      error: err.message
     });
   }
 };
@@ -161,24 +167,24 @@ exports.blockUser = async (req, res) => {
   try {
     const userId = req.params.id;
     const user = await User.findByIdAndUpdate(
-      userId, 
-      { status: 'blocked' }, 
+      userId,
+      { status: 'blocked' },
       { new: true }
     ).select('-password');
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
-    return res.json({ 
-      message: 'User blocked successfully', 
-      user 
+
+    return res.json({
+      message: 'User blocked successfully',
+      user
     });
   } catch (err) {
     console.error('Error blocking user:', err);
-    return res.status(500).json({ 
-      message: 'Failed to block user', 
-      error: err.message 
+    return res.status(500).json({
+      message: 'Failed to block user',
+      error: err.message
     });
   }
 };
@@ -190,24 +196,24 @@ exports.unblockUser = async (req, res) => {
   try {
     const userId = req.params.id;
     const user = await User.findByIdAndUpdate(
-      userId, 
-      { status: 'approved' }, 
+      userId,
+      { status: 'approved' },
       { new: true }
     ).select('-password');
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
-    return res.json({ 
-      message: 'User unblocked successfully', 
-      user 
+
+    return res.json({
+      message: 'User unblocked successfully',
+      user
     });
   } catch (err) {
     console.error('Error unblocking user:', err);
-    return res.status(500).json({ 
-      message: 'Failed to unblock user', 
-      error: err.message 
+    return res.status(500).json({
+      message: 'Failed to unblock user',
+      error: err.message
     });
   }
 };
@@ -221,9 +227,9 @@ exports.getBlockedUsers = async (req, res) => {
     return res.json(users);
   } catch (err) {
     console.error('Error fetching blocked users:', err);
-    return res.status(500).json({ 
-      message: 'Failed to fetch blocked users', 
-      error: err.message 
+    return res.status(500).json({
+      message: 'Failed to fetch blocked users',
+      error: err.message
     });
   }
 };
@@ -237,9 +243,9 @@ exports.getInstitutionUsers = async (req, res) => {
     return res.json(users);
   } catch (err) {
     console.error('Error fetching institution users:', err);
-    return res.status(500).json({ 
-      message: 'Failed to fetch institution users', 
-      error: err.message 
+    return res.status(500).json({
+      message: 'Failed to fetch institution users',
+      error: err.message
     });
   }
 };
@@ -250,18 +256,18 @@ exports.getInstitutionUsers = async (req, res) => {
 exports.createInstitutionUser = async (req, res) => {
   try {
     const { institution, email, password } = req.body;
-    
+
     if (!institution || !email || !password) {
-      return res.status(400).json({ 
-        error: 'Institution, email, and password are required' 
+      return res.status(400).json({
+        error: 'Institution, email, and password are required'
       });
     }
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ 
-        error: 'User with this email already exists' 
+      return res.status(400).json({
+        error: 'User with this email already exists'
       });
     }
 
@@ -281,7 +287,7 @@ exports.createInstitutionUser = async (req, res) => {
     // Return user without password
     const userObj = user.toObject();
     delete userObj.password;
-    
+
     res.status(201).json(userObj);
   } catch (err) {
     console.error('Error creating institution user:', err);
@@ -300,5 +306,142 @@ exports.deleteInstitutionUser = async (req, res) => {
   } catch (err) {
     console.error('Error deleting institution user:', err);
     res.status(500).json({ error: err.message });
+  }
+};
+/**
+ * Get all users with full profile data
+ */
+exports.getAllUsersFullData = async (req, res) => {
+  try {
+    const users = await User.find({}).select('-password').lean();
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return res.json(users);
+  } catch (err) {
+    console.error('Error fetching all users full data:', err);
+    return res.status(500).json({
+      message: 'Failed to fetch all users data',
+      error: err.message
+    });
+  }
+};
+
+/**
+ * Get detailed statistics for the dashboard
+ */
+exports.getDetailedStatistics = async (req, res) => {
+  try {
+    const [
+      totalUsers,
+      totalPosts,
+      totalEvents,
+      totalOpportunities,
+      totalInstPosts,
+      totalReports,
+      totalInstitutions
+    ] = await Promise.all([
+      User.countDocuments(),
+      Post.countDocuments(),
+      Event.countDocuments(),
+      Opportunity.countDocuments(),
+      InstitutionPost.countDocuments(),
+      Report.countDocuments(),
+      Institution.countDocuments()
+    ]);
+
+    // Aggregate users by status
+    const usersByStatus = await User.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ]);
+
+    // Aggregate users by institution
+    const usersByInstitution = await User.aggregate([
+      { $group: { _id: '$institution', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 10 }
+    ]);
+
+    // Aggregate users by year
+    const usersByYear = await User.aggregate([
+      { $group: { _id: '$year', count: { $sum: 1 } } },
+      { $sort: { _id: -1 } }
+    ]);
+
+    // Aggregate users by course
+    const usersByCourse = await User.aggregate([
+      { $group: { _id: '$course', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 10 }
+    ]);
+
+    // Career statistics
+    const entrepreneurs = await User.countDocuments({
+      $or: [
+        { 'privateInfo.currentCompany': { $regex: /entrepreneur/i } },
+        { 'privateInfo.currentPosition': { $regex: /founder|entrepreneur|ceo/i } }
+      ]
+    });
+
+    const higherEducation = await User.countDocuments({
+      $or: [
+        { 'privateInfo.hasMasters': true },
+        { 'privateInfo.mastersUniversity': { $exists: true, $ne: '' } }
+      ]
+    });
+
+    // Content stats (pending vs approved)
+    const pendingPosts = await Post.countDocuments({ status: 'pending' });
+    const pendingEvents = await Event.countDocuments({ status: 'pending' });
+    const pendingOpps = await Opportunity.countDocuments({ status: 'pending' });
+    const pendingReports = await Report.countDocuments({ status: 'pending' });
+
+    // Registrations over time (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const registrationsOverTime = await User.aggregate([
+      { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return res.json({
+      counts: {
+        users: totalUsers,
+        posts: totalPosts,
+        events: totalEvents,
+        opportunities: totalOpportunities,
+        institutionPosts: totalInstPosts,
+        reports: totalReports,
+        institutions: totalInstitutions
+      },
+      pending: {
+        posts: pendingPosts,
+        events: pendingEvents,
+        opportunities: pendingOpps,
+        reports: pendingReports
+      },
+      distribution: {
+        status: usersByStatus.reduce((acc, curr) => ({ ...acc, [curr._id || 'unknown']: curr.count }), {}),
+        institution: usersByInstitution.reduce((acc, curr) => ({ ...acc, [curr._id || 'N/A']: curr.count }), {}),
+        year: usersByYear.reduce((acc, curr) => ({ ...acc, [curr._id || 'N/A']: curr.count }), {}),
+        course: usersByCourse.reduce((acc, curr) => ({ ...acc, [curr._id || 'N/A']: curr.count }), {})
+      },
+      career: {
+        entrepreneurs,
+        higherEducation
+      },
+      registrationsTrend: registrationsOverTime
+    });
+  } catch (err) {
+    console.error('Error fetching detailed statistics:', err);
+    return res.status(500).json({
+      message: 'Failed to fetch detailed statistics',
+      error: err.message
+    });
   }
 };

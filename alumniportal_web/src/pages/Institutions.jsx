@@ -10,38 +10,25 @@ const Institutions = () => {
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
+  const [institutions, setInstitutions] = useState([])
   const navigate = useNavigate()
 
-  const institutions = [
-    "Alva's Pre-University College, Vidyagiri",
-    "Alva's Degree College, Vidyagiri",
-    "Alva's Centre for Post Graduate Studies and Research, Vidyagiri",
-    "Alva's College of Education, Vidyagiri",
-    "Alva's College of Physical Education, Vidyagiri",
-    "Alva's Institute of Engineering & Technology (AIET), Mijar",
-    "Alva's Ayurvedic Medical College, Vidyagiri",
-    "Alva's Homeopathic Medical College, Mijar",
-    "Alva's College of Naturopathy and Yogic Science, Mijar",
-    "Alva's College of Physiotherapy, Moodbidri",
-    "Alva's College of Nursing, Moodbidri",
-    "Alva's Institute of Nursing, Moodbidri",
-    "Alva's College of Medical Laboratory Technology, Moodbidri",
-    "Alva's Law College, Moodbidri",
-    "Alva's College, Moodbidri (Affiliated with Mangalore University)",
-    "Alva's College of Nursing (Affiliated with Rajiv Gandhi University of Health Sciences, Bangalore)",
-    "Alva's Institute of Engineering & Technology (AIET) (Affiliated with Visvesvaraya Technological University, Belgaum)",
-  ]
-
   useEffect(() => {
-    loadPosts()
+    loadData()
   }, [])
 
-  const loadPosts = async () => {
+  const loadData = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/content/institution-posts`)
-      setPosts(response.data.map((p) => ({ ...p, category: 'InstitutionPost' })))
+      setLoading(true)
+      const [postsRes, instsRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/api/content/institution-posts`),
+        axios.get(`${API_BASE_URL}/api/institutions`)
+      ])
+
+      setPosts(postsRes.data.map((p) => ({ ...p, category: 'InstitutionPost' })))
+      setInstitutions(instsRes.data.map(inst => inst.name))
     } catch (error) {
-      console.error('Failed to load institution posts:', error)
+      console.error('Failed to load data:', error)
     } finally {
       setLoading(false)
     }
@@ -91,8 +78,8 @@ const Institutions = () => {
           {filteredInstitutions.map((institution, index) => {
             const postCount = getPostCount(institution)
             return (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className="institution-card"
                 onClick={() => handleInstitutionClick(institution)}
                 style={{ cursor: 'pointer' }}

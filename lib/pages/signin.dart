@@ -16,9 +16,13 @@ class _SignInPageState extends State<SignInPage> {
 
   bool _isLoading = false;
   String? _error;
-
   static const String _baseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'https://alvasglobalalumni.org');
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   void _signIn() async {
     setState(() {
@@ -133,6 +137,79 @@ class _SignInPageState extends State<SignInPage> {
         setState(() { _isLoading = false; });
       }
     }
+  }
+
+  Widget _buildEnrollmentSelectors() {
+    return Column(
+      children: [
+        DropdownButtonFormField<String>(
+          value: _institution,
+          isExpanded: true,
+          decoration: _inputDecoration('Institution', Icons.business),
+          items: _institutions.map((String value) {
+            return DropdownMenuItem<String>(value: value, child: Text(value, style: const TextStyle(fontSize: 13)));
+          }).toList(),
+          onChanged: _onInstitutionChanged,
+        ),
+        if (_institution != null) ...[
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _program,
+            isExpanded: true,
+            decoration: _inputDecoration('Program', Icons.category),
+            items: _programs.map((String value) {
+              return DropdownMenuItem<String>(value: value, child: Text(value, style: const TextStyle(fontSize: 13)));
+            }).toList(),
+            onChanged: _onProgramChanged,
+          ),
+        ],
+        if (_program != null) ...[
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _course,
+            isExpanded: true,
+            decoration: _inputDecoration('Course', Icons.menu_book),
+            items: _courses.map((String value) {
+              return DropdownMenuItem<String>(value: value, child: Text(value, style: const TextStyle(fontSize: 13)));
+            }).toList(),
+            onChanged: _onCourseChanged,
+          ),
+        ],
+        if (_course != null && _specializations.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _specialization,
+            isExpanded: true,
+            decoration: _inputDecoration('Specialization', Icons.star_border),
+            items: _specializations.map((String value) {
+              return DropdownMenuItem<String>(value: value, child: Text(value, style: const TextStyle(fontSize: 13)));
+            }).toList(),
+            onChanged: (v) => setState(() => _specialization = v),
+          ),
+        ],
+        if (_course != null) ...[
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _year,
+            isExpanded: true,
+            decoration: _inputDecoration('Year', Icons.calendar_today),
+            items: _years.map((String value) {
+              return DropdownMenuItem<String>(value: value, child: Text(value, style: const TextStyle(fontSize: 13)));
+            }).toList(),
+            onChanged: (v) => setState(() => _year = v),
+          ),
+        ],
+      ],
+    );
+  }
+
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon),
+      border: const OutlineInputBorder(),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    );
   }
 
   @override

@@ -15,29 +15,37 @@ class InstitutionsPage extends StatefulWidget {
 }
 
 class _InstitutionsPageState extends State<InstitutionsPage> {
-  final List<String> _institutions = const [
-    "Alva's Pre-University College, Vidyagiri",
-    "Alva's Degree College, Vidyagiri",
-    "Alva's Centre for Post Graduate Studies and Research, Vidyagiri",
-    "Alva's College of Education, Vidyagiri",
-    "Alva's College of Physical Education, Vidyagiri",
-    // Professional & Medical Institutions
-    "Alva's Institute of Engineering & Technology (AIET), Mijar",
-    "Alva's Ayurvedic Medical College, Vidyagiri",
-    "Alva's Homeopathic Medical College, Mijar",
-    "Alva's College of Naturopathy and Yogic Science, Mijar",
-    "Alva's College of Physiotherapy, Moodbidri",
-    "Alva's College of Nursing, Moodbidri",
-    "Alva's Institute of Nursing, Moodbidri",
-    "Alva's College of Medical Laboratory Technology, Moodbidri",
-    "Alva's Law College, Moodbidri",
-    // Other Notable
-    "Alva's College, Moodbidri (Affiliated with Mangalore University)",
-    "Alva's College of Nursing (Affiliated with Rajiv Gandhi University of Health Sciences, Bangalore)",
-    "Alva's Institute of Engineering & Technology (AIET) (Affiliated with Visvesvaraya Technological University, Belgaum)",
-  ];
-
+  final String _baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:5000');
+  List<String> _institutions = [];
+  bool _isLoading = true;
+  String? _error;
   String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchInstitutions();
+  }
+
+  Future<void> _fetchInstitutions() async {
+    try {
+      final res = await http.get(Uri.parse('$_baseUrl/api/institutions'));
+      if (res.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(res.body);
+        setState(() {
+          _institutions = data.map((e) => e['name'].toString()).toList();
+          _isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load institutions');
+      }
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,50 +61,54 @@ class _InstitutionsPageState extends State<InstitutionsPage> {
         elevation: 0,
         automaticallyImplyLeading: false,
       ),
-      body: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.blue.shade700, Colors.blue.shade400],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: TextField(
-              decoration: InputDecoration(
-                labelText: 'Search institutions',
-                prefixIcon: const Icon(Icons.search, color: Colors.white),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25),
-                  borderSide: BorderSide.none,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(child: Text('Error: $_error'))
+              : Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.blue.shade700, Colors.blue.shade400],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      child: TextField(
+                        decoration: InputDecoration(
+                          labelText: 'Search institutions',
+                          prefixIcon: const Icon(Icons.search, color: Colors.white),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(25),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                        ),
+                        onChanged: (v) => setState(() { _query = v; }),
+                      ),
+                    ),
+                    Expanded(
+                      child: GridView.builder(
+                        padding: const EdgeInsets.all(16),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 1,
+                          childAspectRatio: 2.5,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                        ),
+                        itemCount: filtered.length,
+                        itemBuilder: (_, i) {
+                          final name = filtered[i];
+                          return _buildInstitutionCard(name);
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-              ),
-              onChanged: (v) => setState(() { _query = v; }),
-            ),
-          ),
-          Expanded(
-            child: GridView.builder(
-        padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 1,
-                childAspectRatio: 2.5,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              itemCount: filtered.length,
-        itemBuilder: (_, i) {
-                final name = filtered[i];
-                return _buildInstitutionCard(name);
-              },
-            ),
-          ),
-        ],
-      ),
     );
   }
 

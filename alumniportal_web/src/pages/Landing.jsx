@@ -1,23 +1,38 @@
 import { useNavigate } from 'react-router-dom'
 import './Landing.css'
 import img from '../front.jpeg'
+import logo from '../logoo.webp' // add your logo image
 
 const Landing = () => {
   const navigate = useNavigate()
 
   return (
     <div className="landing-container">
-      {/* Hero Section with Background Image */}
       <div
         className="landing-hero"
         style={{ backgroundImage: `url(${img})` }}
       >
-        {/* Overlay */}
+
+        {/* HEADER */}
+        <div className="landing-header">
+          <div className="header-center">
+            <img src={logo} alt="Logo" className="header-logo" />
+            <h2 className="header-title">
+              Alvas Education Foundation
+            </h2>
+          </div>
+        </div>
+
         <div className="landing-overlay"></div>
 
-        {/* Content */}
-        <div className="landing-content">
-          <h1 className="landing-title">Alvas Connect</h1>
+        <div className="landing-content glass-card">
+          <h1 className="landing-title">
+            <span className="highlight">Alvas Connect</span>
+          </h1>
+
+          <p className="landing-subtitle">
+            Bridging Students, Alumni & Opportunities
+          </p>
 
           <div className="landing-buttons">
             <button
@@ -35,6 +50,7 @@ const Landing = () => {
             </button>
           </div>
         </div>
+
       </div>
     </div>
   )

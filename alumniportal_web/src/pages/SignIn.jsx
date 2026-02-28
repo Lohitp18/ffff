@@ -31,25 +31,25 @@ const SignIn = () => {
       <div className="auth-left-panel">
         <div className="auth-image-container">
           <div className="auth-logo-container">
-            <img 
-              src="/logo.png" 
-              alt="Alva's Alumni" 
+            <img
+              src="/logo.png"
+              alt="Alva's Alumni"
               className="auth-logo"
               onError={(e) => {
                 e.target.style.display = 'none';
               }}
             />
           </div>
-          <img 
-            src="/alumni-signin.jpg" 
-            alt="Alumni Network" 
+          <img
+            src="/alumni-signin.jpg"
+            alt="Alumni Network"
             className="auth-image"
             onError={(e) => {
               e.target.style.display = 'none';
               e.target.nextSibling.style.display = 'block';
             }}
           />
-          <div style={{display: 'none', color: 'white', fontSize: '48px'}}>🎓</div>
+          <div style={{ display: 'none', color: 'white', fontSize: '48px' }}>🎓</div>
           <h1 className="auth-welcome-text">Welcome Back!</h1>
           <p className="auth-description">
             Connect with your alumni network and stay updated with opportunities, events, and success stories.

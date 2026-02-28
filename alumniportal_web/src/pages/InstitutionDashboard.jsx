@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { useAuth } from '../contexts/AuthContext'
 import './InstitutionDashboard.css'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
@@ -10,6 +11,7 @@ const INSTITUTION_DASHBOARD_PASSWORD = 'Lohit@2004'
 
 const InstitutionDashboard = () => {
   const navigate = useNavigate()
+  const { logout } = useAuth()
   const [institutions, setInstitutions] = useState([])
   const [selectedInstitution, setSelectedInstitution] = useState('')
   const [email, setEmail] = useState('')
@@ -96,6 +98,8 @@ const InstitutionDashboard = () => {
     setAlumni([])
     localStorage.removeItem('institution_dashboard_auth')
     localStorage.removeItem('institution_dashboard_institution')
+    logout()
+    navigate('/signin')
   }
 
   const handleInstitutionChange = (e) => {
@@ -113,9 +117,9 @@ const InstitutionDashboard = () => {
         <div className="dashboard-login-card">
           <h1>Institution Dashboard</h1>
           <p className="dashboard-subtitle">Select an institution and login to view alumni data</p>
-          
+
           {error && <div className="error-message">{error}</div>}
-          
+
           <form onSubmit={handleLogin}>
             <div className="form-group">
               <label>Institution *</label>
@@ -232,7 +236,7 @@ const InstitutionDashboard = () => {
                     // Get experience from top level or privateInfo
                     const experience = alumnus.totalExperience || alumnus.privateInfo?.totalExperience || null
                     const experienceText = experience ? `${experience} years` : '-'
-                    
+
                     return (
                       <tr key={alumnus._id}>
                         <td>{alumnus.name || '-'}</td>

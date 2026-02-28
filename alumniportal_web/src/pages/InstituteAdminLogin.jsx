@@ -11,51 +11,93 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000
 
 const InstituteAdminLogin = () => {
   const navigate = useNavigate()
-  const { user, login } = useAuth()
+  const { user, login, logout } = useAuth()
   const [college, setCollege] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(localStorage.getItem('institute_admin_authenticated') === 'true')
   const [posts, setPosts] = useState([])
   const [postsLoading, setPostsLoading] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingPost, setEditingPost] = useState(null)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [institutions, setInstitutions] = useState([])
 
-  const INSTITUTE_EMAIL = 'patgarlohit818@gmail.com'
-  const INSTITUTE_PASSWORD = 'Lohit@2004'
+  // New States for Alumni Tab
+  const [activeTab, setActiveTab] = useState('posts')
+  const [alumniUsers, setAlumniUsers] = useState([])
+  const [alumniLoading, setAlumniLoading] = useState(false)
+  const [alumniSearchQuery, setAlumniSearchQuery] = useState('')
 
-  const institutions = [
-    "Alva's Pre-University College, Vidyagiri",
-    "Alva's Degree College, Vidyagiri",
-    "Alva's Centre for Post Graduate Studies and Research, Vidyagiri",
-    "Alva's College of Education, Vidyagiri",
-    "Alva's College of Physical Education, Vidyagiri",
-    "Alva's Institute of Engineering & Technology (AIET), Mijar",
-    "Alva's Ayurvedic Medical College, Vidyagiri",
-    "Alva's Homeopathic Medical College, Mijar",
-    "Alva's College of Naturopathy and Yogic Science, Mijar",
-    "Alva's College of Physiotherapy, Moodbidri",
-    "Alva's College of Nursing, Moodbidri",
-    "Alva's Institute of Nursing, Moodbidri",
-    "Alva's College of Medical Laboratory Technology, Moodbidri",
-    "Alva's Law College, Moodbidri",
-    "Alva's College, Moodbidri (Affiliated with Mangalore University)",
-    "Alva's College of Nursing (Affiliated with Rajiv Gandhi University of Health Sciences, Bangalore)",
-    "Alva's Institute of Engineering & Technology (AIET) (Affiliated with Visvesvaraya Technological University, Belgaum)",
-  ]
+  const loadAlumniUsers = async (institutionName) => {
+    setAlumniLoading(true)
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/users/institution-dashboard`, {
+        params: { institutionName }
+      })
+      setAlumniUsers(response.data)
+    } catch (err) {
+      console.error('Failed to load alumni:', err)
+      setAlumniUsers([])
+    } finally {
+      setAlumniLoading(false)
+    }
+  }
+
+  const downloadAlumniCSV = () => {
+    if (!alumniUsers || alumniUsers.length === 0) return
+
+    const headers = [
+      'Name', 'Email', 'Phone', 'Course', 'Year', 'Specialization',
+      'Current Company', 'Total Experience', 'Location', 'Status'
+    ]
+
+    const csvContent = [
+      headers.join(','),
+      ...alumniUsers.map(user => [
+        `"${user.name || ''}"`,
+        `"${user.email || ''}"`,
+        `"${user.phone || ''}"`,
+        `"${user.course || ''}"`,
+        `"${user.year || ''}"`,
+        `"${user.specialization || ''}"`,
+        `"${user.privateInfo?.currentCompany || ''}"`,
+        `"${user.privateInfo?.totalExperience || 0}"`,
+        `"${user.location || ''}"`,
+        `"${user.status || ''}"`
+      ].join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `alumni_${college.replace(/\s+/g, '_')}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
 
   useEffect(() => {
-    const instituteAuth = localStorage.getItem('institute_admin_authenticated')
+    const fetchInstitutions = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/institutions`)
+        setInstitutions(response.data) // Store full objects
+      } catch (err) {
+        console.error('Failed to load institutions:', err)
+      }
+    }
+    fetchInstitutions()
+
     const selectedCollege = localStorage.getItem('institute_admin_college')
-    if (instituteAuth === 'true' && selectedCollege) {
-      setIsAuthenticated(true)
+    if (isAuthenticated && selectedCollege) {
       setCollege(selectedCollege)
       loadPosts(selectedCollege)
     }
-  }, [])
+  }, [isAuthenticated])
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -68,16 +110,32 @@ const InstituteAdminLogin = () => {
       return
     }
 
-    if (email !== INSTITUTE_EMAIL || password !== INSTITUTE_PASSWORD) {
-      setError('Invalid credentials')
+    // Direct match against the "code" (fetched institution data from DB which was seeded from hierarchy)
+    const selectedInst = institutions.find(inst => inst.name === college)
+    const trimmedEmail = email.trim().toLowerCase()
+    const trimmedPassword = password.trim()
+
+    console.log('Login Attempt:', {
+      college,
+      trimmedEmail,
+      hasMatchInList: !!selectedInst,
+      expectedEmail: selectedInst?.email,
+      passwordMatch: selectedInst?.password === trimmedPassword
+    })
+
+    if (!selectedInst || trimmedEmail !== selectedInst.email.toLowerCase() || trimmedPassword !== selectedInst.password) {
+      console.log('Frontend match failed')
+      setError('login failed')
       setLoading(false)
       return
     }
 
-    // Authenticate with backend - backend will auto-create institution admin accounts if needed
-    const authResult = await login(email, password)
+    // Trigger backend login for token if credentials match the "code"
+    console.log('Frontend match success, hitting backend...')
+    const authResult = await login(trimmedEmail, trimmedPassword)
     if (!authResult.success) {
-      setError(authResult.message || 'Login failed')
+      console.log('Backend auth failed:', authResult.message)
+      setError('login failed')
       setLoading(false)
       return
     }
@@ -94,7 +152,7 @@ const InstituteAdminLogin = () => {
     setPostsLoading(true)
     try {
       const response = await axios.get(`${API_BASE_URL}/api/content/institution-posts`)
-      
+
       const institutionPosts = response.data
         .filter(post => post.institution === institutionName)
         .map(post => ({ ...post, category: 'InstitutionPost' }))
@@ -115,7 +173,7 @@ const InstituteAdminLogin = () => {
 
   const handleDeletePost = async (postId) => {
     if (!window.confirm('Are you sure you want to delete this post?')) return
-    
+
     try {
       await axios.delete(`${API_BASE_URL}/api/content/institution-posts/${postId}`, {
         headers: {
@@ -142,12 +200,31 @@ const InstituteAdminLogin = () => {
     loadPosts(college)
   }
 
+  useEffect(() => {
+    if (isAuthenticated && college) {
+      if (activeTab === 'posts') {
+        loadPosts(college)
+      } else if (activeTab === 'alumni') {
+        loadAlumniUsers(college)
+      }
+    }
+  }, [activeTab, isAuthenticated, college])
+
+  const filteredAlumni = alumniUsers.filter(u =>
+    u.name?.toLowerCase().includes(alumniSearchQuery.toLowerCase()) ||
+    u.email?.toLowerCase().includes(alumniSearchQuery.toLowerCase()) ||
+    u.course?.toLowerCase().includes(alumniSearchQuery.toLowerCase()) ||
+    u.year?.toString().includes(alumniSearchQuery)
+  )
+
   const handleLogout = () => {
     localStorage.removeItem('institute_admin_authenticated')
     localStorage.removeItem('institute_admin_college')
     setIsAuthenticated(false)
     setCollege('')
     setPosts([])
+    logout()
+    navigate('/signin')
   }
 
   const getImageUrl = (imagePath) => {
@@ -164,7 +241,7 @@ const InstituteAdminLogin = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="auth-container">
+      <div className="auth-container centered">
         <div className="auth-card">
           <h1>Alumni Portal</h1>
           <h2>Institute Admin Login</h2>
@@ -180,7 +257,7 @@ const InstituteAdminLogin = () => {
               >
                 <option value="">Select College</option>
                 {institutions.map((inst, index) => (
-                  <option key={index} value={inst}>{inst}</option>
+                  <option key={index} value={inst.name}>{inst.name}</option>
                 ))}
               </select>
             </div>
@@ -236,72 +313,159 @@ const InstituteAdminLogin = () => {
         </div>
       </div>
 
-      {postsLoading ? (
-        <div className="loading">Loading posts...</div>
-      ) : (
-        <div className="institute-posts-list">
-          <div className="posts-header">
-            <h2>Posts for {college}</h2>
-            <button onClick={() => setShowCreateModal(true)} className="create-post-btn">
-              + Add New Post
-            </button>
-          </div>
-          
-          {posts.length === 0 ? (
-            <div className="empty-state">
-              <p>No posts found for {college}</p>
+      <div className="admin-tabs">
+        <button
+          className={`tab-btn ${activeTab === 'posts' ? 'active' : ''}`}
+          onClick={() => setActiveTab('posts')}
+        >
+          📝 Posts
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'alumni' ? 'active' : ''}`}
+          onClick={() => setActiveTab('alumni')}
+        >
+          🎓 Alumni Users
+        </button>
+      </div>
+
+      {activeTab === 'posts' ? (
+        postsLoading ? (
+          <div className="loading">Loading posts...</div>
+        ) : (
+          <div className="institute-posts-list">
+            <div className="posts-header">
+              <h2>Posts for {college}</h2>
               <button onClick={() => setShowCreateModal(true)} className="create-post-btn">
-                Create Your First Post
+                + Add New Post
               </button>
             </div>
-          ) : (
-            <div className="posts-grid">
-              {posts.map((post) => (
-                <div key={post._id} className="institute-post-card">
-                  {post.imageUrl && (
-                    <img 
-                      src={getImageUrl(post.imageUrl)} 
-                      alt={post.title}
-                      className="post-image"
-                    />
-                  )}
-                  {post.videoUrl && (
-                    <video 
-                      src={getVideoUrl(post.videoUrl)} 
-                      controls
-                      className="post-video"
-                    >
-                      Your browser does not support the video tag.
-                    </video>
-                  )}
-                  <div className="post-content">
-                    <h3>{post.title || 'Untitled Post'}</h3>
-                    <p>{post.content || post.description || 'No content'}</p>
-                    <div className="post-meta">
-                      <span>Created: {new Date(post.createdAt).toLocaleDateString()}</span>
-                      {post.status && (
-                        <span className={`status-badge ${post.status}`}>
-                          {post.status}
-                        </span>
-                      )}
-                    </div>
-                    <div className="post-actions">
-                      <button
-                        onClick={() => handleEditPost(post)}
-                        className="btn-edit"
+
+            {posts.length === 0 ? (
+              <div className="empty-state">
+                <p>No posts found for {college}</p>
+                <button onClick={() => setShowCreateModal(true)} className="create-post-btn">
+                  Create Your First Post
+                </button>
+              </div>
+            ) : (
+              <div className="posts-grid">
+                {posts.map((post) => (
+                  <div key={post._id} className="institute-post-card">
+                    {post.imageUrl && (
+                      <img
+                        src={getImageUrl(post.imageUrl)}
+                        alt={post.title}
+                        className="post-image"
+                      />
+                    )}
+                    {post.videoUrl && (
+                      <video
+                        src={getVideoUrl(post.videoUrl)}
+                        controls
+                        className="post-video"
                       >
-                        ✏️ Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeletePost(post._id)}
-                        className="btn-delete"
-                      >
-                        🗑️ Delete
-                      </button>
+                        Your browser does not support the video tag.
+                      </video>
+                    )}
+                    <div className="post-content">
+                      <h3>{post.title || 'Untitled Post'}</h3>
+                      <p>{post.content || post.description || 'No content'}</p>
+                      <div className="post-meta">
+                        <span>Created: {new Date(post.createdAt).toLocaleDateString()}</span>
+                        {post.status && (
+                          <span className={`status-badge ${post.status}`}>
+                            {post.status}
+                          </span>
+                        )}
+                      </div>
+                      <div className="post-actions">
+                        <button
+                          onClick={() => handleEditPost(post)}
+                          className="btn-edit"
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeletePost(post._id)}
+                          className="btn-delete"
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      ) : (
+        <div className="alumni-view">
+          <div className="search-export-container">
+            <input
+              type="text"
+              placeholder="Search by name, email or course..."
+              className="search-input"
+              value={alumniSearchQuery}
+              onChange={(e) => setAlumniSearchQuery(e.target.value)}
+            />
+            <button onClick={downloadAlumniCSV} className="export-btn">
+              📥 Export to CSV
+            </button>
+          </div>
+
+          {alumniLoading ? (
+            <div className="loading">Loading alumni data...</div>
+          ) : (
+            <div className="alumni-table-container">
+              <table className="alumni-table">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Course</th>
+                    <th>Year</th>
+                    <th>Status</th>
+                    <th>Current Company</th>
+                    <th>Contact</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAlumni.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" style={{ textAlign: 'center', padding: '40px' }}>
+                        No alumni found matching your criteria
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredAlumni.map(u => (
+                      <tr key={u._id}>
+                        <td>
+                          <div className="user-cell">
+                            <img
+                              src={u.profileImage ? getImageUrl(u.profileImage) : 'https://via.placeholder.com/40'}
+                              alt=""
+                              className="user-avatar"
+                            />
+                            <div>
+                              <div style={{ fontWeight: '600' }}>{u.name}</div>
+                              <div style={{ fontSize: '12px', color: '#666' }}>{u.email}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td>{u.course}</td>
+                        <td>{u.year}</td>
+                        <td>
+                          <span className={`status-badge ${u.status}`}>
+                            {u.status}
+                          </span>
+                        </td>
+                        <td>{u.privateInfo?.currentCompany || 'N/A'}</td>
+                        <td>{u.phone || 'N/A'}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

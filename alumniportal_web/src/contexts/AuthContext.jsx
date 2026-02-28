@@ -20,6 +20,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     if (token) {
+      // Ensure axios has the token for all subsequent calls
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
       // Verify token and get user info
       verifyToken()
@@ -30,15 +31,16 @@ export const AuthProvider = ({ children }) => {
 
   const verifyToken = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/users/profile`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      const response = await axios.get(`${API_BASE_URL}/api/users/profile`)
       setUser(response.data)
     } catch (error) {
       console.error('Token verification failed:', error)
-      logout()
+      // Only logout on 401 (Unauthorized) or 403 (Forbidden)
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        logout()
+      }
+      // For other errors (network, 500), we don't logout to avoid forcing re-login
+      // but we should still stop loading
     } finally {
       setLoading(false)
     }
@@ -54,17 +56,19 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('auth_token', newToken)
       setToken(newToken)
       // Fetch full user profile
+      let finalUser = { _id, email: userEmail, status };
       try {
         const userResponse = await axios.get(`${API_BASE_URL}/api/users/profile`, {
           headers: { Authorization: `Bearer ${newToken}` }
         })
-        setUser(userResponse.data)
+        finalUser = userResponse.data;
+        setUser(finalUser)
       } catch (err) {
         // If profile fetch fails, use basic user info
-        setUser({ _id, email: userEmail, status })
+        setUser(finalUser)
       }
       axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
-      return { success: true }
+      return { success: true, user: finalUser }
     } catch (error) {
       return {
         success: false,

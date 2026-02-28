@@ -25,22 +25,13 @@ class _AlumniPageState extends State<AlumniPage> {
   String? _selectedInstitution;
   String? _selectedCourse;
 
+  bool _loadingInstitutions = true;
+  List<String> _institutions = [];
+
   // Mock lists for now; populate via API later
   final List<String> _years =
   List<String>.generate(30, (i) => (DateTime.now().year - i).toString());
-  final List<String> _institutions = [
-    "Alva's institute of engineering and technology",
-    "Alva's homeopathic college",
-    "Alva's nursing college",
-    "Alva's college of naturopathy",
-    "Alva's college of allied health sciences",
-    "Alva's law college",
-    "Alva's physiotherapy",
-    "Alva's physical education",
-    "Alva's degree college",
-    "Alva's pu college",
-    "Alva's mba",
-  ];
+
   final List<String> _courses = [
     'Bcs nursing',
     'Msc nursing',
@@ -68,7 +59,25 @@ class _AlumniPageState extends State<AlumniPage> {
   @override
   void initState() {
     super.initState();
+    _fetchInstitutions();
     _load();
+  }
+
+  Future<void> _fetchInstitutions() async {
+    try {
+      final res = await http.get(Uri.parse('$_baseUrl/api/institutions'));
+      if (res.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(res.body);
+        setState(() {
+          _institutions = data.map((e) => e['name'].toString()).toList();
+          _loadingInstitutions = false;
+        });
+      }
+    } catch (_) {
+      setState(() {
+        _loadingInstitutions = false;
+      });
+    }
   }
 
   Future<void> _load() async {
@@ -199,9 +208,9 @@ class _AlumniPageState extends State<AlumniPage> {
                       child: _buildDropdown(
                         label: 'Institution',
                         value: _selectedInstitution,
-                        items: ['Any', ..._institutions],
+                        items: _loadingInstitutions ? ['Loading...'] : ['Any', ..._institutions],
+                        onChanged: _loadingInstitutions ? null : (v) => setState(() => _selectedInstitution = v == 'Any' ? null : v),
                         width: dropdownWidth,
-                        onChanged: (v) => setState(() => _selectedInstitution = v == 'Any' ? null : v),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -230,9 +239,9 @@ class _AlumniPageState extends State<AlumniPage> {
                     _buildDropdown(
                       label: 'Institution',
                       value: _selectedInstitution,
-                      items: ['Any', ..._institutions],
+                      items: _loadingInstitutions ? ['Loading...'] : ['Any', ..._institutions],
+                      onChanged: _loadingInstitutions ? null : (v) => setState(() => _selectedInstitution = v == 'Any' ? null : v),
                       width: dropdownWidth,
-                      onChanged: (v) => setState(() => _selectedInstitution = v == 'Any' ? null : v),
                     ),
                     const SizedBox(height: 8),
                     _buildDropdown(

@@ -42,52 +42,102 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController socialMediaController = TextEditingController();
 
   String? _institution;
+  String? _program;
   String? _course;
+  String? _specialization;
   String? _year; // year of passed out
 
-  final List<String> _institutions = <String>[
-    "Alva's institute of engineering and technology",
-    "Alva's homeopathic college",
-    "Alva's nursing college",
-    "Alva's college of naturopathy",
-    "Alva's college of allied health sciences",
-    "Alva's law college",
-    "Alva's physiotherapy",
-    "Alva's physical education",
-    "Alva's degree college",
-    "Alva's pu college",
-    "Alva's mba",
-  ];
-
-  final List<String> _courses = <String>[
-    'Bcs nursing',
-    'Msc nursing',
-    'PhD nursing',
-    'Llb',
-    'Bcom llb',
-    'Bballb',
-    'Ballb',
-    'Bnys',
-    'Md clinical naturopathy',
-    'Md clinical yoga',
-    'CSE',
-    'Ise',
-    'Ece',
-    'Aiml',
-    'Csd',
-    'Cs datascience',
-    'Cs iot',
-    'Mechanical',
-    'Civil',
-    'Agriculture',
-    'Electronics',
-  ];
-  final List<String> _years = List<String>.generate(30, (i) => (DateTime.now().year - i).toString());
+  List<dynamic> _hierarchy = [];
+  List<String> _institutions = [];
+  List<String> _programs = [];
+  List<String> _courses = [];
+  List<String> _specializations = [];
+  List<String> _years = [];
 
   bool _isLoading = false;
   String? _error;
   static const String _baseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'https://alvasglobalalumni.org');
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchHierarchy();
+  }
+
+  void _fetchHierarchy() async {
+    setState(() { _isLoading = true; });
+    try {
+      final response = await http.get(Uri.parse('$_baseUrl/api/constants/enrollment-hierarchy'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _hierarchy = data['institutions'] ?? [];
+          _institutions = _hierarchy.map((inst) => inst['name'].toString()).toList();
+          _isLoading = false;
+        });
+      } else {
+        setState(() { 
+          _error = 'Failed to load enrollment data'; 
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() { 
+        _error = 'Network error loading enrollment data'; 
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _onInstitutionChanged(String? val) {
+    if (val == null) return;
+    final inst = _hierarchy.firstWhere((i) => i['name'] == val, orElse: () => null);
+    setState(() {
+      _institution = val;
+      _program = null;
+      _course = null;
+      _specialization = null;
+      _year = null;
+      _programs = inst != null ? (inst['programs'] as List).map((p) => p['name'].toString()).toList() : [];
+      _courses = [];
+      _specializations = [];
+      _years = [];
+    });
+  }
+
+  void _onProgramChanged(String? val) {
+    if (val == null) return;
+    final inst = _hierarchy.firstWhere((i) => i['name'] == _institution, orElse: () => null);
+    final prog = inst != null ? (inst['programs'] as List).firstWhere((p) => p['name'] == val, orElse: () => null) : null;
+    setState(() {
+      _program = val;
+      _course = null;
+      _specialization = null;
+      _year = null;
+      _courses = prog != null ? (prog['courses'] as List).map((c) => c['name'].toString()).toList() : [];
+      _specializations = [];
+      _years = [];
+    });
+  }
+
+  void _onCourseChanged(String? val) {
+    if (val == null) return;
+    final inst = _hierarchy.firstWhere((i) => i['name'] == _institution, orElse: () => null);
+    final prog = inst != null ? (inst['programs'] as List).firstWhere((p) => p['name'] == _program, orElse: () => null) : null;
+    final course = prog != null ? (prog['courses'] as List).firstWhere((c) => c['name'] == val, orElse: () => null) : null;
+    setState(() {
+      _course = val;
+      _specialization = null;
+      _year = null;
+      _specializations = course != null ? (course['specializations'] as List).map((s) => s.toString()).toList() : [];
+      
+      // Calculate years
+      final int startYear = inst != null ? (inst['establishedYear'] ?? 1990) : 1990;
+      final int currentYear = 2026;
+      _years = List.generate(currentYear - startYear + 1, (i) => (currentYear - i).toString());
+    });
+  }
 
   void _signUp() async {
     if (_formKey.currentState!.validate()) {
@@ -109,7 +159,9 @@ class _SignUpPageState extends State<SignUpPage> {
           'phone': phoneController.text.trim(),
           'dob': DateTime.tryParse(dobController.text) != null ? dobController.text : DateTime.now().toIso8601String(),
           'institution': _institution ?? '',
+          'program': _program ?? '',
           'course': _course ?? '',
+          'specialization': _specialization ?? '',
           'year': _year ?? '',
           'password': passwordController.text,
           'socialMedia': socialMediaController.text.trim(),
@@ -280,18 +332,11 @@ class _SignUpPageState extends State<SignUpPage> {
               // Institution dropdown
               DropdownButtonFormField<String>(
                 value: _institution,
-                items: [
-                  ..._institutions.map((i) => DropdownMenuItem(
-                    value: i,
-                    child: Text(
-                      i,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  ))
-                ],
-                onChanged: (v) => setState(() { _institution = v; }),
+                items: _institutions.map((i) => DropdownMenuItem(
+                  value: i,
+                  child: Text(i, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13)),
+                )).toList(),
+                onChanged: _onInstitutionChanged,
                 decoration: _inputDecoration("Institution *", Icons.business),
                 validator: (v) => (v == null || v.isEmpty) ? 'Select your institution' : null,
                 isExpanded: true,
@@ -300,50 +345,72 @@ class _SignUpPageState extends State<SignUpPage> {
               ),
               const SizedBox(height: 12),
 
-              // Course dropdown
-              DropdownButtonFormField<String>(
-                value: _course,
-                items: [
-                  ..._courses.map((c) => DropdownMenuItem(
-                    value: c,
-                    child: Text(
-                      c,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  ))
-                ],
-                onChanged: (v) => setState(() { _course = v; }),
-                decoration: _inputDecoration("Course *", Icons.menu_book),
-                validator: (v) => (v == null || v.isEmpty) ? 'Select your course' : null,
-                isExpanded: true,
-                menuMaxHeight: 300,
-                style: const TextStyle(fontSize: 14),
-              ),
-              const SizedBox(height: 12),
+              if (_institution != null) ...[
+                // Program dropdown
+                DropdownButtonFormField<String>(
+                  value: _program,
+                  items: _programs.map((p) => DropdownMenuItem(
+                    value: p,
+                    child: Text(p, style: const TextStyle(fontSize: 13)),
+                  )).toList(),
+                  onChanged: _onProgramChanged,
+                  decoration: _inputDecoration("Program *", Icons.category),
+                  validator: (v) => (v == null || v.isEmpty) ? 'Select your program' : null,
+                  isExpanded: true,
+                  style: const TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+              ],
 
-              // Year of passed-out dropdown
-              DropdownButtonFormField<String>(
-                value: _year,
-                items: [
-                  ..._years.map((y) => DropdownMenuItem(
+              if (_program != null) ...[
+                // Course dropdown
+                DropdownButtonFormField<String>(
+                  value: _course,
+                  items: _courses.map((c) => DropdownMenuItem(
+                    value: c,
+                    child: Text(c, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13)),
+                  )).toList(),
+                  onChanged: _onCourseChanged,
+                  decoration: _inputDecoration("Course *", Icons.menu_book),
+                  validator: (v) => (v == null || v.isEmpty) ? 'Select your course' : null,
+                  isExpanded: true,
+                  style: const TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              if (_course != null && _specializations.isNotEmpty) ...[
+                // Specialization dropdown
+                DropdownButtonFormField<String>(
+                  value: _specialization,
+                  items: _specializations.map((s) => DropdownMenuItem(
+                    value: s,
+                    child: Text(s, style: const TextStyle(fontSize: 13)),
+                  )).toList(),
+                  onChanged: (v) => setState(() { _specialization = v; }),
+                  decoration: _inputDecoration("Specialization *", Icons.star_border),
+                  validator: (v) => (v == null || v.isEmpty) ? 'Select your specialization' : null,
+                  isExpanded: true,
+                  style: const TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              if (_course != null) ...[
+                // Year of passed-out dropdown
+                DropdownButtonFormField<String>(
+                  value: _year,
+                  items: _years.map((y) => DropdownMenuItem(
                     value: y,
-                    child: Text(
-                      y,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  ))
-                ],
-                onChanged: (v) => setState(() { _year = v; }),
-                decoration: _inputDecoration("Year of Graduation *", Icons.date_range),
-                validator: (v) => (v == null || v.isEmpty) ? 'Select your graduation year' : null,
-                isExpanded: true,
-                menuMaxHeight: 300,
-                style: const TextStyle(fontSize: 14),
-              ),
+                    child: Text(y, style: const TextStyle(fontSize: 13)),
+                  )).toList(),
+                  onChanged: (v) => setState(() { _year = v; }),
+                  decoration: _inputDecoration("Year of Graduation *", Icons.date_range),
+                  validator: (v) => (v == null || v.isEmpty) ? 'Select your graduation year' : null,
+                  isExpanded: true,
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ],
               const SizedBox(height: 24),
 
               // ===== CURRENT STATUS SECTION =====
@@ -380,35 +447,31 @@ class _SignUpPageState extends State<SignUpPage> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: jobLocationController,
-                  decoration: _inputDecoration("Job Location *", Icons.location_on_outlined),
+                  decoration: _inputDecoration("Job Location", Icons.location_on_outlined),
                   style: const TextStyle(fontSize: 16),
-                  validator: (value) => value!.trim().isEmpty ? "Enter your job location" : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: currentCompanyController,
-                  decoration: _inputDecoration("Company Name *", Icons.business_center_outlined),
+                  decoration: _inputDecoration("Company Name", Icons.business_center_outlined),
                   style: const TextStyle(fontSize: 16),
-                  validator: (value) => value!.trim().isEmpty ? "Enter your company name" : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: positionController,
-                  decoration: _inputDecoration("Position *", Icons.badge_outlined),
+                  decoration: _inputDecoration("Position", Icons.badge_outlined),
                   style: const TextStyle(fontSize: 16),
-                  validator: (value) => value!.trim().isEmpty ? "Enter your position" : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: totalExperienceController,
                   decoration: _inputDecoration(
-                    "Years of Experience *",
+                    "Years of Experience",
                     Icons.timer_outlined,
                     hintText: "e.g., 3",
                   ),
                   keyboardType: TextInputType.number,
                   style: const TextStyle(fontSize: 16),
-                  validator: (value) => value!.trim().isEmpty ? "Enter your years of experience" : null,
                 ),
                 const SizedBox(height: 24),
               ],
@@ -418,16 +481,14 @@ class _SignUpPageState extends State<SignUpPage> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: mastersCollegeController,
-                  decoration: _inputDecoration("College Name *", Icons.business),
+                  decoration: _inputDecoration("College Name", Icons.business),
                   style: const TextStyle(fontSize: 16),
-                  validator: (value) => value!.trim().isEmpty ? "Enter college name" : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: mastersCourseController,
-                  decoration: _inputDecoration("Course Name *", Icons.menu_book),
+                  decoration: _inputDecoration("Course Name", Icons.menu_book),
                   style: const TextStyle(fontSize: 16),
-                  validator: (value) => value!.trim().isEmpty ? "Enter course name" : null,
                 ),
                 const SizedBox(height: 24),
               ],
@@ -437,16 +498,14 @@ class _SignUpPageState extends State<SignUpPage> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: entrepreneurCompanyController,
-                  decoration: _inputDecoration("Company Name *", Icons.business_center_outlined),
+                  decoration: _inputDecoration("Company Name", Icons.business_center_outlined),
                   style: const TextStyle(fontSize: 16),
-                  validator: (value) => value!.trim().isEmpty ? "Enter your company name" : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: companyTypeController,
-                  decoration: _inputDecoration("Company Type *", Icons.category_outlined, hintText: "e.g., Tech, Healthcare"),
+                  decoration: _inputDecoration("Company Type", Icons.category_outlined, hintText: "e.g., Tech, Healthcare"),
                   style: const TextStyle(fontSize: 16),
-                  validator: (value) => value!.trim().isEmpty ? "Enter company type" : null,
                 ),
                 const SizedBox(height: 24),
               ],

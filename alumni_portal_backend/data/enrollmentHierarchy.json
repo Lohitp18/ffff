@@ -1,0 +1,955 @@
+{
+    "institutions": [
+        {
+            "name": "ALVA'S ICSE SCHOOL",
+            "email": "admin.icse@alvas.edu.in",
+            "password": "AlvasICSE@2026",
+            "establishedYear": 2025,
+            "programs": [
+                {
+                    "name": "ICSE",
+                    "courses": [
+                        {
+                            "name": "Class I",
+                            "specializations": [
+                                "General"
+                            ]
+                        },
+                        {
+                            "name": "Class II",
+                            "specializations": [
+                                "General"
+                            ]
+                        },
+                        {
+                            "name": "Class III",
+                            "specializations": [
+                                "General"
+                            ]
+                        },
+                        {
+                            "name": "Class IV",
+                            "specializations": [
+                                "General"
+                            ]
+                        },
+                        {
+                            "name": "Class V",
+                            "specializations": [
+                                "General"
+                            ]
+                        },
+                        {
+                            "name": "Class VI",
+                            "specializations": [
+                                "General"
+                            ]
+                        },
+                        {
+                            "name": "Class VII",
+                            "specializations": [
+                                "General"
+                            ]
+                        },
+                        {
+                            "name": "Class VIII",
+                            "specializations": [
+                                "General"
+                            ]
+                        },
+                        {
+                            "name": "Class IX",
+                            "specializations": [
+                                "General"
+                            ]
+                        },
+                        {
+                            "name": "Class X",
+                            "specializations": [
+                                "General"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S CENTRAL SCHOOL",
+            "email": "admin.central@alvas.edu.in",
+            "password": "AlvasCentral@2026",
+            "establishedYear": 2018,
+            "programs": [
+                {
+                    "name": "CBSE",
+                    "courses": [
+                        {
+                            "name": "Class I-X",
+                            "specializations": [
+                                "General"
+                            ]
+                        },
+                        {
+                            "name": "Class XI",
+                            "specializations": [
+                                "PCMB",
+                                "PCMC"
+                            ]
+                        },
+                        {
+                            "name": "Class XII",
+                            "specializations": [
+                                "PCMB",
+                                "PCMC"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S PRE PRIMARY SCHOOL",
+            "email": "admin.preprimary@alvas.edu.in",
+            "password": "AlvasPrePrimary@2026",
+            "establishedYear": 2014,
+            "programs": [
+                {
+                    "name": "Kindergarten",
+                    "courses": [
+                        {
+                            "name": "Play School",
+                            "specializations": [
+                                "General"
+                            ]
+                        },
+                        {
+                            "name": "LKG",
+                            "specializations": [
+                                "General"
+                            ]
+                        },
+                        {
+                            "name": "UKG",
+                            "specializations": [
+                                "General"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S ENGLISH MEDIUM PRIMARY SCHOOL",
+            "email": "admin.primary@alvas.edu.in",
+            "password": "AlvasPrimary@2026",
+            "establishedYear": 2014,
+            "programs": [
+                {
+                    "name": "State English Medium",
+                    "courses": [
+                        {
+                            "name": "Primary School I-V",
+                            "specializations": [
+                                "General"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S ENGLISH MEDIUM HIGHER PRIMARY",
+            "email": "admin.higherprimary@alvas.edu.in",
+            "password": "AlvasHigherPrimary@2026",
+            "establishedYear": 2013,
+            "programs": [
+                {
+                    "name": "Higher Primary",
+                    "courses": [
+                        {
+                            "name": "Class VI",
+                            "specializations": [
+                                "General"
+                            ]
+                        },
+                        {
+                            "name": "Class VII",
+                            "specializations": [
+                                "General"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S ENGLISH MEDIUM HIGH SCHOOL",
+            "email": "admin.highschool@alvas.edu.in",
+            "password": "AlvasHighSchool@2026",
+            "establishedYear": 2011,
+            "programs": [
+                {
+                    "name": "High School",
+                    "courses": [
+                        {
+                            "name": "Class VIII",
+                            "specializations": [
+                                "General"
+                            ]
+                        },
+                        {
+                            "name": "Class IX",
+                            "specializations": [
+                                "General"
+                            ]
+                        },
+                        {
+                            "name": "Class X",
+                            "specializations": [
+                                "General"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S KANNADA MEDIUM HIGHER PRIMARY",
+            "email": "admin.kannadahigherprimary@alvas.edu.in",
+            "password": "AlvasKannadaHigherPrimary@2026",
+            "establishedYear": 2013,
+            "programs": [
+                {
+                    "name": "State Kannada Medium",
+                    "courses": [
+                        {
+                            "name": "Higher Primary VI-VII",
+                            "specializations": [
+                                "General"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S KANNADA MEDIUM HIGH SCHOOL",
+            "email": "admin.kannadahighschool@alvas.edu.in",
+            "password": "AlvasKannadaHighSchool@2026",
+            "establishedYear": 2009,
+            "programs": [
+                {
+                    "name": "High School",
+                    "courses": [
+                        {
+                            "name": "Class VIII",
+                            "specializations": [
+                                "General"
+                            ]
+                        },
+                        {
+                            "name": "Class IX",
+                            "specializations": [
+                                "General"
+                            ]
+                        },
+                        {
+                            "name": "Class X",
+                            "specializations": [
+                                "General"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S PRE UNIVERSITY COLLEGE",
+            "email": "admin.puc@alvas.edu.in",
+            "password": "AlvasPUC@2026",
+            "establishedYear": 1999,
+            "programs": [
+                {
+                    "name": "I PUC",
+                    "courses": [
+                        {
+                            "name": "Science",
+                            "specializations": [
+                                "PCMB",
+                                "PCMC",
+                                "PCME",
+                                "PCMS"
+                            ]
+                        },
+                        {
+                            "name": "Commerce",
+                            "specializations": [
+                                "EBAC",
+                                "EBAS",
+                                "EBAH",
+                                "BASBm",
+                                "BAEBm"
+                            ]
+                        },
+                        {
+                            "name": "Arts",
+                            "specializations": [
+                                "HEPS"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "II PUC",
+                    "courses": [
+                        {
+                            "name": "Science",
+                            "specializations": [
+                                "PCMB",
+                                "PCMC",
+                                "PCME",
+                                "PCMS"
+                            ]
+                        },
+                        {
+                            "name": "Commerce",
+                            "specializations": [
+                                "EBAC",
+                                "EBAS",
+                                "EBAH",
+                                "BASBm",
+                                "BAEBm"
+                            ]
+                        },
+                        {
+                            "name": "Arts",
+                            "specializations": [
+                                "HEPS"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S COLLEGE",
+            "email": "admin.college@alvas.edu.in",
+            "password": "AlvasCollege@2026",
+            "establishedYear": 1998,
+            "programs": [
+                {
+                    "name": "B.Com",
+                    "courses": [
+                        {
+                            "name": "Commerce",
+                            "specializations": [
+                                "General",
+                                "Computer Application (Vocational)",
+                                "Tax Procedure & Practice",
+                                "Accounting & Finance",
+                                "Banking & Insurance",
+                                "Data Analytics",
+                                "With CA",
+                                "With Company Secretary",
+                                "ACCA",
+                                "CMA-US",
+                                "International Finance (CPA)"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "BBA",
+                    "courses": [
+                        {
+                            "name": "Business Administration",
+                            "specializations": [
+                                "Finance",
+                                "Logistics & Supply Chain",
+                                "Healthcare Management",
+                                "Facility Management",
+                                "HRM",
+                                "Marketing"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "BCA",
+                    "courses": [
+                        {
+                            "name": "Computer Applications",
+                            "specializations": [
+                                "General",
+                                "Data Analytics",
+                                "AI & ML"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "B.Sc (Science)",
+                    "courses": [
+                        {
+                            "name": "Pure Science",
+                            "specializations": [
+                                "Physics/Maths/CS",
+                                "PCM",
+                                "PMS",
+                                "Microbiology/Chemistry/Zoology",
+                                "Microbiology/Biochemistry/Botany",
+                                "Biotech/Chem/Zoology",
+                                "Biotech/Chem/Botany",
+                                "Psychology",
+                                "CBZ",
+                                "Culinary Arts"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "B.Sc (Vocational)",
+                    "courses": [
+                        {
+                            "name": "Vocational Science",
+                            "specializations": [
+                                "Hospitality Science",
+                                "Food Nutrition & Dietetics",
+                                "Fashion Design",
+                                "Animation & VFX"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "BA",
+                    "courses": [
+                        {
+                            "name": "Arts",
+                            "specializations": [
+                                "History/PolSci/Sociology",
+                                "PE/PolSci/Sociology",
+                                "History/Economics/PolSci",
+                                "English/Journalism/Psychology",
+                                "English/Journalism/History",
+                                "History/Bharatanatyam/Carnatic/Journalism/English",
+                                "Applied Media & Marketing",
+                                "Civil Studies"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "Other",
+                    "courses": [
+                        {
+                            "name": "Specialized Degrees",
+                            "specializations": [
+                                "BSW",
+                                "BVA",
+                                "BA (HRD)",
+                                "ITEP (BA B.Ed / B.Com B.Ed / B.Sc B.Ed)"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S COLLEGE OF PHYSICAL EDUCATION",
+            "email": "admin.physicaleducation@alvas.edu.in",
+            "password": "AlvasPhysicalEducation@2026",
+            "establishedYear": 2005,
+            "programs": [
+                {
+                    "name": "Physical Education",
+                    "courses": [
+                        {
+                            "name": "B.P.Ed",
+                            "specializations": [
+                                "General"
+                            ]
+                        },
+                        {
+                            "name": "M.P.Ed",
+                            "specializations": [
+                                "General"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S COLLEGE OF PHYSIOTHERAPY",
+            "email": "admin.physiotherapy@alvas.edu.in",
+            "password": "AlvasPhysiotherapy@2026",
+            "establishedYear": 1995,
+            "programs": [
+                {
+                    "name": "Physiotherapy",
+                    "courses": [
+                        {
+                            "name": "BPT",
+                            "specializations": [
+                                "General"
+                            ]
+                        },
+                        {
+                            "name": "Masters of Physiotherapy",
+                            "specializations": [
+                                "MSK",
+                                "Sports",
+                                "Neuro"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S COLLEGE OF ALLIED SCIENCES",
+            "email": "admin.alliedsciences@alvas.edu.in",
+            "password": "AlvasAlliedSciences@2026",
+            "establishedYear": 1999,
+            "programs": [
+                {
+                    "name": "B.Sc Allied Science",
+                    "courses": [
+                        {
+                            "name": "Allied Science",
+                            "specializations": [
+                                "MLT",
+                                "Anesthesia & OT",
+                                "Medical Imaging",
+                                "Renal Dialysis",
+                                "Public Health",
+                                "Bachelor of Hospital Administration"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "PG",
+                    "courses": [
+                        {
+                            "name": "M.Sc MLT",
+                            "specializations": [
+                                "Clinical Biochemistry",
+                                "Hematology",
+                                "Microbiology & Immunology"
+                            ]
+                        },
+                        {
+                            "name": "Hospital Administration",
+                            "specializations": [
+                                "Masters of Hospital Administration"
+                            ]
+                        },
+                        {
+                            "name": "Clinical Psychology",
+                            "specializations": [
+                                "M.Sc Clinical Psychology"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S AYURVEDA MEDICAL COLLEGE",
+            "email": "admin.ayurveda@alvas.edu.in",
+            "password": "AlvasAyurveda@2026",
+            "establishedYear": 1996,
+            "programs": [
+                {
+                    "name": "BAMS",
+                    "courses": [
+                        {
+                            "name": "Ayurveda",
+                            "specializations": [
+                                "General"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "MD/MS Ayurveda",
+                    "courses": [
+                        {
+                            "name": "PG Ayurveda",
+                            "specializations": [
+                                "Shalya Tantra",
+                                "Dravyaguna",
+                                "Panchakarma",
+                                "Kaumarabhritya",
+                                "Ayurveda Siddantha",
+                                "Shareera Rachana",
+                                "Rasashastra & Bhaishyajya Kalpana",
+                                "Agada Tantra",
+                                "Kayachikitsa",
+                                "Prasooti Tantra",
+                                "Shareera Kriya",
+                                "Shalakya Tantra",
+                                "Roganidana",
+                                "Manovijnana",
+                                "Swasthavritta"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "PhD Ayurveda",
+                    "courses": [
+                        {
+                            "name": "Doctorate",
+                            "specializations": [
+                                "Dravyaguna",
+                                "Rasashastra",
+                                "Shalya Tantra",
+                                "Kayachikitsa"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S COLLEGE OF NATUROPATHY AND YOGIC SCIENCES",
+            "email": "admin.naturopathy@alvas.edu.in",
+            "password": "AlvasNaturopathy@2026",
+            "establishedYear": 2003,
+            "programs": [
+                {
+                    "name": "Naturopathy & Yoga",
+                    "courses": [
+                        {
+                            "name": "BNYS",
+                            "specializations": [
+                                "General"
+                            ]
+                        },
+                        {
+                            "name": "MD Naturopathy",
+                            "specializations": [
+                                "General"
+                            ]
+                        },
+                        {
+                            "name": "MD Clinical Yoga",
+                            "specializations": [
+                                "General"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S HOMEOPATHY MEDICAL COLLEGE",
+            "email": "admin.homeopathy@alvas.edu.in",
+            "password": "AlvasHomeopathy@2026",
+            "establishedYear": 2004,
+            "programs": [
+                {
+                    "name": "Homeopathy",
+                    "courses": [
+                        {
+                            "name": "BHMS",
+                            "specializations": [
+                                "General"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S COLLEGE OF PHARMACY",
+            "email": "admin.pharmacy@alvas.edu.in",
+            "password": "AlvasPharmacy@2026",
+            "establishedYear": 2008,
+            "programs": [
+                {
+                    "name": "B.Pharm",
+                    "courses": [
+                        {
+                            "name": "Pharmacy",
+                            "specializations": [
+                                "General"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S COLLEGE OF NURSING",
+            "email": "admin.nursing@alvas.edu.in",
+            "password": "AlvasNursing@2026",
+            "establishedYear": 1996,
+            "programs": [
+                {
+                    "name": "B.Sc Nursing",
+                    "courses": [
+                        {
+                            "name": "Nursing",
+                            "specializations": [
+                                "General"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "M.Sc Nursing",
+                    "courses": [
+                        {
+                            "name": "Post Graduate Nursing",
+                            "specializations": [
+                                "Medical Surgical",
+                                "Community Health",
+                                "OBG",
+                                "Pediatric",
+                                "Psychiatric"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "Nursing (2018)",
+                    "courses": [
+                        {
+                            "name": "Nursing",
+                            "specializations": [
+                                "General"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S INSTITUTE OF ENGINEERING AND TECHNOLOGY",
+            "email": "admin.engineering@alvas.edu.in",
+            "password": "AlvasEngineering@2026",
+            "establishedYear": 2008,
+            "programs": [
+                {
+                    "name": "B.E",
+                    "courses": [
+                        {
+                            "name": "Engineering",
+                            "specializations": [
+                                "CSE",
+                                "CSE Data Science",
+                                "CSE IoT & Cyber Security",
+                                "AI & ML",
+                                "Mechanical",
+                                "Civil",
+                                "ECE",
+                                "ISE",
+                                "Agriculture Engg",
+                                "Computer Science & Design"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "MBA",
+                    "courses": [
+                        {
+                            "name": "Management",
+                            "specializations": [
+                                "Finance",
+                                "HR",
+                                "Marketing",
+                                "Business Analytics"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S COLLEGE OF EDUCATION",
+            "email": "admin.bed@alvas.edu.in",
+            "password": "AlvasBEd@2026",
+            "establishedYear": 2005,
+            "programs": [
+                {
+                    "name": "B.Ed",
+                    "courses": [
+                        {
+                            "name": "Education",
+                            "specializations": [
+                                "Physics/Maths",
+                                "Chemistry/Biology",
+                                "Chemistry/Maths",
+                                "Kannada/Social",
+                                "English/Social",
+                                "Hindi/Social",
+                                "Kannada/Commerce",
+                                "English/Commerce",
+                                "Hindi/Commerce"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S COLLEGE OF POST GRADUATE STUDIES AND RESEARCH CENTRE",
+            "email": "admin.pg@alvas.edu.in",
+            "password": "AlvasPG@2026",
+            "establishedYear": 1998,
+            "programs": [
+                {
+                    "name": "M.Sc",
+                    "courses": [
+                        {
+                            "name": "Science",
+                            "specializations": [
+                                "Analytical Chemistry",
+                                "Chemistry",
+                                "Organic Chemistry",
+                                "Physics",
+                                "Mathematics",
+                                "Biotechnology",
+                                "Psychology",
+                                "Zoology",
+                                "Food Science"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "MA",
+                    "courses": [
+                        {
+                            "name": "Arts",
+                            "specializations": [
+                                "English",
+                                "Journalism"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "MSW",
+                    "courses": [
+                        {
+                            "name": "Social Work",
+                            "specializations": [
+                                "HRM",
+                                "MPSW",
+                                "Community Development"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "M.Com",
+                    "courses": [
+                        {
+                            "name": "Commerce",
+                            "specializations": [
+                                "General",
+                                "HRD"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "Biotechnology",
+                    "courses": [
+                        {
+                            "name": "Research",
+                            "specializations": [
+                                "General"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S INSTITUTE OF NURSING SCIENCES",
+            "email": "admin.nursingsciences@alvas.edu.in",
+            "password": "AlvasNursingSciences@2026",
+            "establishedYear": 1995,
+            "programs": [
+                {
+                    "name": "Diploma",
+                    "courses": [
+                        {
+                            "name": "GNM",
+                            "specializations": [
+                                "General"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S LAW COLLEGE",
+            "email": "admin.law@alvas.edu.in",
+            "password": "AlvasLaw@2026",
+            "establishedYear": 2013,
+            "programs": [
+                {
+                    "name": "Law",
+                    "courses": [
+                        {
+                            "name": "Professional Law",
+                            "specializations": [
+                                "B.Com LLB",
+                                "BA LLB",
+                                "BBA LLB",
+                                "LLB 3 Years"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S INSTITUTE OF AGRICULTURAL SCIENCE AND TECHNOLOGY",
+            "email": "admin.agriculture@alvas.edu.in",
+            "password": "AlvasAgriculture@2026",
+            "establishedYear": 2025,
+            "programs": [
+                {
+                    "name": "Agriculture & Tech",
+                    "courses": [
+                        {
+                            "name": "Undergraduate",
+                            "specializations": [
+                                "B.Sc Agriculture",
+                                "B.Tech Food Technology"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "ALVA'S ACADEMY FOR EXCELLENCE",
+            "email": "admin.excellence@alvas.edu.in",
+            "password": "AlvasExcellence@2026",
+            "establishedYear": 2018,
+            "programs": [
+                {
+                    "name": "Crash Course",
+                    "courses": [
+                        {
+                            "name": "Excellence",
+                            "specializations": [
+                                "NEET Long Term"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
