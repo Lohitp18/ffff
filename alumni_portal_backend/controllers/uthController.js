@@ -1,6 +1,8 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const generateToken = require("../utils/generateToken");
+const fs = require("fs");
+const path = require("path");
 
 // ✅ User Registration (Sign Up) - Requires admin approval
 const registerUser = async (req, res) => {
@@ -108,35 +110,47 @@ const loginUser = async (req, res) => {
     }
 
     // Find user by email (case-insensitive)
+    const trimmedEmail = email.trim().toLowerCase();
     let user = await User.findOne({ email: trimmedEmail });
-    console.log(`Debug Login: Found user for ${trimmedEmail}? ${!!user}`);
-    if (user) console.log(`Debug Login: User status: ${user.status}, role: ${user.role}`);
 
-    // Auto-create institution admin accounts if they match the pattern
-    if (!user && trimmedEmail.startsWith('institution') && trimmedEmail.includes('@alvas.edu.in')) {
-      const INSTITUTION_PASSWORD = 'Alvas@123';
-      // Check if password matches institution admin password
-      if (password === INSTITUTION_PASSWORD) {
-        // Extract institution number from email (e.g., institution1@alvas.edu.in -> 1)
-        const match = trimmedEmail.match(/institution(\d+)@alvas\.edu\.in/);
-        if (match) {
-          const institutionNumber = match[1];
-          // Hash the password
-          const hashedPassword = await bcrypt.hash(INSTITUTION_PASSWORD, 10);
+    // --- STATIC INSTITUTION AUTHENTICATION START ---
+    // If user is not in DB or we want to allow override from JSON for institution admins
+    const hierarchyPath = path.join(__dirname, '..', 'data', 'enrollmentHierarchy.json');
+    if (fs.existsSync(hierarchyPath)) {
+      const hierarchyData = JSON.parse(fs.readFileSync(hierarchyPath, 'utf8'));
+      const staticInst = hierarchyData.institutions.find(inst => inst.email?.toLowerCase() === trimmedEmail);
 
-          // Create institution admin account
-          user = await User.create({
-            name: `Institution Admin ${institutionNumber}`,
-            email: trimmedEmail,
-            password: hashedPassword,
-            status: 'approved',
-            isAdmin: true, // Grant admin privileges
-            institution: `Institution ${institutionNumber}`,
-          });
-          console.log(`Auto-created institution admin account: ${trimmedEmail}`);
+      if (staticInst) {
+        // Institutional admin detected in JSON
+        if (password === staticInst.password) {
+          // Password matches static JSON - Sync with Database
+          if (!user) {
+            const hashedPassword = await bcrypt.hash(staticInst.password, 10);
+            user = await User.create({
+              name: staticInst.name,
+              email: trimmedEmail,
+              password: hashedPassword,
+              status: 'approved',
+              isAdmin: true,
+              role: 'admin',
+              institution: staticInst.name
+            });
+            console.log(`Auto-created institution admin from JSON: ${trimmedEmail}`);
+          } else {
+            // User exists, ensure they are approved and have admin role
+            let updated = false;
+            if (user.status !== 'approved') { user.status = 'approved'; updated = true; }
+            if (user.role !== 'admin') { user.role = 'admin'; updated = true; }
+            if (updated) await user.save();
+          }
+          // Proceed with login using the newly synced/verified user
+        } else {
+          // Email matches an institution, but password doesn't
+          return res.status(400).json({ message: "Invalid email or password" });
         }
       }
     }
+    // --- STATIC INSTITUTION AUTHENTICATION END ---
 
     if (!user) {
       console.log(`Login attempt failed: User not found for email: ${trimmedEmail}`);
