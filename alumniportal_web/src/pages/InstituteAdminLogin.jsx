@@ -240,51 +240,119 @@ const InstituteAdminLogin = () => {
   }
 
   if (!isAuthenticated) {
+    const [step, setStep] = useState('select') // 'select' or 'login'
+    const [searchTerm, setSearchTerm] = useState('')
+
+    const filteredInstitutions = institutions.filter(inst =>
+      inst.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+
+    const handleSelectInstitution = (instName) => {
+      setCollege(instName)
+      setStep('login')
+    }
+
     return (
-      <div className="auth-container centered">
-        <div className="auth-card">
-          <h1>Alumni Portal</h1>
-          <h2>Institute Admin Login</h2>
-          {error && <div className="error-message">{error}</div>}
-          <form onSubmit={handleLogin}>
-            <div className="form-group">
-              <label>College</label>
-              <select
-                value={college}
-                onChange={(e) => setCollege(e.target.value)}
-                required
-                className="form-group select"
-              >
-                <option value="">Select College</option>
-                {institutions.map((inst, index) => (
-                  <option key={index} value={inst.name}>{inst.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder="Enter email"
+      <div className="auth-container">
+        {/* Left Panel with Image */}
+        <div className="auth-left-panel">
+          <div className="auth-image-container">
+            <div className="auth-logo-container">
+              <img
+                src="/logo.png"
+                alt="Alva's Alumni"
+                className="auth-logo"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
               />
             </div>
-            <div className="form-group">
-              <label>Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="Enter password"
-              />
-            </div>
-            <button type="submit" disabled={loading} className="auth-button">
-              {loading ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
+            {/* Using a generic/relevant image or icon if specific one doesn't exist */}
+            <div className="auth-icon-large" style={{ fontSize: '100px', marginBottom: '20px' }}>🏫</div>
+            <h1 className="auth-welcome-text">Institute Administration</h1>
+            <p className="auth-description">
+              Manage your institution's presence, connect with alumni, and share updates with the student community.
+            </p>
+          </div>
+        </div>
+
+        {/* Right Panel with Form */}
+        <div className="auth-right-panel">
+          <div className="auth-card">
+            <h1>Alumni Portal</h1>
+            <h2>Institute Admin Login</h2>
+            {error && <div className="error-message">{error}</div>}
+
+            {step === 'select' ? (
+              <div className="institution-selection-step">
+                <p className="step-description">Select your institution to proceed</p>
+                <div className="search-box">
+                  <input
+                    type="text"
+                    placeholder="Search for your college..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="institution-search-field"
+                  />
+                </div>
+                <div className="institution-grid-small">
+                  {filteredInstitutions.length > 0 ? (
+                    filteredInstitutions.map((inst, index) => (
+                      <div
+                        key={index}
+                        className={`institution-item ${college === inst.name ? 'selected' : ''}`}
+                        onClick={() => handleSelectInstitution(inst.name)}
+                      >
+                        <div className="inst-icon">🏛️</div>
+                        <div className="inst-name">{inst.name}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="no-results">No institutions found</div>
+                  )}
+                </div>
+                <p className="auth-link" style={{ marginTop: '20px' }}>
+                  <a href="/signin">Back to Regular Login</a>
+                </p>
+              </div>
+            ) : (
+              <div className="login-step">
+                <button className="back-link-btn" onClick={() => setStep('select')}>
+                  ← Back to selection
+                </button>
+                <div className="selected-college-badge">
+                  <span>Logged in as:</span>
+                  <strong>{college}</strong>
+                </div>
+
+                <form onSubmit={handleLogin}>
+                  <div className="form-group">
+                    <label>Admin Email</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      placeholder="Enter email"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Password</label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      placeholder="Enter password"
+                    />
+                  </div>
+                  <button type="submit" disabled={loading} className="auth-button">
+                    {loading ? 'Signing in...' : 'Sign In'}
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     )
