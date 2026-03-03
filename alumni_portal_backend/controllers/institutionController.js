@@ -44,13 +44,23 @@ module.exports.handleImageUpload = handleImageUpload;
 // GET /api/institutions - Get all institutions
 exports.getAllInstitutions = async (req, res) => {
   try {
-    const institutions = await Institution.find({ isActive: true })
-      .sort({ name: 1 })
-      .select('-createdBy -updatedBy');
+    const filePath = path.join(__dirname, '..', 'data', 'enrollmentHierarchy.json');
+    const data = fs.readFileSync(filePath, 'utf8');
+    const hierarchy = JSON.parse(data);
+
+    // Map hierarchy to simpler institution objects
+    const institutions = hierarchy.institutions.map(inst => ({
+      name: inst.name,
+      email: inst.email,
+      password: inst.password, // Frontend uses this for simple validation
+      establishedYear: inst.establishedYear,
+      isActive: true
+    })).sort((a, b) => a.name.localeCompare(b.name));
+
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     return res.json(institutions);
   } catch (err) {
-    console.error('Error fetching institutions:', err);
+    console.error('Error fetching institutions from JSON:', err);
     return res.status(500).json({ message: 'Failed to fetch institutions' });
   }
 };
