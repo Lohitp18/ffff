@@ -21,7 +21,7 @@ import UserProfileView from './pages/UserProfileView'
 import PostEvent from './pages/PostEvent'
 import PostOpportunity from './pages/PostOpportunity'
 import InstitutionDashboard from './pages/InstitutionDashboard'
-import Privacy from './pages/Privacy'
+import Privacy from './pages/privacy'
 
 import './App.css'
 
