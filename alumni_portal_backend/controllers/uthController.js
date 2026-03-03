@@ -114,18 +114,10 @@ const loginUser = async (req, res) => {
     }
 
     const trimmedEmail = email.trim().toLowerCase();
-
-    if (!trimmedEmail) {
-      return res.status(400).json({ message: "Email is required" });
-    }
-
     let user = await User.findOne({ email: trimmedEmail });
 
-    // =============================
-    // STATIC INSTITUTION AUTH
-    // =============================
-    const hierarchyPath = path.join(__dirname, "..", "data", "enrollmentHierarchy.json");
-
+    // --- STATIC INSTITUTION AUTHENTICATION START ---
+    const hierarchyPath = path.join(__dirname, '..', 'data', 'enrollmentHierarchy.json');
     if (fs.existsSync(hierarchyPath)) {
       const hierarchyData = JSON.parse(fs.readFileSync(hierarchyPath, "utf8"));
 
@@ -137,7 +129,6 @@ const loginUser = async (req, res) => {
         if (password === staticInst.password) {
           if (!user) {
             const hashedPassword = await bcrypt.hash(staticInst.password, 10);
-
             user = await User.create({
               name: staticInst.name,
               email: trimmedEmail,
@@ -147,32 +138,20 @@ const loginUser = async (req, res) => {
               role: "admin",
               institution: staticInst.name,
             });
-
             console.log(`Auto-created institution admin: ${trimmedEmail}`);
           } else {
             let updated = false;
-
-            if (user.status !== "approved") {
-              user.status = "approved";
-              updated = true;
-            }
-
-            if (user.role !== "admin") {
-              user.role = "admin";
-              updated = true;
-            }
-
+            if (user.status !== "approved") { user.status = "approved"; updated = true; }
+            if (user.role !== "admin") { user.role = "admin"; updated = true; }
             if (updated) await user.save();
           }
+          // Continue to token generation
         } else {
           return res.status(400).json({ message: "Invalid email or password" });
         }
       }
     }
-
-    // =============================
-    // Normal Login Flow
-    // =============================
+    // --- STATIC INSTITUTION AUTHENTICATION END ---
     if (!user) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
