@@ -1,60 +1,37 @@
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
-import './Auth.css'
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import PageFlipSlider from "../components/PageFlipSlider";
+import logo from "../logoo.png";
+import "./Auth.css";
 
 const SignIn = () => {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const { login } = useAuth()
-  const navigate = useNavigate()
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
-    const result = await login(email, password)
+    const result = await login(email, password);
     if (result.success) {
-      navigate('/home')
+      navigate("/home");
     } else {
-      setError(result.message)
+      setError(result.message);
     }
-    setLoading(false)
-  }
+    setLoading(false);
+  };
 
   return (
     <div className="auth-container">
-      {/* Left Panel with Image */}
+      {/* Left Panel with Interactive Slider */}
       <div className="auth-left-panel">
-        <div className="auth-image-container">
-          <div className="auth-logo-container">
-            <img
-              src="/logo.png"
-              alt="Alva's Alumni"
-              className="auth-logo"
-              onError={(e) => {
-                e.target.style.display = 'none';
-              }}
-            />
-          </div>
-          <img
-            src="/alumni-signin.jpg"
-            alt="Alumni Network"
-            className="auth-image"
-            onError={(e) => {
-              e.target.style.display = 'none';
-              e.target.nextSibling.style.display = 'block';
-            }}
-          />
-          <div style={{ display: 'none', color: 'white', fontSize: '48px' }}>🎓</div>
-          <h1 className="auth-welcome-text">Welcome Back!</h1>
-          <p className="auth-description">
-            Connect with your alumni network and stay updated with opportunities, events, and success stories.
-          </p>
-        </div>
+        <PageFlipSlider />
       </div>
 
       {/* Right Panel with Form */}
@@ -85,25 +62,19 @@ const SignIn = () => {
               />
             </div>
             <button type="submit" disabled={loading} className="auth-button">
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
           <p className="auth-link">
-            Don't have an account? <Link to="/signup">Sign Up</Link>
+            <b>
+              {" "}
+              Don't have an account? <Link to="/signup">Sign Up</Link>
+            </b>
           </p>
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default SignIn
-
-
-
-
-
-
-
-
-
+export default SignIn;

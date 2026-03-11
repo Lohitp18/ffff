@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import './Landing.css'
-import img from '../front.jpeg'
-import logo from '../logoo.webp' // add your logo image
+// import img from '../front.jpeg'
+import hero from '../hero.mp4'
+import logo from '../logoo.png' // add your logo image
 
 const Landing = () => {
   const navigate = useNavigate()
@@ -10,16 +11,24 @@ const Landing = () => {
     <div className="landing-container">
       <div
         className="landing-hero"
-        style={{ backgroundImage: `url(${img})` }}
+        // style={{ backgroundImage: `url(${img})` }}
+        
       >
-
+ <video
+    className="landing-video"
+    src={hero}
+    autoPlay
+    muted
+    loop
+    playsInline
+  />
         {/* HEADER */}
         <div className="landing-header">
           <div className="header-center">
             <img src={logo} alt="Logo" className="header-logo" />
-            <h2 className="header-title">
-              Alvas Education Foundation
-            </h2>
+            <h1 className="header-title">
+              Alva's Alumni Portal
+            </h1>
           </div>
         </div>
 
@@ -27,12 +36,10 @@ const Landing = () => {
 
         <div className="landing-content glass-card">
           <h1 className="landing-title">
-            <span className="highlight">Alvas Connect</span>
+            
           </h1>
 
-          <p className="landing-subtitle">
-            Bridging Students, Alumni & Opportunities
-          </p>
+         
 
           <div className="landing-buttons">
             <button

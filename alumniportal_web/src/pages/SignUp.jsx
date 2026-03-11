@@ -1,143 +1,96 @@
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
-import EnrollmentSelector from '../components/EnrollmentSelector'
-import './Auth.css'
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import EnrollmentSelector from "../components/EnrollmentSelector";
+import PageFlipSlider from "../components/PageFlipSlider";
+import logo from "../logoo.png";
+import "./Auth.css";
 
 const SignUp = () => {
-  const [status, setStatus] = useState('') // 'working', 'masters', 'entrepreneurs'
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    dob: '',
-    institution: '',
-    program: '',
-    course: '',
-    specialization: '',
-    year: '',
-    password: '',
-    confirmPassword: '',
-    socialMedia: '',
-    // Conditional fields based on status
-    location: '',
-    currentCompany: '',
-    position: '',
-    totalExperience: '',
-    mastersCollege: '',
-    mastersCourse: '',
-    entrepreneurCompany: '',
-    companyType: '',
-  })
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const { signup } = useAuth()
-  const navigate = useNavigate()
+    name: "",
+    email: "",
+    phone: "",
+    dob: "",
+    institution: "",
+    program: "",
+    course: "",
+    specialization: "",
+    year: "",
+    location: "",
+    currentCompany: "",
+    position: "",
+    totalExperience: "",
+    mastersCollege: "",
+    mastersCourse: "",
+    entrepreneurCompany: "",
+    companyType: "",
+    password: "",
+    confirmPassword: "",
+    socialMedia: "",
+  });
 
-  const handleEnrollmentChange = (enrollmentData) => {
-    setFormData(prev => ({ ...prev, ...enrollmentData }));
-  };
+  const [status, setStatus] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { signup } = useAuth();
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
-  }
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
   const handleDateChange = (e) => {
-    setFormData({ ...formData, dob: e.target.value })
-  }
+    setFormData((prev) => ({
+      ...prev,
+      dob: e.target.value,
+    }));
+  };
+
+  const handleEnrollmentChange = (selection) => {
+    setFormData((prev) => ({
+      ...prev,
+      ...selection,
+    }));
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
+    e.preventDefault();
+    setError("");
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match')
-      return
+      return setError("Passwords do not match");
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters')
-      return
-    }
+    setLoading(true);
 
-    if (!formData.institution || !formData.program || !formData.course || !formData.year) {
-      setError('Please complete all enrollment details')
-      return
-    }
+    try {
+      const signupData = {
+        ...formData,
+        status,
+      };
 
-    if (!status) {
-      setError('Please select your current status')
-      return
+      const result = await signup(signupData);
+      if (result.success) {
+        navigate("/signin");
+      } else {
+        setError(result.message);
+      }
+    } catch (err) {
+      setError("An unexpected error occurred during signup");
+    } finally {
+      setLoading(false);
     }
-
-    // Validate conditional fields based on status
-    if (status === 'masters') {
-      // Masters fields are now optional
-    } else if (status === 'entrepreneurs') {
-      // Entrepreneur fields are now optional
-    }
-
-    setLoading(true)
-    const { confirmPassword, ...userData } = formData
-    // Map conditional fields to backend expected fields
-    if (status === 'working') {
-      userData.location = formData.location
-      userData.currentCompany = formData.currentCompany
-      userData.position = formData.position
-      userData.totalExperience = formData.totalExperience
-      userData.previousCompany = '' // Not required for working
-    } else if (status === 'masters') {
-      userData.location = formData.mastersCollege
-      userData.currentCompany = formData.mastersCourse
-      userData.previousCompany = ''
-      userData.totalExperience = '0'
-    } else if (status === 'entrepreneurs') {
-      userData.location = ''
-      userData.currentCompany = formData.entrepreneurCompany
-      userData.previousCompany = formData.companyType
-      userData.totalExperience = '0'
-    }
-    // Date is already in YYYY-MM-DD format from date input, backend will parse it
-    const result = await signup(userData)
-
-    if (result.success) {
-      navigate('/signin')
-    } else {
-      setError(result.message)
-    }
-    setLoading(false)
-  }
-
+  };
   return (
     <div className="auth-container">
-      {/* Left Panel with Image */}
+      {/* Left Panel with Interactive Slider */}
       <div className="auth-left-panel">
-        <div className="auth-image-container">
-          <div className="auth-logo-container">
-            <img
-              src="/logo.png"
-              alt="Alva's Alumni"
-              className="auth-logo"
-              onError={(e) => {
-                e.target.style.display = 'none';
-              }}
-            />
-          </div>
-          <img
-            src="/alumni-signup.jpg"
-            alt="Join Alumni Network"
-            className="auth-image"
-            onError={(e) => {
-              e.target.style.display = 'none';
-              e.target.nextSibling.style.display = 'block';
-            }}
-          />
-          <div style={{ display: 'none', color: 'white', fontSize: '48px' }}>🌟</div>
-          <h1 className="auth-welcome-text">Join Our Community!</h1>
-          <p className="auth-description">
-            Become part of our growing alumni network and unlock endless opportunities for networking, career growth, and lifelong connections.
-          </p>
-        </div>
+        <PageFlipSlider />
       </div>
 
       {/* Right Panel with Form */}
@@ -197,7 +150,7 @@ const SignUp = () => {
                 program: formData.program,
                 course: formData.course,
                 specialization: formData.specialization,
-                year: formData.year
+                year: formData.year,
               }}
             />
             <div className="form-group">
@@ -215,7 +168,7 @@ const SignUp = () => {
             </div>
 
             {/* Conditional fields based on status */}
-            {status === 'working' && (
+            {status === "working" && (
               <>
                 <div className="form-group">
                   <label>Job Location</label>
@@ -260,7 +213,7 @@ const SignUp = () => {
               </>
             )}
 
-            {status === 'masters' && (
+            {status === "masters" && (
               <>
                 <div className="form-group">
                   <label>College Name</label>
@@ -285,7 +238,7 @@ const SignUp = () => {
               </>
             )}
 
-            {status === 'entrepreneurs' && (
+            {status === "entrepreneurs" && (
               <>
                 <div className="form-group">
                   <label>Company Name</label>
@@ -343,18 +296,18 @@ const SignUp = () => {
               />
             </div>
             <button type="submit" disabled={loading} className="auth-button">
-              {loading ? 'Signing up...' : 'Sign Up'}
+              {loading ? "Signing up..." : "Sign Up"}
             </button>
           </form>
           <p className="auth-link">
-            Already have an account? <Link to="/signin">Sign In</Link>
+            <b>
+              Already have an account? <Link to="/signin">Sign In</Link>
+            </b>
           </p>
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default SignUp
-
-
+export default SignUp;

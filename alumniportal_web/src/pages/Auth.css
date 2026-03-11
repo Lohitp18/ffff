@@ -12,7 +12,7 @@
 }
 
 .auth-container::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -23,7 +23,7 @@
 
 .auth-left-panel {
   flex: 1;
-  background: linear-gradient(135deg, #0a66c2 0%, #004182 100%);
+  background: #000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -31,69 +31,20 @@
   overflow: hidden;
 }
 
-.auth-left-panel::before {
-  content: '';
+.auth-logo-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: 
-    radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+  top: 20px;
+  left: 20px;
+  z-index: 30;
   pointer-events: none;
-}
-
-.auth-image-container {
-  position: relative;
-  z-index: 1;
-  text-align: center;
-  padding: var(--spacing-xl);
-}
-
-.auth-logo-container {
-  margin-bottom: var(--spacing-xl);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  opacity: 0.6; /* Balanced transparency for watermark */
 }
 
 .auth-logo {
-  max-width: 200px;
+  max-width: 120px;
   width: 100%;
   height: auto;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
-  background: rgba(255, 255, 255, 0.1);
-  padding: var(--spacing-md);
-  border-radius: var(--radius-lg);
-  backdrop-filter: blur(10px);
-}
-
-.auth-image {
-  max-width: 400px;
-  width: 100%;
-  height: auto;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xl);
-  margin-bottom: var(--spacing-xl);
-}
-
-.auth-welcome-text {
-  color: white;
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  margin-bottom: var(--spacing-md);
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.auth-description {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-medium);
-  line-height: 1.6;
-  max-width: 400px;
-  margin: 0 auto;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2)); /* Subtle shadow */
 }
 
 .auth-right-panel {
@@ -274,7 +225,6 @@
 
   .auth-left-panel {
     min-height: 30vh;
-    padding: var(--spacing-lg);
   }
 
   .auth-right-panel {
@@ -310,7 +260,6 @@
 @media (max-width: 480px) {
   .auth-left-panel {
     min-height: 25vh;
-    padding: var(--spacing-md);
   }
 
   .auth-image {
@@ -321,5 +270,3 @@
     font-size: var(--font-size-base);
   }
 }
-
-
