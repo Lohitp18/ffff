@@ -1,3 +1,6 @@
+/* Import a more professional, "Word Art" style font */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;800&display=swap');
+
 /* Page container */
 .landing-container {
   width: 100%;
@@ -15,7 +18,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #001a33; /* Dark blue fallback while video loads */
+  background-color: #001a33;
+  /* Dark blue fallback while video loads */
 }
 
 .landing-video {
@@ -25,6 +29,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: top center;
   transform: translate(-50%, -50%);
   z-index: 0;
 }
@@ -35,18 +40,18 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg,
-      rgba(0, 0, 0, 0.6),
-      rgba(0, 20, 40, 0.4),
-      rgba(0, 0, 0, 0.7));
-  z-index: 1;
+
+
 }
 
 /* Content */
 .landing-content {
   position: relative;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
   z-index: 2;
-  padding-top: 20rem; 
+  padding-top: 20rem;
   text-align: center;
   color: white;
   display: flex;
@@ -70,6 +75,11 @@
   gap: 24px;
   justify-content: center;
   flex-wrap: wrap;
+  position: absolute;
+  bottom: 100px;
+  left: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .landing-btn {
@@ -114,6 +124,7 @@
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -138,22 +149,80 @@
 }
 
 .header-logo {
-  width: 65px;
-  height: 65px;
+  width: 85px;
+  height: 85px;
   object-fit: contain;
+  margin-bottom: 30px;
+}
+
+.header-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: left;
+  /* Keep left alignment relative to the logo */
+  padding: 20px;
+  background: transparent;
+  /* Assuming it overlays the image */
 }
 
 .header-title {
-  font-size: 2rem;
+  font-family: 'Cinzel', serif;
+  font-size: 1.8rem;
   font-weight: 600;
-  color: white;
-  letter-spacing: 2.5px;
+  color: #f03a0c;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin: 0;
+  line-height: 1;
+
+  /* Text Shadow for better readability over images */
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+
+  /* Animation */
+  animation: elegantEntrance 1.2s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
+}
+
+.header-subtitle {
+  font-family: 'Cinzel ', serif;
+  font-size: 2rem;
+  font-weight: 500;
+  color: #ffffff;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  margin-top: 5px;
+  display: block;
+  text-align: center;
+
+  /* Subtle Glow Effect */
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+
+  /* Delayed Animation */
+  opacity: 0;
+  animation: elegantEntrance 1.2s cubic-bezier(0.215, 0.61, 0.355, 1) 0.4s forwards;
+}
+
+/* Keyframes for a smooth fade-in and letter-spreading effect */
+@keyframes elegantEntrance {
+  0% {
+    opacity: 0;
+    letter-spacing: 15px;
+    transform: translateY(-10px);
+    filter: blur(5px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
 }
 
 /* Responsive */
 @media (max-width: 768px) {
   .landing-content {
-    padding-top: 8rem; /* Reduced from 20rem for better mobile fit */
+    padding-top: 8rem;
+    /* Reduced from 20rem for better mobile fit */
   }
 
   .landing-title {
@@ -162,10 +231,12 @@
   }
 
   .landing-buttons {
-    flex-direction: row; /* Restored to row as requested */
+    flex-direction: row;
+    /* Restored to row as requested */
     gap: 16px;
     width: 100%;
     padding: 0 20px;
+    bottom: 30px;
   }
 
   .landing-btn {
@@ -173,23 +244,33 @@
     min-width: unset;
     padding: 14px 32px;
   }
-  
+
   .landing-header {
     top: 15px;
     padding: 0 10px;
   }
 
   .header-logo {
-    width: 50px;
-    height: 50px;
+    width: 65px;
+    height: 65px;
   }
 
   .header-title {
     font-size: 1.4rem;
-    white-space: normal; /* Allow wrapping */
+    white-space: normal;
+    /* Allow wrapping */
     letter-spacing: 1px;
     line-height: 1.2;
     text-align: left;
+    margin: 0;
+  }
+
+  .header-subtitle {
+    font-size: 1.1rem;
+    text-align: left;
+    letter-spacing: 1px;
+    margin: 0;
+    line-height: 1.2;
   }
 }
 
@@ -198,7 +279,11 @@
   .header-title {
     font-size: 1.2rem;
   }
-  
+
+  .header-subtitle {
+    font-size: 0.9rem;
+  }
+
   .landing-content {
     padding-top: 6rem;
   }

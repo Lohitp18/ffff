@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import EnrollmentSelector from "../components/EnrollmentSelector";
-import PageFlipSlider from "../components/PageFlipSlider";
+import Invitation from "../components/Invitation";
 import logo from "../logoo.png";
 import "./Auth.css";
 
@@ -90,7 +90,7 @@ const SignUp = () => {
     <div className="auth-container">
       {/* Left Panel with Interactive Slider */}
       <div className="auth-left-panel">
-        <PageFlipSlider />
+        <Invitation />
       </div>
 
       {/* Right Panel with Form */}

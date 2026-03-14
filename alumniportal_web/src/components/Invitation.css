@@ -1,0 +1,183 @@
+.invitation-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background-color: #0f172a; /* Dark sleek background */
+  position: relative;
+  overflow-y: auto;
+}
+
+/* Subtle background pattern or gradient */
+.invitation-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at top right, rgba(30, 58, 138, 0.3), transparent 50%),
+              radial-gradient(circle at bottom left, rgba(14, 165, 233, 0.15), transparent 40%);
+  pointer-events: none;
+}
+
+.invitation-content {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 2.5rem;
+  max-width: 600px;
+  width: 100%;
+  color: #f8fafc !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  position: relative;
+  z-index: 1;
+}
+
+/* Hard global overrides specific to the invitation component */
+.invitation-content p, 
+.invitation-content h1, 
+.invitation-content h2, 
+.invitation-content h3, 
+.invitation-content span, 
+.invitation-content strong {
+  color: #ffffff !important;
+}
+
+.invitation-content .invitation-title {
+  color: #38bdf8 !important; /* light blue accent override */
+}
+
+.invitation-content .main-message strong,
+.invitation-content .event-details strong {
+  color: #bae6fd !important; /* highlighted text override */
+}
+
+
+.invitation-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #38bdf8; /* Light blue accent */
+  text-align: center;
+  margin-bottom: 2rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.3);
+  padding-bottom: 1rem;
+}
+
+.invitation-body {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #ffffff !important; /* pure white for maximum visibility */
+}
+
+.salutation {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.greetings {
+  margin-bottom: 1.5rem;
+  font-style: italic;
+  color: #ffffff !important; /* pure white for visibility */
+}
+
+.main-message {
+  margin-bottom: 1.25rem;
+  text-align: justify;
+}
+
+.main-message strong {
+  color: #bae6fd;
+}
+
+.event-details {
+  background: rgba(15, 23, 42, 0.6);
+  padding: 1.25rem;
+  border-radius: 8px;
+  margin: 2rem 0;
+  border-left: 4px solid #38bdf8;
+  color: #ffffff !important; /* enforce white text visibility within this box */
+}
+
+.event-details p {
+  margin: 0.5rem 0;
+  color: #ffffff !important;
+}
+
+.event-details strong {
+  color: #7dd3fc;
+}
+
+.deadline {
+  margin-top: 1rem !important;
+  color: #fca5a5;
+}
+
+.sign-off {
+  text-align: right;
+  margin-top: 2rem;
+  margin-bottom: 1.5rem;
+  color: #ffffff !important;
+}
+
+.sign-off p {
+  margin: 0.25rem 0;
+}
+
+.enclosure {
+  font-size: 0.85rem;
+  color: #ffffff !important;
+  font-style: italic;
+}
+
+.invitation-register-btn {
+  display: block;
+  width: 100%;
+  margin-top: 2rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.invitation-register-btn:hover {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+}
+
+.invitation-register-btn:active {
+  transform: translateY(0);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .invitation-container {
+    padding: 1rem;
+  }
+  
+  .invitation-content {
+    padding: 1.5rem;
+  }
+  
+  .invitation-title {
+    font-size: 1.5rem;
+  }
+  
+  .invitation-body {
+    font-size: 0.95rem;
+  }
+}

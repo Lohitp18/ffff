@@ -26,9 +26,14 @@ const Landing = () => {
         <div className="landing-header">
           <div className="header-center">
             <img src={logo} alt="Logo" className="header-logo" />
-            <h1 className="header-title">
-              Alva's Alumni Portal
-            </h1>
+            <div className="header-text">
+              <h1 className="header-title" >
+               ALVA'S EDUCATION FOUNDATION
+              </h1>
+              <h2 className="header-subtitle">
+                ALUMNI PORTAL
+              </h2>
+            </div>
           </div>
         </div>
 
