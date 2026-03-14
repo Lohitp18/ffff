@@ -65,7 +65,7 @@ const listApproved = async (Model, res, userId = null) => {
   // For posts, get all posts (approved and pending) for home page
   if (Model.modelName === 'Post') {
     items = await Model.find({})
-      .populate('authorId', 'name profileImage headline')
+      .populate('authorId', 'name username profileImage headline')
       .sort({ createdAt: -1 })
       .limit(50);
   } else if (Model.modelName === 'InstitutionPost') {
@@ -76,7 +76,7 @@ const listApproved = async (Model, res, userId = null) => {
   } else {
     // For other content types (Event, Opportunity), only show approved
     items = await Model.find({ status: "approved" })
-      .populate('postedBy', 'name profileImage headline')
+      .populate('postedBy', 'name username profileImage headline')
       .sort({ createdAt: -1 })
       .limit(50);
   }
@@ -124,7 +124,7 @@ module.exports = {
     try {
       const userId = req.user?._id?.toString() || null;
       const events = await Event.find({ status: "approved" })
-        .populate('postedBy', 'name profileImage headline email')
+        .populate('postedBy', 'name username profileImage headline email')
         .sort({ createdAt: -1 })
         .limit(100);
       
@@ -204,7 +204,7 @@ module.exports = {
     try {
       const userId = req.user?._id?.toString() || null;
       const opportunities = await Opportunity.find({ status: "approved" })
-        .populate('postedBy', 'name profileImage headline email')
+        .populate('postedBy', 'name username profileImage headline email')
         .sort({ createdAt: -1 })
         .limit(100);
       
@@ -227,7 +227,7 @@ module.exports = {
       const userId = req.user?._id?.toString() || null;
       // For admin, only return approved posts
       const posts = await Post.find({ status: "approved" })
-        .populate('authorId', 'name profileImage headline email')
+        .populate('authorId', 'name username profileImage headline email')
         .sort({ createdAt: -1 })
         .limit(100);
       
@@ -293,7 +293,7 @@ module.exports = {
   getPendingEvents: async (_req, res) => {
     try {
       const events = await Event.find({ status: "pending" })
-        .populate("postedBy", "name email profileImage headline")
+        .populate("postedBy", "name username email profileImage headline")
         .sort({ createdAt: -1 });
       return res.json(events);
     } catch (err) {
@@ -305,7 +305,7 @@ module.exports = {
   getPendingOpportunities: async (_req, res) => {
     try {
       const opportunities = await Opportunity.find({ status: "pending" })
-        .populate("postedBy", "name email profileImage headline")
+        .populate("postedBy", "name username email profileImage headline")
         .sort({ createdAt: -1 });
       return res.json(opportunities);
     } catch (err) {
@@ -317,7 +317,7 @@ module.exports = {
   getPendingPosts: async (_req, res) => {
     try {
       const posts = await Post.find({ status: "pending" })
-        .populate('authorId', 'name profileImage headline email')
+        .populate('authorId', 'name username profileImage headline email')
         .sort({ createdAt: -1 });
       return res.json(posts);
     } catch (err) {

@@ -16,8 +16,8 @@ const getAllReports = async (req, res) => {
     }
 
     const reports = await Report.find(query)
-      .populate('reporterId', 'name email')
-      .populate('reviewedBy', 'name email')
+      .populate('reporterId', 'name username email')
+      .populate('reviewedBy', 'name username email')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -31,15 +31,15 @@ const getAllReports = async (req, res) => {
         switch (report.reportedItemType) {
           case 'Post':
             reportedItem = await Post.findById(report.reportedItemId)
-              .populate('authorId', 'name email');
+              .populate('authorId', 'name username email');
             break;
           case 'Event':
             reportedItem = await Event.findById(report.reportedItemId)
-              .populate('postedBy', 'name email');
+              .populate('postedBy', 'name username email');
             break;
           case 'Opportunity':
             reportedItem = await Opportunity.findById(report.reportedItemId)
-              .populate('postedBy', 'name email');
+              .populate('postedBy', 'name username email');
             break;
           case 'InstitutionPost':
             reportedItem = await InstitutionPost.findById(report.reportedItemId);
@@ -90,8 +90,8 @@ const updateReportStatus = async (req, res) => {
       reportId,
       updateData,
       { new: true }
-    ).populate('reporterId', 'name email')
-     .populate('reviewedBy', 'name email');
+    ).populate('reporterId', 'name username email')
+     .populate('reviewedBy', 'name username email');
 
     if (!report) {
       return res.status(404).json({ message: 'Report not found' });

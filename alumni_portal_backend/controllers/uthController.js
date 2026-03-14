@@ -11,6 +11,7 @@ const registerUser = async (req, res) => {
   try {
     const {
       name,
+      username,
       email,
       phone,
       dob,
@@ -28,14 +29,20 @@ const registerUser = async (req, res) => {
       location,
     } = req.body;
 
-    if (!name || !email || !phone || !institution || !course || !year || !password) {
+    if (!name || !username || !email || !phone || !institution || !course || !year || !password) {
       return res.status(400).json({ message: "All basic fields are required" });
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+    const normalizedUsername = username.trim().toLowerCase();
 
-    const userExists = await User.findOne({ email: normalizedEmail });
-    if (userExists) {
+    const existingByUsername = await User.findOne({ username: normalizedUsername });
+    if (existingByUsername) {
+      return res.status(400).json({ message: "Username already exists" });
+    }
+
+    const existingByEmail = await User.findOne({ email: normalizedEmail });
+    if (existingByEmail) {
       return res.status(400).json({ message: "User already exists" });
     }
 
@@ -60,6 +67,7 @@ const registerUser = async (req, res) => {
 
     const user = await User.create({
       name,
+      username: normalizedUsername,
       email: normalizedEmail,
       phone,
       dob: parsedDob,
@@ -107,23 +115,36 @@ const loginUser = async (req, res) => {
       return res.status(400).json({ message: "Request body is required" });
     }
 
-    const { email, password } = req.body;
+    const { identifier, email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required" });
+    const rawIdentifier = (identifier || email || "").trim();
+
+    if (!rawIdentifier || !password) {
+      return res.status(400).json({ message: "Email or username and password are required" });
     }
 
-    const trimmedEmail = email.trim().toLowerCase();
-    let user = await User.findOne({ email: trimmedEmail });
+    const isEmail = rawIdentifier.includes("@");
+    const trimmedEmail = isEmail ? rawIdentifier.toLowerCase() : null;
+    const normalizedUsername = !isEmail ? rawIdentifier.toLowerCase() : null;
+
+    let user = null;
+
+    if (isEmail) {
+      user = await User.findOne({ email: trimmedEmail });
+    } else {
+      user = await User.findOne({ username: normalizedUsername });
+    }
 
     // --- STATIC INSTITUTION AUTHENTICATION START ---
     const hierarchyPath = path.join(__dirname, '..', 'data', 'enrollmentHierarchy.json');
     if (fs.existsSync(hierarchyPath)) {
       const hierarchyData = JSON.parse(fs.readFileSync(hierarchyPath, "utf8"));
 
-      const staticInst = hierarchyData.institutions?.find(
-        (inst) => inst.email?.toLowerCase() === trimmedEmail
-      );
+      const staticInst =
+        isEmail &&
+        hierarchyData.institutions?.find(
+          (inst) => inst.email?.toLowerCase() === trimmedEmail
+        );
 
       if (staticInst) {
         if (password === staticInst.password) {
@@ -173,6 +194,7 @@ const loginUser = async (req, res) => {
     res.json({
       _id: user._id,
       email: user.email,
+      username: user.username,
       status: user.status,
       token,
     });

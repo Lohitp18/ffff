@@ -39,7 +39,7 @@ const getUserNotifications = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit)
-      .populate('userId', 'name email');
+      .populate('userId', 'name username email');
 
     const total = await Notification.countDocuments(query);
 

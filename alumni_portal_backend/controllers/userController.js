@@ -153,7 +153,7 @@ exports.getProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.user._id;
-    const updateData = req.body;
+    const updateData = { ...req.body };
 
     // Remove fields that shouldn't be updated directly
     delete updateData.password;
@@ -161,6 +161,25 @@ exports.updateProfile = async (req, res) => {
     delete updateData.email; // Email shouldn't be changed via profile update
     delete updateData.status;
     delete updateData.isAdmin;
+
+    // If username is being updated, enforce uniqueness (case-insensitive)
+    if (typeof updateData.username === "string") {
+      const normalizedUsername = updateData.username.trim().toLowerCase();
+      if (!normalizedUsername) {
+        return res.status(400).json({ message: "Username cannot be empty" });
+      }
+
+      const existingUser = await User.findOne({
+        _id: { $ne: userId },
+        username: normalizedUsername,
+      });
+
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+
+      updateData.username = normalizedUsername;
+    }
 
     const user = await User.findByIdAndUpdate(userId, updateData, {
       new: true,
