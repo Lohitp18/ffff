@@ -178,7 +178,8 @@ const PostCard = ({ post, onUpdate }) => {
   }
 
   const isInstitutionPost = Boolean(post.institution)
-  const authorName = post.authorId?.name || post.postedBy?.name
+  const authorUsername = post.authorId?.username || post.postedBy?.username
+  const authorName = authorUsername ? `@${authorUsername}` : (post.authorId?.name || post.postedBy?.name)
   const authorHeadline = post.authorId?.headline || post.postedBy?.headline
   const authorImage = post.authorId?.profileImage || post.postedBy?.profileImage
 

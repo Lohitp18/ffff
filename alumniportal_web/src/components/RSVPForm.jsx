@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import './RSVPForm.css';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 const RSVPForm = ({ isOpen, onClose }) => {
   const [formData, setFormData] = useState({
@@ -70,11 +73,16 @@ const RSVPForm = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Simulate submission
-    alert("Thank you for your response! We look forward to seeing you at the Alumni Meet.");
-    onClose();
+    try {
+      await axios.post(`${API_BASE_URL}/api/rsvp`, formData);
+      alert("Thank you for your response! We look forward to seeing you at the Alumni Meet.");
+      onClose();
+    } catch (error) {
+      console.error('RSVP submit error', error);
+      alert(error.response?.data?.message || "Failed to submit registration. Please try again.");
+    }
   };
 
   return (

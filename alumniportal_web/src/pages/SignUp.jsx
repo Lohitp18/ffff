@@ -9,6 +9,7 @@ import "./Auth.css";
 const SignUp = () => {
   const [formData, setFormData] = useState({
     name: "",
+    username: "",
     email: "",
     phone: "",
     dob: "",
@@ -109,6 +110,17 @@ const SignUp = () => {
                 onChange={handleChange}
                 required
                 placeholder="Enter your name"
+              />
+            </div>
+            <div className="form-group">
+              <label>Username *</label>
+              <input
+                type="text"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                required
+                placeholder="Choose a unique username (for login)"
               />
             </div>
             <div className="form-group">

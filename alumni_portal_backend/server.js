@@ -63,6 +63,7 @@ app.use("/api/posts", require("./routes/postRoutes"));
 app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.use("/api/reports", require("./routes/reportRoutes"));
 app.use("/api/institutions", require("./routes/institutionRoutes"));
+app.use("/api/rsvp", require("./routes/rsvpRoutes"));
 
 // Minimal web admin UI (no auth) for reviewing pending items
 app.get('/admin', (_req, res) => {

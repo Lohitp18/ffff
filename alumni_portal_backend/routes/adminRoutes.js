@@ -33,6 +33,7 @@ const {
   deletePost
 } = require('../controllers/contentController');
 const authMiddleware = require('../middlewares/authMiddleware');
+const { exportRSVPs, listRSVPs } = require('../controllers/rsvpController');
 
 // User management routes - accessible to all authenticated users
 router.get('/users', authMiddleware, getPendingUsers);        // Get all pending users
@@ -69,5 +70,9 @@ router.delete('/events/:id', authMiddleware, deleteEvent);
 router.delete('/opportunities/:id', authMiddleware, deleteOpportunity);
 router.delete('/posts/:id', authMiddleware, deletePost);
 router.delete('/institution-posts/:id', authMiddleware, deleteInstitutionPost);
+
+// RSVP list & export
+router.get('/rsvps', authMiddleware, listRSVPs);
+router.get('/rsvps/export', authMiddleware, exportRSVPs);
 
 module.exports = router;

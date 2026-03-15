@@ -6,7 +6,7 @@ import logo from "../logoo.png";
 import "./Auth.css";
 
 const SignIn = () => {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,7 +18,7 @@ const SignIn = () => {
     setError("");
     setLoading(true);
 
-    const result = await login(email, password);
+    const result = await login(identifier, password);
     if (result.success) {
       navigate("/home");
     } else {
@@ -42,13 +42,13 @@ const SignIn = () => {
           {error && <div className="error-message">{error}</div>}
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label>Email</label>
+              <label>Email or Username</label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 required
-                placeholder="Enter your email"
+                placeholder="Enter your email or username"
               />
             </div>
             <div className="form-group">

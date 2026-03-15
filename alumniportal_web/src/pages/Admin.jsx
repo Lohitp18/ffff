@@ -30,6 +30,9 @@ const Admin = () => {
   const [eventsLoading, setEventsLoading] = useState(false)
   const [opportunitiesLoading, setOpportunitiesLoading] = useState(false)
   const [reportsLoading, setReportsLoading] = useState(false)
+  const [rsvpDownloading, setRsvpDownloading] = useState(false)
+  const [rsvps, setRsvps] = useState([])
+  const [rsvpsLoading, setRsvpsLoading] = useState(false)
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -235,6 +238,19 @@ const Admin = () => {
     }
   }
 
+  const loadRsvps = async () => {
+    setRsvpsLoading(true)
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/admin/rsvps`, { headers: getAuthHeaders() })
+      setRsvps(response.data || [])
+    } catch (error) {
+      console.error('Failed to load RSVPs:', error)
+      setRsvps([])
+    } finally {
+      setRsvpsLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (isAuthenticated) {
       if (activeTab === 'users') loadUsers()
@@ -243,6 +259,7 @@ const Admin = () => {
       if (activeTab === 'opportunities') loadOpportunities()
       if (activeTab === 'reports') loadReports()
       if (activeTab === 'whatsapp') loadUsers() // Load users for WhatsApp tab
+      if (activeTab === 'alumniMeet') loadRsvps()
     }
   }, [activeTab, isAuthenticated])
 
@@ -489,6 +506,29 @@ const Admin = () => {
     })
   }
 
+  const downloadRSVPs = async () => {
+    try {
+      setRsvpDownloading(true)
+      const response = await axios.get(`${API_BASE_URL}/api/admin/rsvps/export`, {
+        headers: getAuthHeaders(),
+        responseType: 'blob',
+      })
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.href = url
+      link.setAttribute('download', `alumni_rsvp_${Date.now()}.csv`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (error) {
+      console.error('Failed to download RSVP data', error)
+      alert(error.response?.data?.message || 'Failed to download RSVP data')
+    } finally {
+      setRsvpDownloading(false)
+    }
+  }
+
   // Show login form if not authenticated
   if (!isAuthenticated) {
     return (
@@ -690,6 +730,12 @@ const Admin = () => {
           🚩 Reports
         </button>
         <button
+          className={activeTab === 'alumniMeet' ? 'active' : ''}
+          onClick={() => setActiveTab('alumniMeet')}
+        >
+          🎓 Alumni Meet
+        </button>
+        <button
           className={activeTab === 'whatsapp' ? 'active' : ''}
           onClick={() => setActiveTab('whatsapp')}
         >
@@ -708,6 +754,9 @@ const Admin = () => {
                   <button onClick={() => navigate('/institutionadmin')} className="action-btn-full">
                     🏫 Post to Institutions
                   </button>
+              <button onClick={downloadRSVPs} className="action-btn-full" disabled={rsvpDownloading}>
+                📥 {rsvpDownloading ? 'Downloading RSVPs...' : 'Download Alumni Meet RSVPs'}
+              </button>
                   <div className="action-info">
                     <span>Review Pending Users: {stats.pendingUsers || 0}</span>
                   </div>
@@ -1409,6 +1458,63 @@ const Admin = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'alumniMeet' && (
+          <div className="admin-section-full">
+            <h2>Alumni Meet Registrations</h2>
+            <div style={{ marginBottom: '16px' }}>
+              <button onClick={downloadRSVPs} className="action-btn-full" disabled={rsvpDownloading}>
+                📥 {rsvpDownloading ? 'Downloading RSVPs...' : 'Download RSVPs (Excel/CSV)'}
+              </button>
+            </div>
+            {rsvpsLoading ? (
+              <div className="loading">Loading registrations...</div>
+            ) : rsvps.length === 0 ? (
+              <div className="empty-state">No registrations yet</div>
+            ) : (
+              <div className="data-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Full Name</th>
+                      <th>Year</th>
+                      <th>Course / Dept</th>
+                      <th>Organization</th>
+                      <th>Designation</th>
+                      <th>City</th>
+                      <th>Email</th>
+                      <th>Contact</th>
+                      <th>Attending</th>
+                      <th>Family</th>
+                      <th>Adults</th>
+                      <th>Kids</th>
+                      <th>Submitted At</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rsvps.map((r) => (
+                      <tr key={r._id}>
+                        <td>{r.fullName}</td>
+                        <td>{r.yearOfGraduation || '-'}</td>
+                        <td>{r.courseDept || '-'}</td>
+                        <td>{r.organization || '-'}</td>
+                        <td>{r.designation || '-'}</td>
+                        <td>{r.city || '-'}</td>
+                        <td>{r.email}</td>
+                        <td>{r.contactNumber || '-'}</td>
+                        <td>{r.attending || '-'}</td>
+                        <td>{r.accompaniedByFamily || '-'}</td>
+                        <td>{r.adults || '-'}</td>
+                        <td>{r.kids || '-'}</td>
+                        <td>{r.createdAt ? new Date(r.createdAt).toLocaleString() : '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

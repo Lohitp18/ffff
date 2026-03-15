@@ -46,17 +46,17 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const login = async (email, password) => {
+  const login = async (identifier, password) => {
     try {
       const response = await axios.post(`${API_BASE_URL}/api/auth/signin`, {
-        email,
+        identifier,
         password,
       })
-      const { token: newToken, _id, email: userEmail, status } = response.data
+      const { token: newToken, _id, email: userEmail, username, status } = response.data
       localStorage.setItem('auth_token', newToken)
       setToken(newToken)
       // Fetch full user profile
-      let finalUser = { _id, email: userEmail, status };
+      let finalUser = { _id, email: userEmail, username, status };
       try {
         const userResponse = await axios.get(`${API_BASE_URL}/api/users/profile`, {
           headers: { Authorization: `Bearer ${newToken}` }

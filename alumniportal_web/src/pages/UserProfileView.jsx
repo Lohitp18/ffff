@@ -274,9 +274,12 @@ const UserProfileView = () => {
               )}
             </div>
 
-            {/* Name and Headline */}
+            {/* Name, Username and Headline */}
             <div className="profile-info-main">
               <h1>{user.name}</h1>
+              {user.username && (
+                <p className="headline">@{user.username}</p>
+              )}
               {user.headline && <p className="headline">{user.headline}</p>}
               {user.location && (
                 <p className="location">📍 {user.location}</p>
