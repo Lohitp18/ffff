@@ -65,7 +65,10 @@ const listApproved = async (Model, res, userId = null) => {
   // For posts, get all posts (approved and pending) for home page
   if (Model.modelName === 'Post') {
     items = await Model.find({})
-      .populate('authorId', 'name username profileImage headline')
+      .populate(
+        'authorId',
+        'name username profileImage headline institution program course specialization year phone email location'
+      )
       .sort({ createdAt: -1 })
       .limit(50);
   } else if (Model.modelName === 'InstitutionPost') {
@@ -76,7 +79,10 @@ const listApproved = async (Model, res, userId = null) => {
   } else {
     // For other content types (Event, Opportunity), only show approved
     items = await Model.find({ status: "approved" })
-      .populate('postedBy', 'name username profileImage headline')
+      .populate(
+        'postedBy',
+        'name username profileImage headline institution program course specialization year phone email location'
+      )
       .sort({ createdAt: -1 })
       .limit(50);
   }
@@ -123,8 +129,12 @@ module.exports = {
   getApprovedEvents: async (req, res) => {
     try {
       const userId = req.user?._id?.toString() || null;
+      const includeSensitive = Boolean(req.user);
+      const postedBySelect = includeSensitive
+        ? "name username profileImage headline institution program course specialization year phone email location"
+        : "name username profileImage headline institution program course specialization year location";
       const events = await Event.find({ status: "approved" })
-        .populate('postedBy', 'name username profileImage headline email')
+        .populate("postedBy", postedBySelect)
         .sort({ createdAt: -1 })
         .limit(100);
       
@@ -203,8 +213,12 @@ module.exports = {
   getApprovedOpportunities: async (req, res) => {
     try {
       const userId = req.user?._id?.toString() || null;
+      const includeSensitive = Boolean(req.user);
+      const postedBySelect = includeSensitive
+        ? "name username profileImage headline institution program course specialization year phone email location"
+        : "name username profileImage headline institution program course specialization year location";
       const opportunities = await Opportunity.find({ status: "approved" })
-        .populate('postedBy', 'name username profileImage headline email')
+        .populate("postedBy", postedBySelect)
         .sort({ createdAt: -1 })
         .limit(100);
       
@@ -225,9 +239,13 @@ module.exports = {
   getApprovedPosts: async (req, res) => {
     try {
       const userId = req.user?._id?.toString() || null;
+      const includeSensitive = Boolean(req.user);
+      const authorSelect = includeSensitive
+        ? "name username profileImage headline institution program course specialization year phone email location"
+        : "name username profileImage headline institution program course specialization year location";
       // For admin, only return approved posts
       const posts = await Post.find({ status: "approved" })
-        .populate('authorId', 'name username profileImage headline email')
+        .populate("authorId", authorSelect)
         .sort({ createdAt: -1 })
         .limit(100);
       
@@ -290,10 +308,14 @@ module.exports = {
     }
   },
 
-  getPendingEvents: async (_req, res) => {
+  getPendingEvents: async (req, res) => {
     try {
+      const includeSensitive = Boolean(req.user);
+      const postedBySelect = includeSensitive
+        ? "name username email profileImage headline institution program course specialization year phone location"
+        : "name username profileImage headline institution program course specialization year location";
       const events = await Event.find({ status: "pending" })
-        .populate("postedBy", "name username email profileImage headline")
+        .populate("postedBy", postedBySelect)
         .sort({ createdAt: -1 });
       return res.json(events);
     } catch (err) {
@@ -302,10 +324,14 @@ module.exports = {
     }
   },
 
-  getPendingOpportunities: async (_req, res) => {
+  getPendingOpportunities: async (req, res) => {
     try {
+      const includeSensitive = Boolean(req.user);
+      const postedBySelect = includeSensitive
+        ? "name username email profileImage headline institution program course specialization year phone location"
+        : "name username profileImage headline institution program course specialization year location";
       const opportunities = await Opportunity.find({ status: "pending" })
-        .populate("postedBy", "name username email profileImage headline")
+        .populate("postedBy", postedBySelect)
         .sort({ createdAt: -1 });
       return res.json(opportunities);
     } catch (err) {
@@ -314,10 +340,14 @@ module.exports = {
     }
   },
 
-  getPendingPosts: async (_req, res) => {
+  getPendingPosts: async (req, res) => {
     try {
+      const includeSensitive = Boolean(req.user);
+      const authorSelect = includeSensitive
+        ? "name username profileImage headline institution program course specialization year phone email location"
+        : "name username profileImage headline institution program course specialization year location";
       const posts = await Post.find({ status: "pending" })
-        .populate('authorId', 'name username profileImage headline email')
+        .populate("authorId", authorSelect)
         .sort({ createdAt: -1 });
       return res.json(posts);
     } catch (err) {

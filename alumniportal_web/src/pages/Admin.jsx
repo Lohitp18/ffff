@@ -33,6 +33,7 @@ const Admin = () => {
   const [rsvpDownloading, setRsvpDownloading] = useState(false)
   const [rsvps, setRsvps] = useState([])
   const [rsvpsLoading, setRsvpsLoading] = useState(false)
+  const [studentsExportLoading, setStudentsExportLoading] = useState(false)
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -529,6 +530,114 @@ const Admin = () => {
     }
   }
 
+  const buildStudentExportQuery = () => {
+    const params = new URLSearchParams()
+    if (filters.institution) params.append('institution', filters.institution)
+    if (filters.course) params.append('course', filters.course)
+    if (filters.year) params.append('year', filters.year)
+    if (filters.company) params.append('company', filters.company)
+    params.append('status', 'all')
+    return params.toString()
+  }
+
+  const downloadStudentsCSV = async () => {
+    try {
+      setStudentsExportLoading(true)
+      const response = await axios.get(
+        `${API_BASE_URL}/api/admin/students/export/csv?${buildStudentExportQuery()}`,
+        {
+          headers: getAuthHeaders(),
+          responseType: 'blob',
+        }
+      )
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.href = url
+      link.setAttribute('download', `registered_students_${Date.now()}.csv`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (error) {
+      console.error('Failed to download students CSV', error)
+      alert(error.response?.data?.message || 'Failed to download students CSV')
+    } finally {
+      setStudentsExportLoading(false)
+    }
+  }
+
+  const downloadStudentsPDF = async () => {
+    try {
+      setStudentsExportLoading(true)
+      const response = await axios.get(
+        `${API_BASE_URL}/api/admin/students/export/pdf?${buildStudentExportQuery()}`,
+        {
+          headers: getAuthHeaders(),
+          responseType: 'blob',
+        }
+      )
+      const blob = new Blob([response.data], { type: 'application/pdf' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.href = url
+      link.setAttribute('download', `registered_students_${Date.now()}.pdf`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (error) {
+      console.error('Failed to download students PDF', error)
+      alert(error.response?.data?.message || 'Failed to download students PDF')
+    } finally {
+      setStudentsExportLoading(false)
+    }
+  }
+
+  const downloadStudentCSV = async (studentId) => {
+    try {
+      setStudentsExportLoading(true)
+      const response = await axios.get(
+        `${API_BASE_URL}/api/admin/students/${studentId}/export/csv`,
+        { headers: getAuthHeaders(), responseType: 'blob' }
+      )
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.href = url
+      link.setAttribute('download', `student_${studentId}.csv`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (error) {
+      console.error('Failed to download student CSV', error)
+      alert(error.response?.data?.message || 'Failed to download student CSV')
+    } finally {
+      setStudentsExportLoading(false)
+    }
+  }
+
+  const downloadStudentPDF = async (studentId) => {
+    try {
+      setStudentsExportLoading(true)
+      const response = await axios.get(
+        `${API_BASE_URL}/api/admin/students/${studentId}/export/pdf`,
+        { headers: getAuthHeaders(), responseType: 'blob' }
+      )
+      const blob = new Blob([response.data], { type: 'application/pdf' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.href = url
+      link.setAttribute('download', `student_${studentId}.pdf`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (error) {
+      console.error('Failed to download student PDF', error)
+      alert(error.response?.data?.message || 'Failed to download student PDF')
+    } finally {
+      setStudentsExportLoading(false)
+    }
+  }
+
   // Show login form if not authenticated
   if (!isAuthenticated) {
     return (
@@ -897,6 +1006,23 @@ const Admin = () => {
           <div className="admin-section-full">
             <h2>All Users</h2>
 
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
+              <button
+                onClick={downloadStudentsCSV}
+                className="action-btn-full"
+                disabled={studentsExportLoading}
+              >
+                📥 {studentsExportLoading ? 'Exporting...' : 'Export Excel (CSV)'}
+              </button>
+              <button
+                onClick={downloadStudentsPDF}
+                className="action-btn-full"
+                disabled={studentsExportLoading}
+              >
+                📄 {studentsExportLoading ? 'Exporting...' : 'Export PDF'}
+              </button>
+            </div>
+
             {/* Filters */}
             <div className="admin-filters">
               <select
@@ -1018,6 +1144,23 @@ const Admin = () => {
                                 Unblock
                               </button>
                             )}
+
+                            <button
+                              type="button"
+                              onClick={() => downloadStudentCSV(user._id)}
+                              className="btn-view"
+                              disabled={studentsExportLoading}
+                            >
+                              Export Excel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => downloadStudentPDF(user._id)}
+                              className="btn-view"
+                              disabled={studentsExportLoading}
+                            >
+                              Export PDF
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -1094,10 +1237,15 @@ const Admin = () => {
                       />
                     )}
                     <div className="content-meta">
-                      <span><strong>User:</strong> {post.authorId?.name || post.postedBy?.name || 'Unknown'}</span>
-                      <span><strong>Institution:</strong> {post.authorId?.institution || post.postedBy?.institution || 'N/A'}</span>
-                      <span><strong>Course:</strong> {post.authorId?.course || post.postedBy?.course || 'N/A'}</span>
-                      <span><strong>Year:</strong> {post.authorId?.year || post.postedBy?.year || 'N/A'}</span>
+                      <span>
+                        <strong>Posted by:</strong> {post.authorId?.name || post.postedBy?.name || 'Unknown'}
+                        {post.authorId?.username ? ` (@${post.authorId.username})` : post.postedBy?.username ? ` (@${post.postedBy.username})` : ''}
+                      </span>
+                      <span>
+                        <strong>Institution/Course/Year:</strong> {post.authorId?.institution || post.postedBy?.institution || 'N/A'} • {post.authorId?.course || post.postedBy?.course || 'N/A'} • {post.authorId?.year || post.postedBy?.year || 'N/A'}
+                      </span>
+                      <span><strong>Headline:</strong> {post.authorId?.headline || post.postedBy?.headline || '-'}</span>
+                      <span><strong>Phone:</strong> {post.authorId?.phone || post.postedBy?.phone || '-'}</span>
                       <span>Created: {new Date(post.createdAt).toLocaleDateString()}</span>
                       {post.likes && <span>Likes: {post.likes.length || 0}</span>}
                     </div>
@@ -1205,10 +1353,15 @@ const Admin = () => {
                       />
                     )}
                     <div className="content-meta">
-                      <span><strong>User:</strong> {event.postedBy?.name || 'Unknown'}</span>
-                      <span><strong>Institution:</strong> {event.postedBy?.institution || 'N/A'}</span>
-                      <span><strong>Course:</strong> {event.postedBy?.course || 'N/A'}</span>
-                      <span><strong>Year:</strong> {event.postedBy?.year || 'N/A'}</span>
+                      <span>
+                        <strong>Posted by:</strong> {event.postedBy?.name || 'Unknown'}
+                        {event.postedBy?.username ? ` (@${event.postedBy.username})` : ''}
+                      </span>
+                      <span>
+                        <strong>Institution/Course/Year:</strong> {event.postedBy?.institution || 'N/A'} • {event.postedBy?.course || 'N/A'} • {event.postedBy?.year || 'N/A'}
+                      </span>
+                      <span><strong>Headline:</strong> {event.postedBy?.headline || '-'}</span>
+                      <span><strong>Phone:</strong> {event.postedBy?.phone || '-'}</span>
                       <span>Date: {event.date || new Date(event.createdAt).toLocaleDateString()}</span>
                       <span>Location: {event.location || 'N/A'}</span>
                       {event.likes && <span>Likes: {event.likes.length || 0}</span>}
@@ -1329,9 +1482,15 @@ const Admin = () => {
                     )}
                     <div className="content-meta">
                       <span><strong>Company:</strong> {opp.company || 'N/A'}</span>
-                      <span><strong>Institution:</strong> {opp.postedBy?.institution || 'N/A'}</span>
-                      <span><strong>Course:</strong> {opp.postedBy?.course || 'N/A'}</span>
-                      <span><strong>Year:</strong> {opp.postedBy?.year || 'N/A'}</span>
+                      <span>
+                        <strong>Posted by:</strong> {opp.postedBy?.name || 'Unknown'}
+                        {opp.postedBy?.username ? ` (@${opp.postedBy.username})` : ''}
+                      </span>
+                      <span>
+                        <strong>Institution/Course/Year:</strong> {opp.postedBy?.institution || 'N/A'} • {opp.postedBy?.course || 'N/A'} • {opp.postedBy?.year || 'N/A'}
+                      </span>
+                      <span><strong>Headline:</strong> {opp.postedBy?.headline || '-'}</span>
+                      <span><strong>Phone:</strong> {opp.postedBy?.phone || '-'}</span>
                       <span>Type: {opp.type || 'Full-time'}</span>
                       {opp.applyLink && <span>🔗 <a href={opp.applyLink} target="_blank" rel="noopener noreferrer">Apply Link</a></span>}
                       {opp.likes && <span>Likes: {opp.likes.length || 0}</span>}

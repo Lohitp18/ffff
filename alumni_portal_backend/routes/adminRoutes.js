@@ -34,6 +34,12 @@ const {
 } = require('../controllers/contentController');
 const authMiddleware = require('../middlewares/authMiddleware');
 const { exportRSVPs, listRSVPs } = require('../controllers/rsvpController');
+const {
+  exportStudentsCSV,
+  exportStudentCSV,
+  exportStudentsPDF,
+  exportStudentPDF,
+} = require('../controllers/studentExportController');
 
 // User management routes - accessible to all authenticated users
 router.get('/users', authMiddleware, getPendingUsers);        // Get all pending users
@@ -74,5 +80,11 @@ router.delete('/institution-posts/:id', authMiddleware, deleteInstitutionPost);
 // RSVP list & export
 router.get('/rsvps', authMiddleware, listRSVPs);
 router.get('/rsvps/export', authMiddleware, exportRSVPs);
+
+// Registered student profile exports (CSV for Excel + PDF)
+router.get('/students/export/csv', authMiddleware, exportStudentsCSV);
+router.get('/students/export/pdf', authMiddleware, exportStudentsPDF);
+router.get('/students/:id/export/csv', authMiddleware, exportStudentCSV);
+router.get('/students/:id/export/pdf', authMiddleware, exportStudentPDF);
 
 module.exports = router;

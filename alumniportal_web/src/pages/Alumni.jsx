@@ -17,33 +17,11 @@ const Alumni = () => {
   const [connections, setConnections] = useState([])
   const [connecting, setConnecting] = useState({})
   const [institutions, setInstitutions] = useState([])
+  const [courses, setCourses] = useState([])
   const navigate = useNavigate()
   const { user } = useAuth()
 
   const years = Array.from({ length: 30 }, (_, i) => (new Date().getFullYear() - i).toString())
-  const courses = [
-    'Bcs nursing',
-    'Msc nursing',
-    'PhD nursing',
-    'Llb',
-    'Bcom llb',
-    'Bballb',
-    'Ballb',
-    'Bnys',
-    'Md clinical naturopathy',
-    'Md clinical yoga',
-    'CSE',
-    'Ise',
-    'Ece',
-    'Aiml',
-    'Csd',
-    'Cs datascience',
-    'Cs iot',
-    'Mechanical',
-    'Civil',
-    'Agriculture',
-    'Electronics',
-  ]
 
   const getImageUrl = (imagePath) => {
     if (!imagePath) return null
@@ -79,6 +57,42 @@ const Alumni = () => {
     loadAlumni()
     loadConnections()
   }, [selectedYear, selectedInstitution, selectedCourse, searchTerm, user])
+
+  useEffect(() => {
+    // Populate course dropdown based on selected institution
+    const fetchCoursesForInstitution = async () => {
+      if (!selectedInstitution) {
+        setCourses([])
+        setSelectedCourse('')
+        return
+      }
+
+      try {
+        const hierarchyRes = await axios.get(
+          `${API_BASE_URL}/api/constants/enrollment-hierarchy`
+        )
+        const inst = (hierarchyRes.data?.institutions || []).find(
+          (i) => i.name === selectedInstitution
+        )
+
+        const allCourses =
+          inst?.programs?.flatMap((p) => p?.courses?.map((c) => c?.name) || []) || []
+
+        const uniqueCourses = Array.from(
+          new Set(allCourses.filter(Boolean))
+        ).sort((a, b) => String(a).localeCompare(String(b)))
+
+        setCourses(uniqueCourses)
+        setSelectedCourse('')
+      } catch (error) {
+        console.error('Failed to fetch courses for institution:', error)
+        setCourses([])
+        setSelectedCourse('')
+      }
+    }
+
+    fetchCoursesForInstitution()
+  }, [selectedInstitution])
 
   const fetchInstitutions = async () => {
     try {
@@ -244,7 +258,10 @@ const Alumni = () => {
             </select>
             <select
               value={selectedInstitution}
-              onChange={(e) => setSelectedInstitution(e.target.value)}
+                onChange={(e) => {
+                  setSelectedInstitution(e.target.value)
+                  setSelectedCourse('')
+                }}
               className="filter-select"
             >
               <option value="">All Institutions</option>
