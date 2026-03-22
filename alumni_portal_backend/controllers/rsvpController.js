@@ -33,30 +33,42 @@ exports.exportRSVPs = async (_req, res) => {
   try {
     const rsvps = await RSVP.find({}).sort({ createdAt: -1 }).lean();
 
-    const rows = rsvps.map((r) => ({
-      FullName: r.fullName || "",
-      YearOfGraduation: r.yearOfGraduation || "",
-      CourseDept: r.courseDept || "",
-      Organization: r.organization || "",
-      Designation: r.designation || "",
-      City: r.city || "",
-      Email: r.email || "",
-      ContactNumber: r.contactNumber || "",
-      Attending: r.attending || "",
-      AccompaniedByFamily: r.accompaniedByFamily || "",
-      Adults: r.adults || "",
-      Kids: r.kids || "",
-      EventsDay1: JSON.stringify(r.eventsDay1 || {}),
-      EventsDay2: JSON.stringify(r.eventsDay2 || {}),
-      DietaryPreference: r.dietaryPreference || "",
-      NeedAccommodation: r.needAccommodation || "",
-      Suggestions: r.suggestions || "",
-      Consent: r.consent ? "Yes" : "No",
-      DateField: r.date || "",
-      CreatedAt: r.createdAt ? r.createdAt.toISOString() : "",
-    }));
+    const day1Keys = [
+      "networking", "campusTour", "entrepreneurshipTalk", "alumniTalk",
+      "spotGames", "interactionSessions", "memoryWall", "teaBreak",
+      "askMeAnything", "inauguration", "culturalProgram", "dinner"
+    ];
+    const day2Keys = ["plantingSaplings", "breakfast", "excursionSasithithlu", "excursionKudremukh"];
 
-    const headers = Object.keys(rows[0] || {});
+    const rows = rsvps.map((r) => {
+      const d1 = r.eventsDay1 || {};
+      const d2 = r.eventsDay2 || {};
+      const base = {
+        FullName: r.fullName || "",
+        YearOfGraduation: r.yearOfGraduation || "",
+        CourseDept: r.courseDept || "",
+        Organization: r.organization || "",
+        Designation: r.designation || "",
+        City: r.city || "",
+        Email: r.email || "",
+        ContactNumber: r.contactNumber || "",
+        Attending: r.attending || "",
+        AccompaniedByFamily: r.accompaniedByFamily || "",
+        Adults: r.adults || "",
+        Kids: r.kids || "",
+        DietaryPreference: r.dietaryPreference || "",
+        NeedAccommodation: r.needAccommodation || "",
+        Suggestions: r.suggestions || "",
+        Consent: r.consent ? "Yes" : "No",
+        DateField: r.date || "",
+        CreatedAt: r.createdAt ? r.createdAt.toISOString() : "",
+      };
+      day1Keys.forEach((k) => { base[`Day1_${k}`] = d1[k] ? "Yes" : "No"; });
+      day2Keys.forEach((k) => { base[`Day2_${k}`] = d2[k] ? "Yes" : "No"; });
+      return base;
+    });
+
+    const headers = rows[0] ? Object.keys(rows[0]) : [];
     const csvLines = [
       headers.join(","),
       ...rows.map((row) =>

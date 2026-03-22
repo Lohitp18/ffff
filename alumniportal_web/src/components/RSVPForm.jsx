@@ -24,11 +24,9 @@ const RSVPForm = ({ isOpen, onClose }) => {
       entrepreneurshipTalk: false,
       alumniTalk: false,
       spotGames: false,
-      lunchBreak: false,
       interactionSessions: false,
       memoryWall: false,
       teaBreak: false,
-      interactionVivekAlva: false,
       askMeAnything: false,
       inauguration: false,
       culturalProgram: false,
@@ -91,7 +89,7 @@ const RSVPForm = ({ isOpen, onClose }) => {
         <button className="rsvp-close-btn" onClick={onClose}>&times;</button>
         
         <div className="rsvp-header">
-          <h2>ALVAS ALUMNI MEET 2026</h2>
+          <h2>Alva's Engineering Alumni Meet - 2026</h2>
           <p>Thank you, dear alumni, for your interest in attending the Alumni Meet. Kindly fill in the following details to confirm your participation.</p>
         </div>
 
@@ -147,6 +145,8 @@ const RSVPForm = ({ isOpen, onClose }) => {
               </div>
             </div>
 
+            {formData.attending === 'Yes' && (
+            <>
             <div className="rsvp-question">
               <label>Will you be accompanied by family?</label>
               <div className="rsvp-radio-group">
@@ -160,8 +160,12 @@ const RSVPForm = ({ isOpen, onClose }) => {
               <span>Adults: <input type="number" name="adults" min="0" className="small-input" value={formData.adults} onChange={handleChange} /></span>
               <span>Kids: <input type="number" name="kids" min="0" className="small-input" value={formData.kids} onChange={handleChange} /></span>
             </div>
+            </>
+            )}
           </section>
 
+          {formData.attending === 'Yes' && (
+          <>
           {/* SECTION 3: EVENT PARTICIPATION (Day 1) */}
           <section className="rsvp-section highlight-section">
             <h3>SECTION 3: EVENT PARTICIPATION (Day 1)</h3>
@@ -232,15 +236,6 @@ const RSVPForm = ({ isOpen, onClose }) => {
               </label>
 
               <label className="rsvp-event-card">
-                <input type="checkbox" name="day1_interactionVivekAlva" checked={formData.eventsDay1.interactionVivekAlva} onChange={handleChange} />
-                <div className="event-info">
-                  <strong>Interaction with Vivek Alva</strong>
-                  <span>4:30 pm – 5:00 pm</span>
-                  <i>Ambience: Auditorium</i>
-                </div>
-              </label>
-
-              <label className="rsvp-event-card">
                 <input type="checkbox" name="day1_askMeAnything" checked={formData.eventsDay1.askMeAnything} onChange={handleChange} />
                 <div className="event-info">
                   <strong>Ask me Anything (Informal Interaction)</strong>
@@ -273,15 +268,6 @@ const RSVPForm = ({ isOpen, onClose }) => {
                   <strong>Cultural Program</strong>
                   <span>5:00 pm – 6:00 pm</span>
                   <i>Ambience: Auditorium</i>
-                </div>
-              </label>
-
-              <label className="rsvp-event-card">
-                <input type="checkbox" name="day1_lunchBreak" checked={formData.eventsDay1.lunchBreak} onChange={handleChange} />
-                <div className="event-info">
-                  <strong>Lunch Break</strong>
-                  <span>1:00 pm – 2:00 pm</span>
-                  <i>Ambience: Food Court</i>
                 </div>
               </label>
 
@@ -382,10 +368,12 @@ const RSVPForm = ({ isOpen, onClose }) => {
               </div>
             </div>
           </section>
+            </>
+            )}
 
           <div className="rsvp-actions">
             <button type="button" className="rsvp-btn-cancel" onClick={onClose}>Cancel</button>
-            <button type="submit" className="rsvp-btn-submit" disabled={!formData.consent}>Submit Registration</button>
+            <button type="submit" className="rsvp-btn-submit" disabled={formData.attending === 'Yes' ? !formData.consent : false}>Submit Registration</button>
           </div>
         </form>
       </div>

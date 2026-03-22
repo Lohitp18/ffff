@@ -8,7 +8,7 @@ const Invitation = () => {
   return (
     <div className="invitation-container">
       <div className="invitation-content">
-        <h1 className="invitation-title">ALVAS ALUMNI MEET 2026</h1>
+        <h1 className="invitation-title">Alva's Engineering Alumni Meet - 2026</h1>
         
         <div className="invitation-body">
           <p className="salutation">Dear Alumni,</p>
