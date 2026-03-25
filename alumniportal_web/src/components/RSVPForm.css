@@ -237,6 +237,12 @@
   font-size: 0.8rem;
 }
 
+.event-note {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #92400e;
+}
+
 .consent-section {
   background: #f8fafc;
   padding: 1.5rem;
@@ -265,12 +271,53 @@
   margin-top: 1rem;
 }
 
+.rsvp-contact-footer {
+  text-align: left;
+}
+
+.rsvp-contact-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.4rem;
+}
+
+.rsvp-contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.rsvp-contact-info span {
+  font-size: 0.9rem;
+  color: #334155;
+  font-weight: 500;
+}
+
+.rsvp-contact-info a {
+  color: #0284c7;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.rsvp-contact-info a:hover {
+  text-decoration: underline;
+}
+
 .rsvp-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: flex-end;
   gap: 1rem;
-  padding-top: 1rem;
+  padding-top: 1.25rem;
   border-top: 1px solid #e2e8f0;
+}
+
+.rsvp-action-btns {
+  display: flex;
+  gap: 1rem;
 }
 
 .rsvp-btn-cancel,

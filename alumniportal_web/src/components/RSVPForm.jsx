@@ -182,15 +182,6 @@ const RSVPForm = ({ isOpen, onClose }) => {
               </label>
 
               <label className="rsvp-event-card">
-                <input type="checkbox" name="day1_interactionSessions" checked={formData.eventsDay1.interactionSessions} onChange={handleChange} />
-                <div className="event-info">
-                  <strong>Branchwise Interaction sessions with students</strong>
-                  <span>2:00 pm – 3:00 pm</span>
-                  <i>Ambience: Classroom</i>
-                </div>
-              </label>
-
-              <label className="rsvp-event-card">
                 <input type="checkbox" name="day1_campusTour" checked={formData.eventsDay1.campusTour} onChange={handleChange} />
                 <div className="event-info">
                   <strong>Campus Tour</strong>
@@ -200,29 +191,11 @@ const RSVPForm = ({ isOpen, onClose }) => {
               </label>
 
               <label className="rsvp-event-card">
-                <input type="checkbox" name="day1_memoryWall" checked={formData.eventsDay1.memoryWall} onChange={handleChange} />
-                <div className="event-info">
-                  <strong>Memory Wall [One Photo One Story]</strong>
-                  <span>3:00 pm – 3:45 pm</span>
-                  <i>Ambience: New Building Entrance Porch</i>
-                </div>
-              </label>
-
-              <label className="rsvp-event-card">
                 <input type="checkbox" name="day1_entrepreneurshipTalk" checked={formData.eventsDay1.entrepreneurshipTalk} onChange={handleChange} />
                 <div className="event-info">
                   <strong>Entrepreneurship Talk (Formal)</strong>
                   <span>11:45 am to 1:00 pm</span>
                   <i>Ambience: Classroom</i>
-                </div>
-              </label>
-
-              <label className="rsvp-event-card">
-                <input type="checkbox" name="day1_teaBreak" checked={formData.eventsDay1.teaBreak} onChange={handleChange} />
-                <div className="event-info">
-                  <strong>Tea Break</strong>
-                  <span>3:45 pm to 4:15 pm</span>
-                  <i>Ambience: Auditorium</i>
                 </div>
               </label>
 
@@ -245,20 +218,48 @@ const RSVPForm = ({ isOpen, onClose }) => {
               </label>
 
               <label className="rsvp-event-card">
-                <input type="checkbox" name="day1_inauguration" checked={formData.eventsDay1.inauguration} onChange={handleChange} />
-                <div className="event-info">
-                  <strong>Inauguration of Alumni Association & Impressions</strong>
-                  <span>5:00 pm – 6:00 pm</span>
-                  <i>Ambience: Auditorium</i>
-                </div>
-              </label>
-
-              <label className="rsvp-event-card">
                 <input type="checkbox" name="day1_spotGames" checked={formData.eventsDay1.spotGames} onChange={handleChange} />
                 <div className="event-info">
                   <strong>Spot Games</strong>
                   <span>11:45 am to 1:00 pm</span>
                   <i>Ambience: AIET Campus</i>
+                </div>
+              </label>
+
+              <label className="rsvp-event-card">
+                <input type="checkbox" name="day1_interactionSessions" checked={formData.eventsDay1.interactionSessions} onChange={handleChange} />
+                <div className="event-info">
+                  <strong>Branchwise Interaction sessions with students</strong>
+                  <span>2:00 pm – 3:00 pm</span>
+                  <i>Ambience: Classroom</i>
+                </div>
+              </label>
+
+              <label className="rsvp-event-card">
+                <input type="checkbox" name="day1_memoryWall" checked={formData.eventsDay1.memoryWall} onChange={handleChange} />
+                <div className="event-info">
+                  <strong>Memory Wall [One Photo One Story]</strong>
+                  <span className="event-note">(Your Photo is required)</span>
+                  <span>3:00 pm – 3:45 pm</span>
+                  <i>Ambience: New Building Entrance Porch</i>
+                </div>
+              </label>
+
+              <label className="rsvp-event-card">
+                <input type="checkbox" name="day1_teaBreak" checked={formData.eventsDay1.teaBreak} onChange={handleChange} />
+                <div className="event-info">
+                  <strong>Tea Break</strong>
+                  <span>3:45 pm to 4:15 pm</span>
+                  <i>Ambience: Auditorium</i>
+                </div>
+              </label>
+
+              <label className="rsvp-event-card">
+                <input type="checkbox" name="day1_inauguration" checked={formData.eventsDay1.inauguration} onChange={handleChange} />
+                <div className="event-info">
+                  <strong>Inauguration of Alumni Association & Impressions</strong>
+                  <span>4:30 pm – 5:00 pm</span>
+                  <i>Ambience: Auditorium</i>
                 </div>
               </label>
 
@@ -297,20 +298,20 @@ const RSVPForm = ({ isOpen, onClose }) => {
               </label>
 
               <label className="rsvp-event-card">
-                <input type="checkbox" name="day2_excursionSasithithlu" checked={formData.eventsDay2.excursionSasithithlu} onChange={handleChange} />
-                <div className="event-info">
-                  <strong>Excursion 1: Sasithithlu Beach</strong>
-                  <span>9:00 am onwards</span>
-                  <i>Ambience: Beach</i>
-                </div>
-              </label>
-
-              <label className="rsvp-event-card">
                 <input type="checkbox" name="day2_breakfast" checked={formData.eventsDay2.breakfast} onChange={handleChange} />
                 <div className="event-info">
                   <strong>Breakfast</strong>
                   <span>8:30 am – 9:30 am</span>
                   <i>Ambience: Food Court</i>
+                </div>
+              </label>
+
+              <label className="rsvp-event-card">
+                <input type="checkbox" name="day2_excursionSasithithlu" checked={formData.eventsDay2.excursionSasithithlu} onChange={handleChange} />
+                <div className="event-info">
+                  <strong>Excursion 1: Sasihithlu Beach</strong>
+                  <span>9:00 am onwards</span>
+                  <i>Ambience: Beach</i>
                 </div>
               </label>
 
@@ -371,9 +372,20 @@ const RSVPForm = ({ isOpen, onClose }) => {
             </>
             )}
 
+
           <div className="rsvp-actions">
-            <button type="button" className="rsvp-btn-cancel" onClick={onClose}>Cancel</button>
-            <button type="submit" className="rsvp-btn-submit" disabled={formData.attending === 'Yes' ? !formData.consent : false}>Submit Registration</button>
+            <div className="rsvp-contact-footer">
+              <p className="rsvp-contact-title">For More Details, Contact:</p>
+              <div className="rsvp-contact-info">
+                <span>👤 Mr. Durgaprasad Baliga</span>
+                <span>📞 <a href="tel:9945396254">9945396254</a></span>
+                <span>✉️ <a href="mailto:deansa@aiet.org.in">deansa@aiet.org.in</a></span>
+              </div>
+            </div>
+            <div className="rsvp-action-btns">
+              <button type="button" className="rsvp-btn-cancel" onClick={onClose}>Cancel</button>
+              <button type="submit" className="rsvp-btn-submit" disabled={formData.attending === 'Yes' ? !formData.consent : false}>Submit Registration</button>
+            </div>
           </div>
         </form>
       </div>
