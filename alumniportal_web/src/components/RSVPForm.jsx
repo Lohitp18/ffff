@@ -258,7 +258,7 @@ const RSVPForm = ({ isOpen, onClose }) => {
                 <input type="checkbox" name="day1_inauguration" checked={formData.eventsDay1.inauguration} onChange={handleChange} />
                 <div className="event-info">
                   <strong>Inauguration of Alumni Association & Impressions</strong>
-                  <span>4:30 pm – 5:00 pm</span>
+                  <span>4:30 pm – 6:00 pm</span>
                   <i>Ambience: Auditorium</i>
                 </div>
               </label>
@@ -267,7 +267,7 @@ const RSVPForm = ({ isOpen, onClose }) => {
                 <input type="checkbox" name="day1_culturalProgram" checked={formData.eventsDay1.culturalProgram} onChange={handleChange} />
                 <div className="event-info">
                   <strong>Cultural Program</strong>
-                  <span>5:00 pm – 6:00 pm</span>
+                  <span>6:00 pm – 8:00 pm</span>
                   <i>Ambience: Auditorium</i>
                 </div>
               </label>

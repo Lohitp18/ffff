@@ -25,7 +25,7 @@ const Invitation = () => {
           <div className="event-details">
             <p><strong>Alumni meet on:</strong> 2nd & 3rd May 2026</p>
             <p><strong>Venue:</strong> AIET</p>
-            <p className="deadline">Kindly confirm your participation by: <strong>25th April 2026</strong>.</p>
+            <p className="deadline">Kindly confirm your participation by: <strong>20th April 2026</strong>.</p>
           </div>
           
           <div className="sign-off">
