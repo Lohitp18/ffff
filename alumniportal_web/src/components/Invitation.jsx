@@ -15,7 +15,7 @@ const Invitation = () => {
           <p className="greetings">Greetings from Alva's Institute of Engineering and Technology, Moodabidri.</p>
           
           <p className="main-message">
-            You will be delighted to know that an <strong>"Alumni Meet"</strong> is being hosted on <strong>May 2 & 3, 2026</strong> at the AIET campus. It is a special occasion for you to reconnect, reminisce, and celebrate the enduring bond you share with your alma mater. The event will bring together alumni from different batches and branches to relive cherished memories, network with fellow alumni, and witness how your "alma mater" has grown.
+            You will be delighted to know that an <strong>"Alumni Meet"</strong> is being hosted on <strong>May 16 & 17, 2026</strong> at the AIET campus. It is a special occasion for you to reconnect, reminisce, and celebrate the enduring bond you share with your alma mater. The event will bring together alumni from different batches and branches to relive cherished memories, network with fellow alumni, and witness how your "alma mater" has grown.
           </p>
           
           <p className="main-message">
@@ -23,7 +23,7 @@ const Invitation = () => {
           </p>
           
           <div className="event-details">
-            <p><strong>Alumni meet on:</strong> 2nd & 3rd May 2026</p>
+            <p><strong>Alumni meet on:</strong> 16th & 17th May 2026</p>
             <p><strong>Venue:</strong> AIET</p>
             <p className="deadline">Kindly confirm your participation by: <strong>20th April 2026</strong>.</p>
           </div>

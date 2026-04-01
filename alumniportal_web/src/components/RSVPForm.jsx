@@ -267,8 +267,8 @@ const RSVPForm = ({ isOpen, onClose }) => {
                 <input type="checkbox" name="day1_culturalProgram" checked={formData.eventsDay1.culturalProgram} onChange={handleChange} />
                 <div className="event-info">
                   <strong>Cultural Program</strong>
-                  <span>6:00 pm – 8:00 pm</span>
-                  <i>Ambience: Auditorium</i>
+                  <span>6:00 pm – 8:30 pm</span>
+                  <i>Ambience: Krishi Siri Vedike</i>
                 </div>
               </label>
 
@@ -276,8 +276,8 @@ const RSVPForm = ({ isOpen, onClose }) => {
                 <input type="checkbox" name="day1_dinner" checked={formData.eventsDay1.dinner} onChange={handleChange} />
                 <div className="event-info">
                   <strong>Dinner</strong>
-                  <span>8:00 pm onwards</span>
-                  <i>Ambience: Food Court</i>
+                  <span>8:30 pm onwards</span>
+                  <i>Ambience: Krishi Siri Vedike</i>
                 </div>
               </label>
             </div>
