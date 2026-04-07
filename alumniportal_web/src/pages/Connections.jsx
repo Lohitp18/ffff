@@ -4,6 +4,7 @@ import axios from 'axios'
 import { useAuth } from '../contexts/AuthContext'
 import MainLayout from '../components/MainLayout'
 import './Connections.css'
+import SasImage from '../components/SasImage'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
@@ -77,7 +78,7 @@ const Connections = () => {
               <div key={conn._id} className="connection-item">
                 <div className="connection-avatar">
                   {requester.profileImage ? (
-                    <img src={requester.profileImage} alt={requester.name} />
+                    <SasImage src={requester.profileImage} alt={requester.name} />
                   ) : (
                     <span>👤</span>
                   )}

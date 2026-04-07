@@ -106,9 +106,9 @@ class _ProfilePageState extends State<ProfilePage> {
       throw Exception('Authentication required');
 
     final uri = Uri.parse(
-      '${_baseUrl}${isProfile ? '/api/users/profile-image' : '/api/users/cover-image'}',
+      '${_baseUrl}${isProfile ? '/api/upload/profile-image' : '/api/upload/cover-image'}',
     );
-    final request = http.MultipartRequest('PUT', uri);
+    final request = http.MultipartRequest('POST', uri);
     request.headers['Authorization'] = 'Bearer $token';
     final mimeType = 'image/${file.path.split('.').last.toLowerCase()}';
     request.files.add(

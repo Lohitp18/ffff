@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import './PostCard.css'
+import SasImage from './SasImage'
+import SasVideo from './SasVideo'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
@@ -23,6 +25,9 @@ const PostCard = ({ post, onUpdate }) => {
   const [reportDescription, setReportDescription] = useState('')
   const [reportSubmitting, setReportSubmitting] = useState(false)
   const [reportError, setReportError] = useState('')
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [shareCopied, setShareCopied] = useState(false)
+  const [sharePortalLoading, setSharePortalLoading] = useState(false)
   const navigate = useNavigate()
 
   const getPostType = () => {
@@ -33,6 +38,37 @@ const PostCard = ({ post, onUpdate }) => {
     if (!imagePath) return null
     if (imagePath.startsWith('http')) return imagePath
     return `${API_BASE_URL}${imagePath.startsWith('/') ? imagePath : '/' + imagePath}`
+  }
+
+  const getSharePageUrl = () => {
+    const id = post._id ? String(post._id) : ''
+    return `${window.location.origin}/home?post=${encodeURIComponent(id)}`
+  }
+
+  const getShareSummaryText = () => {
+    const title = post.title || post.institution || 'Alvas Alumni Portal'
+    const body = (post.content || post.description || '').trim().slice(0, 280)
+    const link = getSharePageUrl()
+    return body ? `${title}\n\n${body}\n\n${link}` : `${title}\n\n${link}`
+  }
+
+  /** One media URL for download (matches how the card shows image vs video). */
+  const getPrimaryMediaUrl = () => {
+    const t = getPostType()
+    if (t === 'InstitutionPost') {
+      if (post.imageUrl) return getImageUrl(post.imageUrl)
+      if (post.videoUrl) return getImageUrl(post.videoUrl)
+      return null
+    }
+    const isVideo =
+      post.mediaType === 'video' ||
+      (!!post.videoUrl && post.mediaType !== 'image')
+    if (isVideo) {
+      const u = post.mediaUrl || post.videoUrl
+      return u ? getImageUrl(u) : null
+    }
+    const u = post.mediaUrl || post.imageUrl
+    return u ? getImageUrl(u) : null
   }
 
   const handleLike = async () => {
@@ -68,60 +104,111 @@ const PostCard = ({ post, onUpdate }) => {
     }
   }
 
-  const handleShare = async () => {
+  const openShareModal = () => {
+    setShareCopied(false)
+    setShowShareModal(true)
+  }
+
+  const closeShareModal = () => {
+    setShowShareModal(false)
+    setShareCopied(false)
+  }
+
+  const shareViaWhatsApp = () => {
+    const text = encodeURIComponent(getShareSummaryText())
+    window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener,noreferrer')
+  }
+
+  const shareViaFacebook = () => {
+    const u = encodeURIComponent(getSharePageUrl())
+    window.open(
+      `https://www.facebook.com/sharer/sharer.php?u=${u}`,
+      '_blank',
+      'noopener,noreferrer,width=580,height=400'
+    )
+  }
+
+  const copyShareLink = async () => {
     try {
-      const token = localStorage.getItem('auth_token')
-      if (!token) {
-        alert('Please login to share posts')
-        return
-      }
+      await navigator.clipboard.writeText(getSharePageUrl())
+      setShareCopied(true)
+      setTimeout(() => setShareCopied(false), 2500)
+    } catch {
+      alert('Could not copy. Copy manually:\n' + getSharePageUrl())
+    }
+  }
 
-      // Show share options
-      const shareOption = window.confirm(
-        'Choose share method:\n\nOK = Share to Portal (creates a post)\nCancel = Copy to Clipboard'
+  const downloadShare = async () => {
+    const mediaUrl = getPrimaryMediaUrl()
+    const pageUrl = getSharePageUrl()
+    const shortId = post._id ? String(post._id).slice(-8) : 'export'
+
+    if (mediaUrl) {
+      try {
+        const res = await fetch(mediaUrl, { mode: 'cors' })
+        if (!res.ok) throw new Error('fetch failed')
+        const blob = await res.blob()
+        const type = blob.type || ''
+        let ext = 'bin'
+        if (type.includes('jpeg') || type.includes('jpg')) ext = 'jpg'
+        else if (type.includes('png')) ext = 'png'
+        else if (type.includes('webp')) ext = 'webp'
+        else if (type.includes('mp4')) ext = 'mp4'
+        else if (type.includes('quicktime') || type.includes('video')) ext = 'mov'
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = `alumni-media-${shortId}.${ext}`
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        URL.revokeObjectURL(a.href)
+      } catch {
+        window.open(mediaUrl, '_blank', 'noopener,noreferrer')
+      }
+    } else {
+      const title = post.title || 'Alumni post'
+      const body = post.content || post.description || ''
+      const text = `${title}\n\n${body}\n\n${pageUrl}`
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `alumni-post-${shortId}.txt`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(a.href)
+    }
+  }
+
+  const shareToPortal = async () => {
+    const token = localStorage.getItem('auth_token')
+    if (!token) {
+      alert('Sign in to repost on the portal.')
+      navigate('/signin', { state: { from: { pathname: '/home' } } })
+      closeShareModal()
+      return
+    }
+    setSharePortalLoading(true)
+    try {
+      const postType = getPostType()
+      await axios.post(
+        `${API_BASE_URL}/api/posts/share`,
+        {
+          title: `Shared: ${post.title || 'Check this out!'}`,
+          content: `${post.content || post.description || ''}\n\n[Shared from ${postType}]`,
+          originalPostId: post._id,
+          originalPostType: postType,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
       )
-
-      if (shareOption) {
-        // Share to portal using API
-        try {
-          const postType = getPostType()
-          const shareData = {
-            title: `Shared: ${post.title || 'Check this out!'}`,
-            content: `${post.content || post.description || ''}\n\n[Shared from ${postType}]`,
-            originalPostId: post._id,
-            originalPostType: postType,
-          }
-
-          await axios.post(
-            `${API_BASE_URL}/api/posts/share`,
-            shareData,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          )
-
-          alert('Post shared successfully! It will be visible after admin approval.')
-          if (onUpdate) onUpdate()
-        } catch (error) {
-          console.error('Failed to share post:', error)
-          alert(error.response?.data?.message || 'Failed to share post. Please try again.')
-        }
-      } else {
-        // Copy to clipboard
-        const shareData = {
-          title: post.title || 'Check this out!',
-          text: post.content || post.description || '',
-          url: `${window.location.origin}/home`,
-        }
-        const textToCopy = `${shareData.title}\n\n${shareData.text}\n\n${shareData.url}`
-        await navigator.clipboard.writeText(textToCopy)
-        alert('Post link copied to clipboard!')
-      }
+      alert('Shared to the portal. It will appear after admin approval.')
+      if (onUpdate) onUpdate()
+      closeShareModal()
     } catch (error) {
-      console.error('Share error:', error)
-      alert('Failed to share. Please try again.')
+      console.error('Failed to share post:', error)
+      alert(error.response?.data?.message || 'Could not share to portal.')
+    } finally {
+      setSharePortalLoading(false)
     }
   }
 
@@ -200,17 +287,14 @@ const PostCard = ({ post, onUpdate }) => {
   }
 
   return (
-    <article className="linkedin-post-card">
+    <article className="linkedin-post-card" id={post._id ? `feed-post-${post._id}` : undefined}>
       {/* Post Header */}
       <div className="post-card-header">
         {!isInstitutionPost && authorName && (
           <div className="post-author" onClick={handleUserClick} style={{ cursor: 'pointer' }}>
             <div className="post-author-avatar">
               {authorImage ? (
-                <img 
-                  src={getImageUrl(authorImage)} 
-                  alt={authorName} 
-                />
+                <SasImage src={getImageUrl(authorImage)} alt={authorName} />
               ) : (
                 <div className="avatar-placeholder">
                   {authorName.charAt(0).toUpperCase()}
@@ -245,33 +329,67 @@ const PostCard = ({ post, onUpdate }) => {
         {(post.content || post.description) && (
           <p className="post-text">{post.content || post.description}</p>
         )}
-        {post.imageUrl && (
-          <div className="post-image-container">
-            <img
-              src={getImageUrl(post.imageUrl)}
-              alt={post.title}
-              className="post-image"
-            />
-          </div>
-        )}
-        {post.videoUrl && (
-          <div className="post-video-container">
-            <video
-              src={getImageUrl(post.videoUrl)}
-              controls
-              playsInline
-              webkit-playsinline="true"
-              className="post-video"
-              style={{
-                width: '100%',
-                maxHeight: '500px',
-                borderRadius: '8px',
-                backgroundColor: '#000'
-              }}
-            >
-              Your browser does not support the video tag.
-            </video>
-          </div>
+        {getPostType() === 'InstitutionPost' ? (
+          <>
+            {post.imageUrl && (
+              <div className="post-image-container">
+                <SasImage src={getImageUrl(post.imageUrl)} alt={post.title} className="post-image" />
+              </div>
+            )}
+            {post.videoUrl && (
+              <div className="post-video-container">
+                <SasVideo
+                  src={getImageUrl(post.videoUrl)}
+                  controls
+                  playsInline
+                  webkit-playsinline="true"
+                  className="post-video"
+                  style={{
+                    width: '100%',
+                    maxHeight: '500px',
+                    borderRadius: '8px',
+                    backgroundColor: '#000'
+                  }}
+                >
+                  Your browser does not support the video tag.
+                </SasVideo>
+              </div>
+            )}
+          </>
+        ) : (
+          (() => {
+            const primary = post.mediaUrl || post.imageUrl || post.videoUrl
+            if (!primary) return null
+            const isVideo =
+              post.mediaType === 'video' ||
+              (!!post.videoUrl && post.mediaType !== 'image')
+            if (isVideo) {
+              return (
+                <div className="post-video-container">
+                  <SasVideo
+                    src={getImageUrl(post.mediaUrl || post.videoUrl)}
+                    controls
+                    playsInline
+                    webkit-playsinline="true"
+                    className="post-video"
+                    style={{
+                      width: '100%',
+                      maxHeight: '500px',
+                      borderRadius: '8px',
+                      backgroundColor: '#000'
+                    }}
+                  >
+                    Your browser does not support the video tag.
+                  </SasVideo>
+                </div>
+              )
+            }
+            return (
+              <div className="post-image-container">
+                <SasImage src={getImageUrl(post.mediaUrl || post.imageUrl)} alt={post.title} className="post-image" />
+              </div>
+            )
+          })()
         )}
         {post.applyLink && (
           <div className="post-apply-section">
@@ -316,7 +434,7 @@ const PostCard = ({ post, onUpdate }) => {
           </svg>
           <span>Like</span>
         </button>
-        <button className="post-action" onClick={handleShare}>
+        <button type="button" className="post-action" onClick={openShareModal} aria-haspopup="dialog" aria-expanded={showShareModal}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#666">
             <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/>
           </svg>
@@ -329,6 +447,45 @@ const PostCard = ({ post, onUpdate }) => {
           <span>Report</span>
         </button>
       </div>
+
+      {showShareModal && (
+        <div className="share-modal-backdrop" onClick={closeShareModal} role="presentation">
+          <div className="share-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="share-modal-title">
+            <div className="share-modal-header">
+              <h3 id="share-modal-title">Share</h3>
+              <button type="button" className="share-modal-close" onClick={closeShareModal} aria-label="Close">×</button>
+            </div>
+            <p className="share-modal-hint">Share this post with others</p>
+            <div className="share-modal-grid">
+              <button type="button" className="share-option" onClick={shareViaWhatsApp}>
+                <span className="share-option-icon" aria-hidden>💬</span>
+                <span className="share-option-label">WhatsApp</span>
+              </button>
+              <button type="button" className="share-option" onClick={copyShareLink}>
+                <span className="share-option-icon" aria-hidden>🔗</span>
+                <span className="share-option-label">{shareCopied ? 'Copied!' : 'Copy link'}</span>
+              </button>
+              <button type="button" className="share-option" onClick={shareViaFacebook}>
+                <span className="share-option-icon" aria-hidden>📘</span>
+                <span className="share-option-label">Facebook</span>
+              </button>
+              <button type="button" className="share-option" onClick={downloadShare}>
+                <span className="share-option-icon" aria-hidden>⬇️</span>
+                <span className="share-option-label">Download</span>
+              </button>
+            </div>
+            <div className="share-modal-divider" />
+            <button
+              type="button"
+              className="share-portal-btn"
+              onClick={shareToPortal}
+              disabled={sharePortalLoading}
+            >
+              {sharePortalLoading ? 'Sharing…' : 'Repost on Alumni Portal'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {showReportModal && (
         <div className="report-modal-backdrop" onClick={() => setShowReportModal(false)}>

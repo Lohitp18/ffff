@@ -21,6 +21,8 @@ const userSchema = new mongoose.Schema({
     favouriteTeacher: String,
     socialMedia: String,
     status: { type: String, default: "pending" }, // pending, approved, rejected
+    /** True after signup phone OTP is verified (legacy users default true). */
+    phoneVerified: { type: Boolean, default: true },
     isAdmin: { type: Boolean, default: false },
     role: { type: String, default: "user" }, // user, institution, admin
 

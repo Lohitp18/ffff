@@ -4,6 +4,7 @@ import PrivateRoute from './components/PrivateRoute'
 import Landing from './pages/Landing'
 import SignIn from './pages/SignIn'
 import SignUp from './pages/SignUp'
+import ForgotPassword from './pages/ForgotPassword'
 import SuperAdminLogin from './pages/SuperAdminLogin'
 import InstituteAdminLogin from './pages/InstituteAdminLogin'
 import Home from './pages/Home'
@@ -33,6 +34,7 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/super-admin-login" element={<SuperAdminLogin />} />
         <Route path="/instituteadmin" element={<InstituteAdminLogin />} />
         <Route path="/institutiondashboard" element={<InstitutionDashboard />} />

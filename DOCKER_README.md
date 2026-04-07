@@ -31,8 +31,8 @@ docker-compose logs -f
 
 ### 3. Access the Application
 
-- **Web Frontend**: http://localhost:80
-- **API Backend**: http://localhost:5000
+- **Web Frontend**: http://localhost:${FRONTEND_PORT:-80}
+- **API Backend**: http://localhost:${BACKEND_PORT:-5000}
 - **MongoDB**: localhost:27017
 
 ## Services Overview
@@ -65,7 +65,7 @@ docker-compose logs -f
 | `EMAIL_PORT` | SMTP server port | 587 |
 | `EMAIL_USER` | SMTP username | (empty) |
 | `EMAIL_PASS` | SMTP password | (empty) |
-| `VITE_API_URL` | Frontend API URL | http://localhost:5000 |
+| `VITE_API_BASE_URL` | Frontend API base URL | http://localhost:5000 |
 
 ## Common Commands
 

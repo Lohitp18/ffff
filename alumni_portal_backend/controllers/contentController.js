@@ -7,6 +7,7 @@ const { createNotification } = require("./notificationController");
 const VALID_REPORT_REASONS = ['spam', 'inappropriate_content', 'harassment', 'false_information', 'copyright_violation', 'other'];
 const multer = require("multer");
 const { saveBufferToUploads } = require("../utils/localStorage");
+const { IMAGE_MIMES, VIDEO_MIMES } = require("../utils/mediaStorage");
 
 // Configure multer for in-memory uploads (saved to local /uploads)
 const storage = multer.memoryStorage();
@@ -15,10 +16,10 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: (req, file, cb) => {
-    if (file.mimetype && file.mimetype.startsWith("image/")) {
+    if (file.mimetype && IMAGE_MIMES.has(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Only image files are allowed"), false);
+      cb(new Error("Only jpg, jpeg, png, or webp images are allowed"), false);
     }
   },
 });
@@ -28,10 +29,10 @@ const uploadOptional = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: (req, file, cb) => {
-    if (file.mimetype && file.mimetype.startsWith("image/")) {
+    if (file.mimetype && IMAGE_MIMES.has(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Only image files are allowed"), false);
+      cb(new Error("Only jpg, jpeg, png, or webp images are allowed"), false);
     }
   },
 }).single("image");
@@ -41,10 +42,10 @@ const uploadInstitutionPostMiddleware = multer({
   storage,
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit for videos
   fileFilter: (req, file, cb) => {
-    if (file.mimetype && (file.mimetype.startsWith("image/") || file.mimetype.startsWith("video/"))) {
+    if (file.mimetype && (IMAGE_MIMES.has(file.mimetype) || VIDEO_MIMES.has(file.mimetype))) {
       cb(null, true);
     } else {
-      cb(new Error("Only image and video files are allowed"), false);
+      cb(new Error("Only jpg, jpeg, png, webp, mp4, or mov are allowed"), false);
     }
   },
 }).fields([
@@ -52,11 +53,18 @@ const uploadInstitutionPostMiddleware = multer({
   { name: "video", maxCount: 1 },
 ]);
 
-const uploadToLocal = async (file, folder = "uploads") => {
+const uploadToLocal = async (file, folder = "uploads", userId) => {
   if (!file || !file.buffer) return null;
+  if (!userId) throw new Error("userId is required for media upload");
   const originalName = file.originalname || "file";
   const mimeType = file.mimetype || "application/octet-stream";
-  return saveBufferToUploads(file.buffer, originalName, folder, mimeType);
+  let kind = "post";
+  if (folder === "institution-posts" || folder === "institution-post") kind = "institution-post";
+  else if (folder === "events" || folder === "opportunities") kind = "post";
+  return saveBufferToUploads(file.buffer, originalName, folder, mimeType, {
+    userId: String(userId),
+    kind,
+  });
 };
 
 const listApproved = async (Model, res, userId = null) => {
@@ -170,7 +178,7 @@ module.exports = {
       };
 
       if (req.file) {
-        eventData.imageUrl = await uploadToLocal(req.file, "events");
+        eventData.imageUrl = await uploadToLocal(req.file, "events", req.user._id);
       }
 
       const event = await Event.create(eventData);
@@ -199,7 +207,7 @@ module.exports = {
       };
 
       if (req.file) {
-        opportunityData.imageUrl = await uploadToLocal(req.file, "opportunities");
+        opportunityData.imageUrl = await uploadToLocal(req.file, "opportunities", req.user._id);
       }
 
       const opportunity = await Opportunity.create(opportunityData);
@@ -277,16 +285,23 @@ module.exports = {
         status: status || "approved", // admin-created posts can be approved immediately
       };
       
+      const uid = req.user._id;
       // Handle image upload (from req.files.image or req.file for backward compatibility)
       if (req.files && req.files.image && req.files.image[0]) {
-        data.imageUrl = await uploadToLocal(req.files.image[0], "institution-posts");
+        data.imageUrl = await uploadToLocal(req.files.image[0], "institution-posts", uid);
+        data.mediaUrl = data.imageUrl;
+        data.mediaType = "image";
       } else if (req.file) {
-        data.imageUrl = await uploadToLocal(req.file, "institution-posts");
+        data.imageUrl = await uploadToLocal(req.file, "institution-posts", uid);
+        data.mediaUrl = data.imageUrl;
+        data.mediaType = "image";
       }
-      
+
       // Handle video upload
       if (req.files && req.files.video && req.files.video[0]) {
-        data.videoUrl = await uploadToLocal(req.files.video[0], "institution-posts");
+        data.videoUrl = await uploadToLocal(req.files.video[0], "institution-posts", uid);
+        data.mediaUrl = data.videoUrl;
+        data.mediaType = "video";
       }
       
       const post = await InstitutionPost.create(data);

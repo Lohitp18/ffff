@@ -4,6 +4,7 @@ import axios from 'axios'
 import PostCard from '../components/PostCard'
 import { useAuth } from '../contexts/AuthContext'
 import './UserProfileView.css'
+import SasImage from '../components/SasImage'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
@@ -250,7 +251,7 @@ const UserProfileView = () => {
         {/* Cover Image Section */}
         <div className="profile-cover">
           {user.coverImage ? (
-            <img src={getImageUrl(user.coverImage)} alt="Cover" />
+            <SasImage src={getImageUrl(user.coverImage)} alt="Cover" />
           ) : (
             <div className="cover-placeholder"></div>
           )}
@@ -262,8 +263,8 @@ const UserProfileView = () => {
             {/* Profile Picture */}
             <div className="profile-picture-container">
               {user.profileImage ? (
-                <img 
-                  src={getImageUrl(user.profileImage)} 
+                <SasImage
+                  src={getImageUrl(user.profileImage)}
                   alt={user.name}
                   className="profile-picture"
                 />

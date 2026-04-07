@@ -2,10 +2,8 @@ const jwt = require("jsonwebtoken");
 
 const generateToken = (id) => {
   const secret = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-  if (!secret || secret === "your-secret-key-change-in-production") {
-    console.warn("⚠️  WARNING: Using default JWT_SECRET. Please set JWT_SECRET in environment variables for production.");
-  }
-  return jwt.sign({ id }, secret, { expiresIn: "7d" });
+  const expiresIn = process.env.JWT_EXPIRES_IN || "30d";
+  return jwt.sign({ id }, secret, { expiresIn });
 };
 
 module.exports = generateToken;

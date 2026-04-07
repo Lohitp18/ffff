@@ -61,6 +61,11 @@ const SignIn = () => {
                 placeholder="Enter your password"
               />
             </div>
+            <div style={{ textAlign: "right", marginTop: "-8px", marginBottom: "12px" }}>
+              <Link to="/forgot-password" style={{ fontSize: "0.9rem" }}>
+                Forgot password?
+              </Link>
+            </div>
             <button type="submit" disabled={loading} className="auth-button">
               {loading ? "Signing in..." : "Sign In"}
             </button>

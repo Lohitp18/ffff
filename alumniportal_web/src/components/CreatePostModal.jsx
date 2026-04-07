@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import axios from 'axios'
 import './CreatePostModal.css'
 
@@ -7,9 +7,42 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000
 const CreatePostModal = ({ onClose, onPostCreated }) => {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [image, setImage] = useState(null)
+  const [mediaFile, setMediaFile] = useState(null)
+  const [previewUrl, setPreviewUrl] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+    }
+  }, [previewUrl])
+
+  const onMediaChange = (e) => {
+    const file = e.target.files?.[0]
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    setPreviewUrl(null)
+    setMediaFile(null)
+    if (!file) return
+
+    const isImage = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
+    const isVideo = ['video/mp4', 'video/quicktime'].includes(file.type)
+    if (!isImage && !isVideo) {
+      setError('Use JPG, PNG, WebP, MP4, or MOV')
+      return
+    }
+    if (isImage && file.size > 5 * 1024 * 1024) {
+      setError('Images must be 5MB or smaller')
+      return
+    }
+    if (isVideo && file.size > 50 * 1024 * 1024) {
+      setError('Videos must be 50MB or smaller')
+      return
+    }
+    setError('')
+    setMediaFile(file)
+    setPreviewUrl(URL.createObjectURL(file))
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -25,14 +58,17 @@ const CreatePostModal = ({ onClose, onPostCreated }) => {
       const formData = new FormData()
       formData.append('title', title)
       formData.append('content', content)
-      if (image) {
-        formData.append('image', image)
+      if (mediaFile) {
+        if (mediaFile.type.startsWith('video/')) {
+          formData.append('video', mediaFile)
+        } else {
+          formData.append('image', mediaFile)
+        }
       }
 
       await axios.post(`${API_BASE_URL}/api/posts`, formData, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'multipart/form-data',
         },
       })
 
@@ -74,12 +110,21 @@ const CreatePostModal = ({ onClose, onPostCreated }) => {
             />
           </div>
           <div className="form-group">
-            <label>Image (Optional)</label>
+            <label>Image or video (optional)</label>
             <input
               type="file"
-              accept="image/*"
-              onChange={(e) => setImage(e.target.files[0])}
+              accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime"
+              onChange={onMediaChange}
             />
+            {previewUrl && mediaFile && (
+              <div style={{ marginTop: 12 }}>
+                {mediaFile.type.startsWith('video/') ? (
+                  <video src={previewUrl} controls style={{ maxWidth: '100%', maxHeight: 240, borderRadius: 8 }} />
+                ) : (
+                  <img src={previewUrl} alt="Preview" style={{ maxWidth: '100%', maxHeight: 240, borderRadius: 8, objectFit: 'cover' }} />
+                )}
+              </div>
+            )}
           </div>
           <div className="modal-actions">
             <button type="button" onClick={onClose} className="cancel-btn">
@@ -96,12 +141,3 @@ const CreatePostModal = ({ onClose, onPostCreated }) => {
 }
 
 export default CreatePostModal
-
-
-
-
-
-
-
-
-

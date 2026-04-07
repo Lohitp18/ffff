@@ -770,6 +770,27 @@
             ]
         },
         {
+            "name": "Mtech",
+            "email": "admin.mtech@alvas.edu.in",
+            "password": "AlvasMtech@2026",
+            "establishedYear": 2020,
+            "programs": [
+                {
+                    "name": "M.Tech",
+                    "courses": [
+                        {
+                            "name": "Post Graduate Engineering",
+                            "specializations": [
+                                "CSE",
+                                "Structural Engineering",
+                                "General"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "name": "ALVA'S COLLEGE OF EDUCATION",
             "email": "admin.bed@alvas.edu.in",
             "password": "AlvasBEd@2026",

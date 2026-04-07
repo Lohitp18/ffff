@@ -70,6 +70,18 @@
   border: 1px solid var(--border-color);
 }
 
+/* Ensure native selects remain clickable inside scroll container */
+.enrollment-selector {
+  position: relative;
+  z-index: 2;
+}
+
+.enrollment-selector select {
+  position: relative;
+  z-index: 3;
+  pointer-events: auto;
+}
+
 .auth-card h1 {
   color: var(--primary-blue);
   text-align: center;
@@ -169,6 +181,48 @@
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   border: 1px solid rgba(217, 48, 37, 0.2);
+}
+
+.success-message {
+  background: rgba(0, 128, 0, 0.1);
+  border: 1px solid rgba(0, 128, 0, 0.25);
+  color: #0a5;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-lg);
+  text-align: center;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Enrollment selector layout */
+.enrollment-selector {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+@media (min-width: 900px) {
+  .enrollment-selector {
+    grid-template-columns: 1fr 1fr;
+  }
+  /* Let Year span full width for readability */
+  .enrollment-selector .form-group:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+/* OTP actions */
+.otp-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.otp-actions .auth-button {
+  margin-top: 0;
 }
 
 .auth-link {

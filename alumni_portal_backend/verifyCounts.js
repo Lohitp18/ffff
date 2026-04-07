@@ -14,10 +14,7 @@ const verify = async () => {
         const adminCount = await User.countDocuments({ role: 'admin' });
         const totalUserCount = await User.countDocuments();
 
-        console.log(`Institutions: ${instCount}`);
-        console.log(`Institution Users: ${instUserCount}`);
-        console.log(`Super Admins: ${adminCount}`);
-        console.log(`Total Users: ${totalUserCount}`);
+        // script output intentionally muted (error-only logging)
 
         process.exit(0);
     } catch (error) {

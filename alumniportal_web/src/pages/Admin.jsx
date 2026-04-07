@@ -4,6 +4,7 @@ import axios from 'axios'
 import { useAuth } from '../contexts/AuthContext'
 import './Admin.css'
 import './Auth.css'
+import SasImage from '../components/SasImage'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
@@ -40,7 +41,9 @@ const Admin = () => {
     institution: '',
     course: '',
     year: '',
-    company: ''
+    company: '',
+    username: '',
+    status: ''
   })
 
   // Statistics state
@@ -89,7 +92,6 @@ const Admin = () => {
   const getAuthHeaders = () => {
     const token = localStorage.getItem('auth_token')
     if (!token) {
-      console.warn('No auth token found')
       return {}
     }
     return {
@@ -410,6 +412,13 @@ const Admin = () => {
     let filtered = [...data]
 
     if (type === 'users') {
+      if (filters.username) {
+        const q = filters.username.toLowerCase()
+        filtered = filtered.filter(u => (u.username || '').toLowerCase().includes(q))
+      }
+      if (filters.status) {
+        filtered = filtered.filter(u => (u.status || 'pending') === filters.status)
+      }
       if (filters.institution) {
         filtered = filtered.filter(u => u.institution === filters.institution)
       }
@@ -503,7 +512,9 @@ const Admin = () => {
       institution: '',
       course: '',
       year: '',
-      company: ''
+      company: '',
+      username: '',
+      status: ''
     })
   }
 
@@ -1025,6 +1036,26 @@ const Admin = () => {
 
             {/* Filters */}
             <div className="admin-filters">
+              <input
+                type="text"
+                value={filters.username}
+                onChange={(e) => handleFilterChange('username', e.target.value)}
+                placeholder="Filter by Username"
+                className="filter-input"
+              />
+
+              <select
+                value={filters.status}
+                onChange={(e) => handleFilterChange('status', e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="blocked">Blocked</option>
+              </select>
+
               <select
                 value={filters.institution}
                 onChange={(e) => handleFilterChange('institution', e.target.value)}
@@ -1094,7 +1125,7 @@ const Admin = () => {
                         <td>
                           <div className="user-avatar-small">
                             {user.profileImage ? (
-                              <img src={getImageUrl(user.profileImage)} alt={user.name} />
+                              <SasImage src={getImageUrl(user.profileImage)} alt={user.name} />
                             ) : (
                               <span>{user.name?.charAt(0)?.toUpperCase() || 'U'}</span>
                             )}
@@ -1696,7 +1727,7 @@ const Admin = () => {
                     <div key={user._id} className="whatsapp-user-card">
                       <div className="user-avatar-small">
                         {user.profileImage ? (
-                          <img src={getImageUrl(user.profileImage)} alt={user.name} />
+                          <SasImage src={getImageUrl(user.profileImage)} alt={user.name} />
                         ) : (
                           <span>{user.name?.charAt(0)?.toUpperCase() || 'U'}</span>
                         )}

@@ -5,6 +5,8 @@ const institutionPostSchema = new mongoose.Schema(
     institution: { type: String, required: true },
     title: { type: String, required: true },
     content: { type: String, required: true },
+    mediaUrl: { type: String },
+    mediaType: { type: String, enum: ["image", "video"] },
     imageUrl: { type: String },
     videoUrl: { type: String },
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User", default: [] }],

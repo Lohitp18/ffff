@@ -337,22 +337,94 @@ class ResetPasswordPage extends StatefulWidget {
 
 class _ResetPasswordPageState extends State<ResetPasswordPage> {
   final _formKey = GlobalKey<FormState>();
-  final _emailCtrl = TextEditingController();
+  final _idCtrl = TextEditingController();
+  final _otpCtrl = TextEditingController();
   final _pwdCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
   bool _loading = false;
+  bool _sending = false;
+  bool _verifying = false;
+  String? _resetOtpToken;
   String? _error;
+  String? _info;
   static const String _baseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'https://alvasglobalalumni.org');
 
-  Future<void> _submit() async {
+  Future<void> _sendCode() async {
+    final id = _idCtrl.text.trim();
+    if (id.isEmpty) {
+      setState(() { _error = 'Enter email or username'; });
+      return;
+    }
+    setState(() { _sending = true; _error = null; _info = null; });
+    try {
+      final res = await http.post(
+        Uri.parse('$_baseUrl/api/auth/forgot-password'),
+        headers: { 'Content-Type': 'application/json' },
+        body: jsonEncode({ 'identifier': id }),
+      );
+      if (!mounted) return;
+      final body = res.body.isNotEmpty ? jsonDecode(res.body) : null;
+      final msg = body?['message']?.toString() ?? 'If an account exists, a code was sent.';
+      final dev = body?['devOtp']?.toString();
+      setState(() {
+        _info = dev != null ? '$msg (dev: $dev)' : msg;
+      });
+    } catch (_) {
+      if (mounted) setState(() { _error = 'Network error'; });
+    } finally {
+      if (mounted) setState(() { _sending = false; });
+    }
+  }
+
+  Future<void> _verifyCode() async {
+    final id = _idCtrl.text.trim();
+    final code = _otpCtrl.text.trim();
+    if (code.length != 6) {
+      setState(() { _error = 'Enter the 6-digit code'; });
+      return;
+    }
+    setState(() { _verifying = true; _error = null; });
+    try {
+      final res = await http.post(
+        Uri.parse('$_baseUrl/api/auth/verify-otp'),
+        headers: { 'Content-Type': 'application/json' },
+        body: jsonEncode({
+          'purpose': 'password_reset',
+          'identifier': id,
+          'code': code,
+        }),
+      );
+      if (!mounted) return;
+      final body = res.body.isNotEmpty ? jsonDecode(res.body) : null;
+      if (res.statusCode == 200 && body?['resetOtpToken'] != null) {
+        setState(() {
+          _resetOtpToken = body!['resetOtpToken'] as String;
+          _info = 'Verified. Enter a new password below.';
+        });
+      } else {
+        setState(() { _error = body?['message']?.toString() ?? 'Invalid code'; });
+      }
+    } catch (_) {
+      if (mounted) setState(() { _error = 'Network error'; });
+    } finally {
+      if (mounted) setState(() { _verifying = false; });
+    }
+  }
+
+  Future<void> _submitNewPassword() async {
     if (!_formKey.currentState!.validate()) return;
+    final token = _resetOtpToken;
+    if (token == null) {
+      setState(() { _error = 'Verify SMS code first'; });
+      return;
+    }
     setState(() { _loading = true; _error = null; });
     try {
       final res = await http.post(
         Uri.parse('$_baseUrl/api/auth/reset-password'),
         headers: { 'Content-Type': 'application/json' },
         body: jsonEncode({
-          'email': _emailCtrl.text.trim(),
+          'resetOtpToken': token,
           'newPassword': _pwdCtrl.text,
         }),
       );
@@ -363,10 +435,10 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         }
       } else {
         final err = res.body.isNotEmpty ? jsonDecode(res.body) : null;
-        setState(() { _error = err?['message']?.toString() ?? 'Failed to reset password'; });
+        if (mounted) setState(() { _error = err?['message']?.toString() ?? 'Failed to reset password'; });
       }
     } catch (_) {
-      setState(() { _error = 'Network error'; });
+      if (mounted) setState(() { _error = 'Network error'; });
     } finally {
       if (mounted) setState(() { _loading = false; });
     }
@@ -396,34 +468,80 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                 ),
                 const SizedBox(height: 12),
               ],
-              TextFormField(
-                controller: _emailCtrl,
-                decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter email' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _pwdCtrl,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'New Password', border: OutlineInputBorder()),
-                validator: (v) => (v == null || v.isEmpty) ? 'Enter password' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _confirmCtrl,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'Confirm Password', border: OutlineInputBorder()),
-                validator: (v) => (v != _pwdCtrl.text) ? 'Passwords do not match' : null,
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _loading ? null : _submit,
-                  child: _loading ? const CircularProgressIndicator() : const Text('Reset Password'),
+              if (_info != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    border: Border.all(color: Colors.green),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(_info!, style: const TextStyle(color: Colors.green.shade800)),
                 ),
+                const SizedBox(height: 12),
+              ],
+              TextFormField(
+                controller: _idCtrl,
+                enabled: _resetOtpToken == null,
+                decoration: const InputDecoration(
+                  labelText: 'Email or username',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
+              const SizedBox(height: 12),
+              if (_resetOtpToken == null) ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: _sending ? null : _sendCode,
+                    child: Text(_sending ? 'Sending…' : 'Send SMS code'),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _otpCtrl,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  decoration: const InputDecoration(
+                    labelText: '6-digit SMS code',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: _verifying ? null : _verifyCode,
+                    child: Text(_verifying ? 'Verifying…' : 'Verify code'),
+                  ),
+                ),
+              ],
+              if (_resetOtpToken != null) ...[
+                TextFormField(
+                  controller: _pwdCtrl,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'New Password', border: OutlineInputBorder()),
+                  validator: (v) => (v == null || v.isEmpty) ? 'Enter password' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _confirmCtrl,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Confirm Password', border: OutlineInputBorder()),
+                  validator: (v) => (v != _pwdCtrl.text) ? 'Passwords do not match' : null,
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: _loading ? null : _submitNewPassword,
+                    child: _loading ? const CircularProgressIndicator() : const Text('Update password'),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

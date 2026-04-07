@@ -1,5 +1,14 @@
 node_modules
 npm-debug.log
+yarn.lock
+.env
+uploads
+dist
+build
+.git
+.DS_Store
+node_modules
+npm-debug.log
 .env
 .git
 .gitignore

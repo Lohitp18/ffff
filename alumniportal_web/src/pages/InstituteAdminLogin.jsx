@@ -115,26 +115,15 @@ const InstituteAdminLogin = () => {
     const trimmedEmail = email.trim().toLowerCase()
     const trimmedPassword = password.trim()
 
-    console.log('Login Attempt:', {
-      college,
-      trimmedEmail,
-      hasMatchInList: !!selectedInst,
-      expectedEmail: selectedInst?.email,
-      passwordMatch: selectedInst?.password === trimmedPassword
-    })
-
     if (!selectedInst || trimmedEmail !== selectedInst.email.toLowerCase() || trimmedPassword !== selectedInst.password) {
-      console.log('Frontend match failed')
       setError('login failed')
       setLoading(false)
       return
     }
 
     // Trigger backend login for token if credentials match the "code"
-    console.log('Frontend match success, hitting backend...')
     const authResult = await login(trimmedEmail, trimmedPassword)
     if (!authResult.success) {
-      console.log('Backend auth failed:', authResult.message)
       setError('login failed')
       setLoading(false)
       return

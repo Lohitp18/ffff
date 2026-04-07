@@ -15,8 +15,10 @@ class _SignUpPageState extends State<SignUpPage> {
 
   // Basic fields
   final TextEditingController nameController = TextEditingController();
+  final TextEditingController usernameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
+  final TextEditingController otpController = TextEditingController();
   final TextEditingController dobController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
@@ -55,6 +57,9 @@ class _SignUpPageState extends State<SignUpPage> {
   List<String> _years = [];
 
   bool _isLoading = false;
+  bool _otpSending = false;
+  bool _otpVerifying = false;
+  String? _signupOtpToken;
   String? _error;
   static const String _baseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'https://alvasglobalalumni.org');
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
@@ -139,10 +144,78 @@ class _SignUpPageState extends State<SignUpPage> {
     });
   }
 
+  Future<void> _sendSignupOtp() async {
+    final phone = phoneController.text.trim();
+    if (phone.isEmpty) {
+      setState(() { _error = 'Enter your phone number first'; });
+      return;
+    }
+    setState(() { _otpSending = true; _error = null; });
+    try {
+      final res = await http.post(
+        Uri.parse('$_baseUrl/api/auth/send-otp'),
+        headers: { 'Content-Type': 'application/json' },
+        body: jsonEncode({ 'purpose': 'signup', 'phone': phone }),
+      );
+      if (!mounted) return;
+      final Map<String, dynamic>? body = res.body.isNotEmpty ? jsonDecode(res.body) : null;
+      if (res.statusCode == 200) {
+        final msg = body?['message']?.toString() ?? 'Code sent';
+        final dev = body?['devOtp']?.toString();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(dev != null ? '$msg (dev: $dev)' : msg)),
+        );
+      } else {
+        setState(() { _error = body?['message']?.toString() ?? 'Could not send SMS'; });
+      }
+    } catch (_) {
+      if (mounted) setState(() { _error = 'Network error sending code'; });
+    } finally {
+      if (mounted) setState(() { _otpSending = false; });
+    }
+  }
+
+  Future<void> _verifySignupOtp() async {
+    final phone = phoneController.text.trim();
+    final code = otpController.text.trim();
+    if (code.length != 6) {
+      setState(() { _error = 'Enter the 6-digit code from SMS'; });
+      return;
+    }
+    setState(() { _otpVerifying = true; _error = null; });
+    try {
+      final res = await http.post(
+        Uri.parse('$_baseUrl/api/auth/verify-otp'),
+        headers: { 'Content-Type': 'application/json' },
+        body: jsonEncode({ 'purpose': 'signup', 'phone': phone, 'code': code }),
+      );
+      if (!mounted) return;
+      final Map<String, dynamic>? body = res.body.isNotEmpty ? jsonDecode(res.body) : null;
+      if (res.statusCode == 200 && body?['signupOtpToken'] != null) {
+        setState(() {
+          _signupOtpToken = body!['signupOtpToken'] as String;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Phone verified')),
+        );
+      } else {
+        setState(() { _error = body?['message']?.toString() ?? 'Invalid code'; });
+      }
+    } catch (_) {
+      if (mounted) setState(() { _error = 'Network error verifying code'; });
+    } finally {
+      if (mounted) setState(() { _otpVerifying = false; });
+    }
+  }
+
   void _signUp() async {
     if (_formKey.currentState!.validate()) {
       if (_status == null) {
         setState(() { _error = 'Please select your current status'; });
+        return;
+      }
+      if (_signupOtpToken == null) {
+        setState(() { _error = 'Verify your phone with the SMS code before signing up'; });
         return;
       }
 
@@ -155,8 +228,10 @@ class _SignUpPageState extends State<SignUpPage> {
         // Build request body based on status
         Map<String, dynamic> requestBody = {
           'name': nameController.text.trim(),
+          'username': usernameController.text.trim().toLowerCase(),
           'email': emailController.text.trim(),
           'phone': phoneController.text.trim(),
+          'signupOtpToken': _signupOtpToken,
           'dob': DateTime.tryParse(dobController.text) != null ? dobController.text : DateTime.now().toIso8601String(),
           'institution': _institution ?? '',
           'program': _program ?? '',
@@ -277,6 +352,18 @@ class _SignUpPageState extends State<SignUpPage> {
               ),
               const SizedBox(height: 12),
 
+              TextFormField(
+                controller: usernameController,
+                decoration: _inputDecoration("Username * (for login)", Icons.alternate_email),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) return "Choose a username";
+                  if (value.trim().length < 3) return "At least 3 characters";
+                  return null;
+                },
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 12),
+
               // Email
               TextFormField(
                 controller: emailController,
@@ -300,6 +387,40 @@ class _SignUpPageState extends State<SignUpPage> {
                 keyboardType: TextInputType.phone,
                 style: const TextStyle(fontSize: 16),
                 validator: (value) => value!.isEmpty ? "Enter your phone number" : null,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _otpSending ? null : _sendSignupOtp,
+                      child: Text(_otpSending ? 'Sending…' : 'Send SMS code'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: otpController,
+                decoration: _inputDecoration("6-digit SMS code *", Icons.sms_outlined),
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+                style: const TextStyle(fontSize: 16),
+                validator: (value) {
+                  if (_signupOtpToken != null) return null;
+                  if (value == null || value.length != 6) return "Enter 6-digit code";
+                  return null;
+                },
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: (_otpVerifying || _signupOtpToken != null) ? null : _verifySignupOtp,
+                  child: Text(_signupOtpToken != null
+                      ? 'Phone verified ✓'
+                      : (_otpVerifying ? 'Verifying…' : 'Verify code')),
+                ),
               ),
               const SizedBox(height: 12),
 

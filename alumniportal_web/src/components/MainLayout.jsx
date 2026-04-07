@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import axios from 'axios'
 import './MainLayout.css'
+import SasImage from './SasImage'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
@@ -153,7 +154,7 @@ const MainLayout = ({ children, fullWidth = false }) => {
             >
               <div className="profile-avatar-small">
                 {user?.profileImage ? (
-                  <img src={getImageUrl(user.profileImage)} alt={user.name} />
+                  <SasImage src={getImageUrl(user.profileImage)} alt={user.name} />
                 ) : (
                   <span>{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
                 )}
@@ -165,7 +166,7 @@ const MainLayout = ({ children, fullWidth = false }) => {
                     <div className="menu-profile-info">
                       <div className="menu-avatar">
                         {user?.profileImage ? (
-                          <img src={getImageUrl(user.profileImage)} alt={user.name} />
+                          <SasImage src={getImageUrl(user.profileImage)} alt={user.name} />
                         ) : (
                           <span>{user?.name?.charAt(0)?.toUpperCase() || 'U'}</span>
                         )}
@@ -201,14 +202,14 @@ const MainLayout = ({ children, fullWidth = false }) => {
               <div className="sidebar-profile" onClick={() => navigate('/profile')}>
                 {user?.coverImage ? (
                   <div className="sidebar-cover">
-                    <img src={getImageUrl(user.coverImage)} alt="Cover" />
+                    <SasImage src={getImageUrl(user.coverImage)} alt="Cover" />
                   </div>
                 ) : (
                   <div className="sidebar-cover-placeholder"></div>
                 )}
                 <div className="sidebar-profile-pic">
                   {user?.profileImage ? (
-                    <img src={getImageUrl(user.profileImage)} alt={user.name} />
+                    <SasImage src={getImageUrl(user.profileImage)} alt={user.name} />
                   ) : (
                     <div className="profile-pic-placeholder">
                       {user?.name?.charAt(0)?.toUpperCase() || 'U'}

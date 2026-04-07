@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const messageTemplates = require('./messageTemplates');
 
 /**
  * Creates and returns a configured Nodemailer transporter for Brevo SMTP
@@ -48,90 +49,17 @@ const sendApprovalEmail = async (userEmail, userName) => {
 
     // Use SMTP_FROM if provided, otherwise fall back to SMTP_USER
     const fromEmail = process.env.SMTP_FROM || process.env.SMTP_USER;
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+    const bodyText = messageTemplates.adminApproval.emailText();
+    const subject = messageTemplates.adminApproval.emailSubject;
+    const safeBodyHtml = bodyText.replace(/\n/g, '<br/>');
 
     const mailOptions = {
       from: `"Alumni Portal" <${fromEmail}>`,
       to: userEmail,
-      subject: 'Welcome! Your Account Has Been Approved',
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Account Approved</title>
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
-          <div style="background-color: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #0a66c2; margin: 0; font-size: 28px;">🎉 Account Approved!</h1>
-            </div>
-            
-            <div style="margin-bottom: 25px;">
-              <p style="font-size: 16px; margin-bottom: 15px;">Dear ${userName || 'Alumni'},</p>
-              
-              <p style="font-size: 16px; margin-bottom: 15px;">
-                We are pleased to inform you that your account registration has been <strong style="color: #0a66c2;">approved</strong> by our administration team.
-              </p>
-              
-              <p style="font-size: 16px; margin-bottom: 15px;">
-                You can now access all features of the Alumni Portal, including:
-              </p>
-              
-              <ul style="font-size: 16px; margin-bottom: 20px; padding-left: 25px;">
-                <li style="margin-bottom: 10px;">Connect with fellow alumni</li>
-                <li style="margin-bottom: 10px;">Browse and apply for job opportunities</li>
-                <li style="margin-bottom: 10px;">Discover and attend alumni events</li>
-                <li style="margin-bottom: 10px;">Share posts and updates</li>
-                <li style="margin-bottom: 10px;">Explore institution updates</li>
-              </ul>
-              
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${frontendUrl}/signin" 
-                   style="display: inline-block; background-color: #0a66c2; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 24px; font-weight: 600; font-size: 16px;">
-                  Sign In to Your Account
-                </a>
-              </div>
-              
-              <p style="font-size: 16px; margin-bottom: 15px;">
-                If you have any questions or need assistance, please don't hesitate to contact our support team.
-              </p>
-              
-              <p style="font-size: 16px; margin-top: 25px;">
-                Best regards,<br>
-                <strong>The Alumni Portal Team</strong>
-              </p>
-            </div>
-            
-            <div style="border-top: 1px solid #e0e0e0; padding-top: 20px; margin-top: 30px; text-align: center; color: #666; font-size: 14px;">
-              <p style="margin: 0;">This is an automated message. Please do not reply to this email.</p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `,
-      text: `
-        Account Approved - Alumni Portal
-        
-        Dear ${userName || 'Alumni'},
-        
-        We are pleased to inform you that your account registration has been approved by our administration team.
-        
-        You can now access all features of the Alumni Portal, including:
-        - Connect with fellow alumni
-        - Browse and apply for job opportunities
-        - Discover and attend alumni events
-        - Share posts and updates
-        - Explore institution updates
-        
-        Sign in to your account: ${frontendUrl}/signin
-        
-        If you have any questions or need assistance, please don't hesitate to contact our support team.
-        
-        Best regards,
-        The Alumni Portal Team
-      `,
+      subject,
+      html: `<div style="font-family: sans-serif; line-height: 1.6;">${safeBodyHtml}</div>`,
+      text: bodyText,
     };
 
     const info = await transporter.sendMail(mailOptions);
@@ -259,7 +187,68 @@ const sendRejectionEmail = async (userEmail, userName) => {
   }
 };
 
+/**
+ * Send 6-digit OTP for password reset (email channel).
+ */
+const sendPasswordResetOtpEmail = async (userEmail, _userName, code) => {
+  try {
+    if (!userEmail || !userEmail.includes("@")) {
+      return { success: false, error: "Invalid email" };
+    }
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      return { success: false, error: "SMTP not configured" };
+    }
+    const transporter = createTransporter();
+    const fromEmail = process.env.SMTP_FROM || process.env.SMTP_USER;
+    const bodyText = messageTemplates.forgotPasswordOtp.emailText(code);
+    const subject = messageTemplates.forgotPasswordOtp.emailSubject;
+    const htmlBody = bodyText.replace(/\n/g, "<br/>");
+    const mailOptions = {
+      from: `"Alumni Portal" <${fromEmail}>`,
+      to: userEmail,
+      subject,
+      text: bodyText,
+      html: `<div style="font-family: sans-serif; line-height: 1.6;">${htmlBody}</div>`,
+    };
+    const info = await transporter.sendMail(mailOptions);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error("Error sending password reset OTP email:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+const sendPasswordResetSuccessEmail = async (userEmail) => {
+  try {
+    if (!userEmail || !userEmail.includes("@")) {
+      return { success: false, error: "Invalid email" };
+    }
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      return { success: false, error: "SMTP not configured" };
+    }
+    const transporter = createTransporter();
+    const fromEmail = process.env.SMTP_FROM || process.env.SMTP_USER;
+    const bodyText = messageTemplates.passwordResetSuccess.emailText();
+    const subject = messageTemplates.passwordResetSuccess.emailSubject;
+    const htmlBody = bodyText.replace(/\n/g, "<br/>");
+    const mailOptions = {
+      from: `"Alumni Portal" <${fromEmail}>`,
+      to: userEmail,
+      subject,
+      text: bodyText,
+      html: `<div style="font-family: sans-serif; line-height: 1.6;">${htmlBody}</div>`,
+    };
+    const info = await transporter.sendMail(mailOptions);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error("Error sending password reset success email:", error);
+    return { success: false, error: error.message };
+  }
+};
+
 module.exports = {
   sendApprovalEmail,
   sendRejectionEmail,
+  sendPasswordResetOtpEmail,
+  sendPasswordResetSuccessEmail,
 };

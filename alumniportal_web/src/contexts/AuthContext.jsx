@@ -1,7 +1,24 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
 
 const AuthContext = createContext()
+
+const AUTH_TOKEN_KEY = 'auth_token'
+const AUTH_REFRESH_KEY = 'auth_refresh_token'
+const AUTH_USER_KEY = 'auth_user_profile'
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+
+function readCachedUser() {
+  try {
+    const token = localStorage.getItem(AUTH_TOKEN_KEY)
+    if (!token) return null
+    const raw = localStorage.getItem(AUTH_USER_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
 
 export const useAuth = () => {
   const context = useContext(AuthContext)
@@ -11,40 +28,111 @@ export const useAuth = () => {
   return context
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
-
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [token, setToken] = useState(localStorage.getItem('auth_token'))
+  const [user, setUser] = useState(readCachedUser)
+  const [loading, setLoading] = useState(!!localStorage.getItem(AUTH_TOKEN_KEY))
+  const [token, setToken] = useState(localStorage.getItem(AUTH_TOKEN_KEY))
+
+  const persistUser = (u) => {
+    if (u) {
+      try {
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(u))
+      } catch {
+        /* ignore */
+      }
+    } else {
+      localStorage.removeItem(AUTH_USER_KEY)
+    }
+  }
+
+  const logout = useCallback(() => {
+    localStorage.removeItem(AUTH_TOKEN_KEY)
+    localStorage.removeItem(AUTH_REFRESH_KEY)
+    localStorage.removeItem(AUTH_USER_KEY)
+    setToken(null)
+    setUser(null)
+    delete axios.defaults.headers.common['Authorization']
+  }, [])
+
+  const verifyToken = useCallback(async () => {
+    const access = localStorage.getItem(AUTH_TOKEN_KEY)
+    if (!access) {
+      setLoading(false)
+      return
+    }
+    axios.defaults.headers.common['Authorization'] = `Bearer ${access}`
+
+    try {
+      const { data } = await axios.get(`${API_BASE_URL}/api/auth/verify-token`)
+      if (data.valid && data.user) {
+        setUser(data.user)
+        persistUser(data.user)
+      } else {
+        logout()
+      }
+    } catch (error) {
+      const status = error.response?.status
+      if (status === 401 || status === 403) {
+        logout()
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [logout])
+
+  useEffect(() => {
+    const id = axios.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const cfg = error.config
+        const status = error.response?.status
+        const url = cfg?.url || ''
+        if (
+          status !== 401 ||
+          !cfg ||
+          cfg._retry ||
+          url.includes('/api/auth/refresh') ||
+          url.includes('/api/auth/signin') ||
+          url.includes('/api/auth/login') ||
+          url.includes('/api/auth/signup')
+        ) {
+          return Promise.reject(error)
+        }
+        const rt = localStorage.getItem(AUTH_REFRESH_KEY)
+        if (!rt) {
+          return Promise.reject(error)
+        }
+        cfg._retry = true
+        try {
+          const { data } = await axios.post(`${API_BASE_URL}/api/auth/refresh`, {
+            refreshToken: rt,
+          })
+          const newTok = data.token
+          const newRt = data.refreshToken
+          localStorage.setItem(AUTH_TOKEN_KEY, newTok)
+          localStorage.setItem(AUTH_REFRESH_KEY, newRt)
+          setToken(newTok)
+          cfg.headers = cfg.headers || {}
+          cfg.headers.Authorization = `Bearer ${newTok}`
+          axios.defaults.headers.common['Authorization'] = `Bearer ${newTok}`
+          return axios(cfg)
+        } catch {
+          logout()
+          return Promise.reject(error)
+        }
+      }
+    )
+    return () => axios.interceptors.response.eject(id)
+  }, [logout])
 
   useEffect(() => {
     if (token) {
-      // Ensure axios has the token for all subsequent calls
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-      // Verify token and get user info
       verifyToken()
     } else {
       setLoading(false)
     }
-  }, [token])
-
-  const verifyToken = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/api/users/profile`)
-      setUser(response.data)
-    } catch (error) {
-      console.error('Token verification failed:', error)
-      // Only logout on 401 (Unauthorized) or 403 (Forbidden)
-      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-        logout()
-      }
-      // For other errors (network, 500), we don't logout to avoid forcing re-login
-      // but we should still stop loading
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [token, verifyToken])
 
   const login = async (identifier, password) => {
     try {
@@ -52,22 +140,34 @@ export const AuthProvider = ({ children }) => {
         identifier,
         password,
       })
-      const { token: newToken, _id, email: userEmail, username, status } = response.data
-      localStorage.setItem('auth_token', newToken)
-      setToken(newToken)
-      // Fetch full user profile
-      let finalUser = { _id, email: userEmail, username, status };
-      try {
-        const userResponse = await axios.get(`${API_BASE_URL}/api/users/profile`, {
-          headers: { Authorization: `Bearer ${newToken}` }
-        })
-        finalUser = userResponse.data;
-        setUser(finalUser)
-      } catch (err) {
-        // If profile fetch fails, use basic user info
-        setUser(finalUser)
+      const {
+        token: newToken,
+        refreshToken,
+        _id,
+        email: userEmail,
+        username,
+        status,
+      } = response.data
+      localStorage.setItem(AUTH_TOKEN_KEY, newToken)
+      if (refreshToken) {
+        localStorage.setItem(AUTH_REFRESH_KEY, refreshToken)
       }
+      setToken(newToken)
       axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
+
+      let finalUser = { _id, email: userEmail, username, status }
+      try {
+        const verifyRes = await axios.get(`${API_BASE_URL}/api/auth/verify-token`, {
+          headers: { Authorization: `Bearer ${newToken}` },
+        })
+        if (verifyRes.data?.user) {
+          finalUser = verifyRes.data.user
+        }
+      } catch {
+        /* use minimal user from login response */
+      }
+      setUser(finalUser)
+      persistUser(finalUser)
       return { success: true, user: finalUser }
     } catch (error) {
       return {
@@ -89,11 +189,45 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const logout = () => {
-    localStorage.removeItem('auth_token')
-    setToken(null)
-    setUser(null)
-    delete axios.defaults.headers.common['Authorization']
+  const sendSignupOtp = async (phone) => {
+    const res = await axios.post(`${API_BASE_URL}/api/auth/send-otp`, {
+      purpose: 'signup',
+      phone,
+    })
+    return res.data
+  }
+
+  const verifySignupOtp = async (phone, code) => {
+    const res = await axios.post(`${API_BASE_URL}/api/auth/verify-otp`, {
+      purpose: 'signup',
+      phone,
+      code: String(code).trim(),
+    })
+    return res.data
+  }
+
+  const sendPasswordResetOtp = async (identifier) => {
+    const res = await axios.post(`${API_BASE_URL}/api/auth/forgot-password`, {
+      identifier: identifier.trim(),
+    })
+    return res.data
+  }
+
+  const verifyPasswordResetOtp = async (identifier, code) => {
+    const res = await axios.post(`${API_BASE_URL}/api/auth/verify-otp`, {
+      purpose: 'password_reset',
+      identifier: identifier.trim(),
+      code: String(code).trim(),
+    })
+    return res.data
+  }
+
+  const resetPasswordWithOtp = async (resetOtpToken, newPassword) => {
+    const res = await axios.post(`${API_BASE_URL}/api/auth/reset-password`, {
+      resetOtpToken,
+      newPassword,
+    })
+    return res.data
   }
 
   const value = {
@@ -103,9 +237,12 @@ export const AuthProvider = ({ children }) => {
     signup,
     logout,
     loading,
+    sendSignupOtp,
+    verifySignupOtp,
+    sendPasswordResetOtp,
+    verifyPasswordResetOtp,
+    resetPasswordWithOtp,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
-
-
