@@ -3,7 +3,6 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import EnrollmentSelector from "../components/EnrollmentSelector";
 import Invitation from "../components/Invitation";
-import logo from "../logoo.png";
 import "./Auth.css";
 
 const SignUp = () => {
@@ -33,8 +32,14 @@ const SignUp = () => {
 
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [otpInfo, setOtpInfo] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpRequested, setOtpRequested] = useState(false);
+  const [signupOtpToken, setSignupOtpToken] = useState("");
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signup } = useAuth();
+  const { sendSignupOtp, verifySignupOtp, signup } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -62,39 +67,97 @@ const SignUp = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setOtpInfo("");
 
     if (formData.password !== formData.confirmPassword) {
       return setError("Passwords do not match");
     }
 
-    setLoading(true);
+    if (!otpRequested) {
+      setSendingOtp(true);
+      try {
+        const data = await sendSignupOtp(formData.phone.trim());
+        setOtpRequested(true);
+        setOtpInfo(data.message || "OTP sent to your phone.");
+        if (data.devOtp) {
+          setOtpInfo(`${data.message} (dev OTP: ${data.devOtp})`);
+        }
+      } catch (err) {
+        setError(err.response?.data?.message || "Could not send OTP");
+      } finally {
+        setSendingOtp(false);
+      }
+      return;
+    }
 
+    if (!signupOtpToken) {
+      return setError("Please verify OTP before signing up.");
+    }
+
+    setLoading(true);
     try {
-      const signupData = {
+      const result = await signup({
         ...formData,
         status,
-      };
-
-      const result = await signup(signupData);
+        signupOtpToken,
+      });
       if (result.success) {
         navigate("/signin");
       } else {
         setError(result.message);
       }
-    } catch (err) {
+    } catch (_err) {
       setError("An unexpected error occurred during signup");
     } finally {
       setLoading(false);
     }
   };
+
+  const handleResendOtp = async () => {
+    setError("");
+    setOtpInfo("");
+    if (!formData.phone?.trim()) {
+      setError("Enter your phone number first");
+      return;
+    }
+    setSendingOtp(true);
+    try {
+      const data = await sendSignupOtp(formData.phone.trim());
+      setOtpInfo(data.message || "OTP resent.");
+      if (data.devOtp) {
+        setOtpInfo(`${data.message} (dev OTP: ${data.devOtp})`);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Could not resend OTP");
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    setError("");
+    setOtpInfo("");
+    if (!otp.trim() || otp.trim().length !== 6) {
+      return setError("Enter the 6-digit OTP");
+    }
+    setVerifyingOtp(true);
+    try {
+      const data = await verifySignupOtp(formData.phone.trim(), otp.trim());
+      setSignupOtpToken(data.signupOtpToken);
+      setOtpInfo("OTP verified. Click Sign Up to complete registration.");
+    } catch (err) {
+      setError(err.response?.data?.message || "Invalid or expired OTP");
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
   return (
     <div className="auth-container">
-      {/* Left Panel with Interactive Slider */}
       <div className="auth-left-panel">
         <Invitation />
       </div>
 
-      {/* Right Panel with Form */}
       <div className="auth-right-panel">
         <div className="auth-card">
           <h1>Alumni Portal</h1>
@@ -135,12 +198,18 @@ const SignUp = () => {
               />
             </div>
             <div className="form-group">
-              <label>Phone Number *</label>
+              <label>Phone number *</label>
               <input
                 type="tel"
                 name="phone"
                 value={formData.phone}
-                onChange={handleChange}
+                onChange={(e) => {
+                  handleChange(e);
+                  setOtpRequested(false);
+                  setSignupOtpToken("");
+                  setOtp("");
+                  setOtpInfo("");
+                }}
                 required
                 placeholder="Enter your phone number"
               />
@@ -180,7 +249,6 @@ const SignUp = () => {
               </select>
             </div>
 
-            {/* Conditional fields based on status */}
             {status === "working" && (
               <>
                 <div className="form-group">
@@ -308,8 +376,58 @@ const SignUp = () => {
                 placeholder="Enter social media profile URL"
               />
             </div>
-            <button type="submit" disabled={loading} className="auth-button">
-              {loading ? "Signing up..." : "Sign Up"}
+            {otpRequested && (
+              <>
+                <div className="form-group">
+                  <label>Enter OTP *</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={otp}
+                    onChange={(e) =>
+                      setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                    }
+                    placeholder="6-digit OTP"
+                  />
+                </div>
+                <div className="otp-actions">
+                  <button
+                    type="button"
+                    className="auth-button"
+                    disabled={verifyingOtp || !!signupOtpToken}
+                    onClick={handleVerifyOtp}
+                  >
+                    {signupOtpToken
+                      ? "OTP Verified ✓"
+                      : verifyingOtp
+                        ? "Verifying..."
+                        : "Verify OTP"}
+                  </button>
+                  <button
+                    type="button"
+                    className="auth-button"
+                    disabled={sendingOtp || !!signupOtpToken}
+                    onClick={handleResendOtp}
+                  >
+                    {sendingOtp ? "Sending…" : "Resend OTP"}
+                  </button>
+                </div>
+              </>
+            )}
+            {otpInfo && (
+              <div className="success-message">
+                {otpInfo}
+              </div>
+            )}
+            <button type="submit" disabled={loading || sendingOtp} className="auth-button">
+              {loading
+                ? "Signing up..."
+                : otpRequested
+                  ? "Sign Up"
+                  : sendingOtp
+                    ? "Sending OTP..."
+                    : "Submit & Send OTP"}
             </button>
           </form>
           <p className="auth-link">

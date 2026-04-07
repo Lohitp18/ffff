@@ -3,6 +3,12 @@ const User = require("../models/User");
 const mongoose = require("mongoose");
 
 const bcrypt = require('bcryptjs');
+const jwt = require("jsonwebtoken");
+const { sendPasswordResetConfirmationSms } = require("../services/dosnetSms");
+const { sendPasswordResetSuccessWhatsApp } = require("../services/whatsappService");
+const { sendPasswordResetSuccessEmail } = require("../utils/emailService");
+
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 const multer = require('multer');
 const { saveBufferToUploads } = require("../utils/localStorage");
 
@@ -49,13 +55,6 @@ exports.getAlumniByInstitution = async (req, res) => {
       institutionName = url.searchParams.get('institutionName');
     }
     
-    // Log for debugging
-    console.log('Request URL:', req.url);
-    console.log('Request query:', JSON.stringify(req.query));
-    console.log('Request params:', JSON.stringify(req.params));
-    console.log('Institution name received:', institutionName);
-    console.log('Type:', typeof institutionName);
-    
     if (!institutionName || (typeof institutionName === 'string' && institutionName.trim() === '')) {
       return res.status(400).json({ 
         message: "Institution name is required",
@@ -76,12 +75,10 @@ exports.getAlumniByInstitution = async (req, res) => {
         try {
           institutionName = decodeURIComponent(institutionName);
         } catch (e) {
-          console.log('Decode failed, using as is:', e.message);
+          // ignore decode failures; continue with raw value
         }
       }
     }
-    
-    console.log(`Searching for institution: "${institutionName}"`);
     
     // First, try a simple case-insensitive match without regex (faster and more reliable)
     let users = await User.find({
@@ -96,8 +93,6 @@ exports.getAlumniByInstitution = async (req, res) => {
       .select("-password")
       .sort({ createdAt: -1 });
 
-    console.log(`Exact match found: ${users.length} users`);
-
     // If no exact match, try case-insensitive contains match
     if (users.length === 0) {
       // Escape special regex characters
@@ -109,8 +104,6 @@ exports.getAlumniByInstitution = async (req, res) => {
       })
         .select("-password")
         .sort({ createdAt: -1 });
-      
-      console.log(`Partial match found: ${users.length} users`);
     }
 
     // If still no results, try a more flexible search (removing special characters)
@@ -124,8 +117,6 @@ exports.getAlumniByInstitution = async (req, res) => {
       })
         .select("-password")
         .sort({ createdAt: -1 });
-      
-      console.log(`Simplified match found: ${users.length} users`);
     }
 
     return res.json(users);
@@ -301,8 +292,66 @@ exports.changePassword = async (req, res) => {
   }
 };
 
-// POST /api/auth/reset-password - Reset password by email (no auth)
-exports.resetPasswordByEmail = async (req, res) => {
+// POST /api/auth/reset-password — requires SMS OTP token from /api/auth/verify-otp
+exports.resetPasswordWithOtp = async (req, res) => {
+  try {
+    const { resetOtpToken, newPassword } = req.body;
+    if (!resetOtpToken || !newPassword) {
+      return res
+        .status(400)
+        .json({ message: "Verification token and new password are required" });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(resetOtpToken, JWT_SECRET);
+    } catch {
+      return res.status(400).json({ message: "Invalid or expired verification. Request a new code." });
+    }
+
+    if (decoded.typ !== "password_reset_otp" || !decoded.sub) {
+      return res.status(400).json({ message: "Invalid verification token" });
+    }
+
+    const user = await User.findById(decoded.sub);
+    if (!user) {
+      return res.status(404).json({ message: "Account not found" });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    user.password = hashedPassword;
+    await user.save();
+
+    if (user.email) {
+      try {
+        await sendPasswordResetSuccessEmail(user.email);
+      } catch (e) {
+        // non-fatal
+      }
+    }
+    if (user.phone && String(user.phone).replace(/\D/g, "").length >= 10) {
+      try {
+        await sendPasswordResetConfirmationSms(user.phone, user.name);
+      } catch (error) {
+        console.error("[password_reset_success] SMS unexpected error:", error.message || error);
+      }
+      try {
+        await sendPasswordResetSuccessWhatsApp(user.phone, user.name);
+      } catch (error) {
+        console.error("[password_reset_success] WhatsApp unexpected error:", error.message || error);
+      }
+    }
+
+    return res.json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// POST /api/auth/reset-password-legacy — old clients (e.g. mobile) without OTP
+exports.resetPasswordByEmailLegacy = async (req, res) => {
   try {
     const { email, newPassword } = req.body;
     if (!email || !newPassword) {
@@ -311,7 +360,7 @@ exports.resetPasswordByEmail = async (req, res) => {
         .json({ message: "Email and new password are required" });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
     if (!user) {
       return res.status(404).json({ message: "Email not found" });
     }
@@ -323,19 +372,21 @@ exports.resetPasswordByEmail = async (req, res) => {
 
     return res.json({ message: "Password reset successfully" });
   } catch (error) {
-    console.error("Error resetting password:", error);
+    console.error("Error resetting password (legacy):", error);
     return res.status(500).json({ message: "Server error" });
   }
 };
 
 
-// ===== Image Uploads for Profile & Cover (Azure) =====
+// ===== Image Uploads for Profile & Cover (Azure Blob — env connection string only) =====
+const PROFILE_IMAGE_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
 const imageUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype && file.mimetype.startsWith('image/')) return cb(null, true);
-    return cb(new Error('Only image files are allowed'));
+    if (file.mimetype && PROFILE_IMAGE_MIMES.has(file.mimetype)) return cb(null, true);
+    return cb(new Error('Only jpg, jpeg, png, or webp images are allowed'));
   }
 }).single('image');
 
@@ -352,16 +403,24 @@ const handleImageUpload = (req, res, next) => {
   });
 };
 
-// PUT /api/users/profile-image
+// PUT /api/users/profile-image — also used by POST /api/upload/profile-image
 const uploadProfileImage = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'No image uploaded' });
     const userId = req.user._id;
+    const existing = await User.findById(userId).select('profileImage');
+    if (!existing) return res.status(404).json({ message: 'User not found' });
+
     const imageUrl = await saveBufferToUploads(
       req.file.buffer,
       req.file.originalname || 'profile.jpg',
-      "users",
-      req.file.mimetype
+      'profile',
+      req.file.mimetype,
+      {
+        userId: userId.toString(),
+        kind: 'profile',
+        previousUrl: existing.profileImage,
+      }
     );
     const user = await User.findByIdAndUpdate(
       userId,
@@ -369,23 +428,31 @@ const uploadProfileImage = async (req, res) => {
       { new: true }
     ).select('-password');
     if (!user) return res.status(404).json({ message: 'User not found' });
-    return res.json({ message: 'Profile image updated', user });
+    return res.json({ message: 'Profile image updated', user, url: imageUrl });
   } catch (error) {
     console.error('Error uploading profile image:', error);
-    return res.status(500).json({ message: 'Server error' });
+    return res.status(500).json({ message: error.message || 'Server error' });
   }
 };
 
-// PUT /api/users/cover-image
+// PUT /api/users/cover-image — also used by POST /api/upload/cover-image
 const uploadCoverImage = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'No image uploaded' });
     const userId = req.user._id;
+    const existing = await User.findById(userId).select('coverImage');
+    if (!existing) return res.status(404).json({ message: 'User not found' });
+
     const imageUrl = await saveBufferToUploads(
       req.file.buffer,
       req.file.originalname || 'cover.jpg',
-      "users",
-      req.file.mimetype
+      'cover',
+      req.file.mimetype,
+      {
+        userId: userId.toString(),
+        kind: 'cover',
+        previousUrl: existing.coverImage,
+      }
     );
     const user = await User.findByIdAndUpdate(
       userId,
@@ -393,10 +460,10 @@ const uploadCoverImage = async (req, res) => {
       { new: true }
     ).select('-password');
     if (!user) return res.status(404).json({ message: 'User not found' });
-    return res.json({ message: 'Cover image updated', user });
+    return res.json({ message: 'Cover image updated', user, url: imageUrl });
   } catch (error) {
     console.error('Error uploading cover image:', error);
-    return res.status(500).json({ message: 'Server error' });
+    return res.status(500).json({ message: error.message || 'Server error' });
   }
 };
 

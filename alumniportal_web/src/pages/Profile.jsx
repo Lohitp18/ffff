@@ -3,6 +3,7 @@ import axios from 'axios'
 import PostCard from '../components/PostCard'
 import { useAuth } from '../contexts/AuthContext'
 import './Profile.css'
+import SasImage from '../components/SasImage'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
@@ -15,6 +16,8 @@ const Profile = () => {
   const [editing, setEditing] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [error, setError] = useState('')
+  const [previewUrl, setPreviewUrl] = useState(null)
+  const [previewCoverUrl, setPreviewCoverUrl] = useState(null)
   const fileInputRef = useRef(null)
   const coverInputRef = useRef(null)
   const [formData, setFormData] = useState({
@@ -32,6 +35,13 @@ const Profile = () => {
     loadProfile()
     loadMyPosts()
   }, [])
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+      if (previewCoverUrl) URL.revokeObjectURL(previewCoverUrl)
+    }
+  }, [previewUrl, previewCoverUrl])
 
   const loadProfile = async () => {
     try {
@@ -99,16 +109,24 @@ const Profile = () => {
     const file = e.target.files[0]
     if (!file) return
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file')
+    const allowed = ['image/jpeg', 'image/png', 'image/webp']
+    if (!allowed.includes(file.type)) {
+      alert('Please use JPG, PNG, or WebP')
       return
     }
 
-    // Validate file size (5MB limit)
     if (file.size > 5 * 1024 * 1024) {
       alert('Image size must be less than 5MB')
       return
+    }
+
+    const preview = URL.createObjectURL(file)
+    if (isCover) {
+      if (previewCoverUrl) URL.revokeObjectURL(previewCoverUrl)
+      setPreviewCoverUrl(preview)
+    } else {
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+      setPreviewUrl(preview)
     }
 
     setUploadingImage(true)
@@ -119,19 +137,22 @@ const Profile = () => {
       formData.append('image', file)
 
       const endpoint = isCover 
-        ? `${API_BASE_URL}/api/users/cover-image`
-        : `${API_BASE_URL}/api/users/profile-image`
+        ? `${API_BASE_URL}/api/upload/cover-image`
+        : `${API_BASE_URL}/api/upload/profile-image`
 
-      const response = await axios.put(endpoint, formData, {
+      const response = await axios.post(endpoint, formData, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-          // Don't set Content-Type - axios will set it automatically with boundary
         },
       })
 
       if (response.data) {
-        // Reload profile to show updated image
         await loadProfile()
+        if (isCover) {
+          setPreviewCoverUrl(null)
+        } else {
+          setPreviewUrl(null)
+        }
         alert(isCover ? 'Cover image updated successfully!' : 'Profile image updated successfully!')
       }
     } catch (error) {
@@ -141,7 +162,6 @@ const Profile = () => {
       setError(errorMessage)
     } finally {
       setUploadingImage(false)
-      // Reset file input
       if (isCover && coverInputRef.current) {
         coverInputRef.current.value = ''
       }
@@ -178,8 +198,8 @@ const Profile = () => {
       <div className="linkedin-profile">
         {/* Cover Image Section */}
         <div className="profile-cover">
-          {user.coverImage ? (
-            <img src={getImageUrl(user.coverImage)} alt="Cover" />
+          {previewCoverUrl || user.coverImage ? (
+            <SasImage src={previewCoverUrl || getImageUrl(user.coverImage)} alt="Cover" />
           ) : (
             <div className="cover-placeholder"></div>
           )}
@@ -193,7 +213,7 @@ const Profile = () => {
           <input
             ref={coverInputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             style={{ display: 'none' }}
             onChange={(e) => handleImageUpload(e, true)}
           />
@@ -204,9 +224,9 @@ const Profile = () => {
           <div className="profile-header-content">
             {/* Profile Picture */}
             <div className="profile-picture-container">
-              {user.profileImage ? (
-                <img 
-                  src={getImageUrl(user.profileImage)} 
+              {previewUrl || user.profileImage ? (
+                <SasImage
+                  src={previewUrl || getImageUrl(user.profileImage)}
                   alt={user.name}
                   className="profile-picture"
                 />
@@ -226,7 +246,7 @@ const Profile = () => {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp"
                 style={{ display: 'none' }}
                 onChange={(e) => handleImageUpload(e, false)}
               />

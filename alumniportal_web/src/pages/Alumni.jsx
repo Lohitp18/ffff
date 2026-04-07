@@ -4,6 +4,7 @@ import axios from 'axios'
 import { useAuth } from '../contexts/AuthContext'
 import MainLayout from '../components/MainLayout'
 import './Alumni.css'
+import SasImage from '../components/SasImage'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
@@ -295,7 +296,7 @@ const Alumni = () => {
               >
                 <div className="alumni-avatar">
                   {alum.profileImage ? (
-                    <img src={getImageUrl(alum.profileImage)} alt={alum.name} />
+                    <SasImage src={getImageUrl(alum.profileImage)} alt={alum.name} />
                   ) : (
                     <span>{alum.name?.charAt(0)?.toUpperCase() || '👤'}</span>
                   )}

@@ -46,6 +46,7 @@ router.get('/users', authMiddleware, getPendingUsers);        // Get all pending
 router.get('/approved-users', authMiddleware, getApprovedUsers); // Get all approved users
 router.get('/blocked-users', authMiddleware, getBlockedUsers); // Get all blocked users
 router.patch('/approve/:id', authMiddleware, approveUser);    // Approve user
+router.patch('/approve-user/:id', authMiddleware, approveUser); // Alias (spec)
 router.patch('/reject/:id', authMiddleware, rejectUser);      // Reject user
 router.patch('/block/:id', authMiddleware, blockUser);        // Block user
 router.patch('/unblock/:id', authMiddleware, unblockUser);    // Unblock user

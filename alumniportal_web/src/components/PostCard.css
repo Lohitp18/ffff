@@ -366,6 +366,120 @@
   }
 }
 
+/* Share modal */
+.share-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2100;
+  padding: 16px;
+}
+.share-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+.share-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 18px;
+  border-bottom: 1px solid #e8e8e8;
+}
+.share-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #000000e6;
+}
+.share-modal-close {
+  background: none;
+  border: none;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+  color: #666;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.share-modal-close:hover {
+  background: #f3f2ef;
+  color: #111;
+}
+.share-modal-hint {
+  margin: 12px 18px 8px;
+  font-size: 13px;
+  color: #666;
+}
+.share-modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 8px 18px 16px;
+}
+.share-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fafafa;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+.share-option:hover {
+  background: #eef6fc;
+  border-color: #0a66c2;
+}
+.share-option-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+.share-option-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+.share-modal-divider {
+  height: 1px;
+  background: #e8e8e8;
+  margin: 0 18px;
+}
+.share-portal-btn {
+  display: block;
+  width: calc(100% - 36px);
+  margin: 14px 18px 18px;
+  padding: 12px 16px;
+  border-radius: 24px;
+  border: 1px solid #0a66c2;
+  background: #fff;
+  color: #0a66c2;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.share-portal-btn:hover:not(:disabled) {
+  background: #eef6fc;
+}
+.share-portal-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Report modal (same flow as app) */
 .report-modal-backdrop {
   position: fixed;

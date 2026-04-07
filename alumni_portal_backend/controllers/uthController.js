@@ -1,8 +1,16 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const generateToken = require("../utils/generateToken");
+const generateRefreshToken = require("../utils/generateRefreshToken");
+const { sendLoginAlertSms, sendSignupSuccessSms } = require("../services/dosnetSms");
+const { sendSignupSuccessWhatsApp } = require("../services/whatsappService");
+const { normalizePhone } = require("../utils/phone");
+const messageTemplates = require("../utils/messageTemplates");
 const fs = require("fs");
 const path = require("path");
+
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
 // =============================
 // ✅ User Registration
@@ -27,10 +35,31 @@ const registerUser = async (req, res) => {
       previousCompany,
       totalExperience,
       location,
+      signupOtpToken,
     } = req.body;
 
     if (!name || !username || !email || !phone || !institution || !course || !year || !password) {
       return res.status(400).json({ message: "All basic fields are required" });
+    }
+
+    if (!signupOtpToken) {
+      return res.status(400).json({
+        message: "Please verify your phone with the 6-digit OTP before signing up.",
+      });
+    }
+
+    try {
+      const decoded = jwt.verify(signupOtpToken, JWT_SECRET);
+      if (decoded.typ !== "signup_otp") {
+        return res.status(400).json({ message: "Invalid phone verification. Request a new code." });
+      }
+      if (normalizePhone(decoded.phone) !== normalizePhone(phone)) {
+        return res.status(400).json({
+          message: "Phone verification does not match the phone number on this form.",
+        });
+      }
+    } catch {
+      return res.status(400).json({ message: "Phone verification expired. Request a new SMS code." });
     }
 
     const normalizedEmail = email.trim().toLowerCase();
@@ -79,6 +108,7 @@ const registerUser = async (req, res) => {
       password: hashedPassword,
       favouriteTeacher: favTeacher || "",
       socialMedia: socialMedia || "",
+      phoneVerified: true,
       status: "pending",
       location: location || "",
       privateInfo: {
@@ -94,11 +124,26 @@ const registerUser = async (req, res) => {
       },
     });
 
+    if (phone && String(phone).replace(/\D/g, "").length >= 10) {
+      (async () => {
+        try {
+          await sendSignupSuccessSms(phone, name);
+        } catch (error) {
+          console.error("[signup_success] SMS unexpected error:", error.message || error);
+        }
+        try {
+          await sendSignupSuccessWhatsApp(phone, name);
+        } catch (error) {
+          console.error("[signup_success] WhatsApp unexpected error:", error.message || error);
+        }
+      })();
+    }
+
     res.status(201).json({
       _id: user._id,
       email: user.email,
       status: user.status,
-      message: "Account created successfully. Please wait for admin approval.",
+      message: messageTemplates.signupSuccess.sms(name, messageTemplates.portalUrl()),
     });
   } catch (error) {
     console.error("Register Error:", error);
@@ -154,12 +199,12 @@ const loginUser = async (req, res) => {
               name: staticInst.name,
               email: trimmedEmail,
               password: hashedPassword,
+              phoneVerified: true,
               status: "approved",
               isAdmin: true,
               role: "admin",
               institution: staticInst.name,
             });
-            console.log(`Auto-created institution admin: ${trimmedEmail}`);
           } else {
             let updated = false;
             if (user.status !== "approved") { user.status = "approved"; updated = true; }
@@ -183,6 +228,12 @@ const loginUser = async (req, res) => {
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
+    if (user.phoneVerified === false) {
+      return res.status(403).json({
+        message: "Please complete phone verification before signing in.",
+      });
+    }
+
     if (user.status !== "approved") {
       return res.status(403).json({
         message: `Account is ${user.status}. Please wait for admin approval.`,
@@ -190,6 +241,15 @@ const loginUser = async (req, res) => {
     }
 
     const token = generateToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
+
+    if (process.env.SEND_LOGIN_ALERT_SMS === "true" && user.phone) {
+      try {
+        await sendLoginAlertSms(user.phone);
+      } catch (error) {
+        console.error("[login_alert] SMS unexpected error:", error.message || error);
+      }
+    }
 
     res.json({
       _id: user._id,
@@ -197,6 +257,7 @@ const loginUser = async (req, res) => {
       username: user.username,
       status: user.status,
       token,
+      refreshToken,
     });
   } catch (error) {
     console.error("Login Error:", error);

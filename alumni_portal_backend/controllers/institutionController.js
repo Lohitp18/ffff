@@ -1,29 +1,27 @@
 const Institution = require('../models/Institution');
 const multer = require('multer');
-const path = require('path');
 const fs = require('fs');
 const { saveBufferToUploads } = require("../utils/localStorage");
+const { IMAGE_MIMES } = require("../utils/mediaStorage");
 
 // Configure multer for image uploads (in-memory)
 const imageUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: (req, file, cb) => {
-    if (file.mimetype && file.mimetype.startsWith('image/')) {
+    if (file.mimetype && IMAGE_MIMES.has(file.mimetype)) {
       return cb(null, true);
     }
-    return cb(new Error('Only image files are allowed'));
+    return cb(new Error('Only jpg, jpeg, png, or webp images are allowed'));
   }
 }).single('image');
 
-/** Upload image: always use local /uploads (Azure disabled). Returns URL path. */
-async function uploadInstitutionImage(buffer, originalname, purpose = 'logo') {
-  const ext = path.extname(originalname) || '.jpg';
-  const safeName = (originalname || 'image').replace(/\s+/g, '-').toLowerCase();
-  const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-  const filename = `institution-${purpose}-${unique}-${path.basename(safeName, path.extname(safeName))}${ext}`;
-  // Store under /uploads/institutions
-  return saveBufferToUploads(buffer, filename, 'institutions', 'image/jpeg');
+/** Upload image to Azure Blob (institution-posts container). */
+async function uploadInstitutionImage(buffer, originalname, purpose, userId, mimetype) {
+  return saveBufferToUploads(buffer, originalname || 'institution.jpg', 'institution-posts', mimetype || 'image/jpeg', {
+    userId: String(userId),
+    kind: 'institution-post',
+  });
 }
 
 // Middleware wrapper to handle Multer errors cleanly
@@ -98,7 +96,9 @@ exports.createInstitution = async (req, res) => {
       institutionData.image = await uploadInstitutionImage(
         req.file.buffer,
         req.file.originalname || 'institution-logo.jpg',
-        'logo'
+        'logo',
+        userId,
+        req.file.mimetype
       );
     }
 
@@ -129,7 +129,9 @@ exports.updateInstitution = async (req, res) => {
       updateData.image = await uploadInstitutionImage(
         req.file.buffer,
         req.file.originalname || 'institution-logo.jpg',
-        'logo'
+        'logo',
+        userId,
+        req.file.mimetype
       );
     }
 
@@ -162,7 +164,9 @@ exports.updateCoverImage = async (req, res) => {
     const coverImageUrl = await uploadInstitutionImage(
       req.file.buffer,
       req.file.originalname || 'institution-cover.jpg',
-      'cover'
+      'cover',
+      req.user._id,
+      req.file.mimetype
     );
     const institution = await Institution.findByIdAndUpdate(
       id,

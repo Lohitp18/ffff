@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import './Landing.css'
 // import img from '../front.jpeg'
 import hero from '../hero.mp4'
@@ -6,6 +8,13 @@ import logo from '../logoo.png' // add your logo image
 
 const Landing = () => {
   const navigate = useNavigate()
+  const { user, loading, token } = useAuth()
+
+  useEffect(() => {
+    if (!loading && token && user) {
+      navigate('/home', { replace: true })
+    }
+  }, [loading, token, user, navigate])
 
   return (
     <div className="landing-container">

@@ -6,6 +6,7 @@ import PostCard from '../components/PostCard'
 import CreateInstitutionPostModal from '../components/CreateInstitutionPostModal'
 import { useAuth } from '../contexts/AuthContext'
 import './InstitutionDetail.css'
+import SasImage from '../components/SasImage'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
@@ -204,7 +205,6 @@ const InstitutionDetail = () => {
               }
             )
           } catch (coverErr) {
-            console.warn('Failed to upload cover image:', coverErr)
             // Don't fail the whole operation if cover image fails
           }
         }
@@ -297,7 +297,7 @@ const InstitutionDetail = () => {
             <div className="institution-avatar-container">
               <div className="institution-avatar">
                 {profile?.image ? (
-                  <img src={getImageUrl(profile.image)} alt={decodedInstitutionName} />
+                  <SasImage src={getImageUrl(profile.image)} alt={decodedInstitutionName} />
                 ) : (
                   <div className="institution-avatar-fallback">{decodedInstitutionName.charAt(0)}</div>
                 )}

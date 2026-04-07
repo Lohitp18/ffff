@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+
 const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.header("Authorization");
@@ -13,7 +15,10 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ message: "No token, authorization denied" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.typ === "refresh") {
+      return res.status(401).json({ message: "Use access token, not refresh token" });
+    }
     const user = await User.findById(decoded.id).select("-password");
     
     if (!user) {

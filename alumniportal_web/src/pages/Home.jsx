@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import MainLayout from '../components/MainLayout'
 import PostCard from '../components/PostCard'
 import CreatePostModal from '../components/CreatePostModal'
 import { useAuth } from '../contexts/AuthContext'
 import './Home.css'
+import SasImage from '../components/SasImage'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
@@ -18,10 +19,30 @@ const Home = () => {
   const [error, setError] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   useEffect(() => {
     loadPosts()
   }, [])
+
+  useEffect(() => {
+    const pid = searchParams.get('post')
+    if (pid) setActiveFilter('All')
+  }, [searchParams])
+
+  useEffect(() => {
+    const pid = searchParams.get('post')
+    if (!pid || loading || filteredPosts.length === 0) return
+    const t = requestAnimationFrame(() => {
+      const el = document.getElementById(`feed-post-${pid}`)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el.classList.add('feed-post-highlight')
+        window.setTimeout(() => el.classList.remove('feed-post-highlight'), 2400)
+      }
+    })
+    return () => cancelAnimationFrame(t)
+  }, [searchParams, loading, filteredPosts])
 
   useEffect(() => {
     filterPosts()
@@ -105,7 +126,7 @@ const Home = () => {
           <div className="post-box-header">
             <div className="post-box-avatar">
               {user?.profileImage ? (
-                <img src={`${API_BASE_URL}${user.profileImage}`} alt={user.name} />
+                <SasImage src={`${API_BASE_URL}${user.profileImage}`} alt={user.name} />
               ) : (
                 <div className="avatar-placeholder">
                   {user?.name?.charAt(0)?.toUpperCase() || 'U'}

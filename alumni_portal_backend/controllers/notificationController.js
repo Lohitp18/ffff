@@ -18,7 +18,6 @@ const createNotification = async (type, title, message, relatedItemId, relatedIt
     }));
 
     await Notification.insertMany(notifications);
-    console.log(`Created ${notifications.length} notifications for ${type}`);
   } catch (error) {
     console.error('Error creating notifications:', error);
   }

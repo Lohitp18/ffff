@@ -274,6 +274,14 @@
   }
 }
 
+/* Deep link from shared URL ?post=<id> */
+.linkedin-feed .linkedin-post-card.feed-post-highlight {
+  outline: 3px solid #0a66c2;
+  outline-offset: 3px;
+  border-radius: 10px;
+  transition: outline 0.25s ease;
+}
+
 @media (max-width: 480px) {
   .post-box-actions {
     flex-direction: column;

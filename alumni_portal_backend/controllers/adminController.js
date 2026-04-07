@@ -7,6 +7,8 @@ const Report = require('../models/Report');
 const Institution = require('../models/Institution');
 const bcrypt = require('bcryptjs');
 const { sendApprovalEmail, sendRejectionEmail } = require('../utils/emailService');
+const { sendAccountApprovedSms } = require('../services/dosnetSms');
+const { sendAccountApprovedWhatsApp } = require('../services/whatsappService');
 
 /**
  * Get all pending users
@@ -75,15 +77,27 @@ exports.approveUser = async (req, res) => {
     try {
       const emailResult = await sendApprovalEmail(user.email, user.name);
 
-      if (emailResult.success) {
-        console.log(`✅ Approval email sent successfully to ${user.email}`);
-      } else {
+      if (!emailResult.success) {
         console.error(`❌ Failed to send approval email to ${user.email}:`, emailResult.error);
         // Log error but don't fail the approval process
       }
     } catch (emailError) {
       console.error('Error sending approval email (non-blocking):', emailError);
       // Don't fail the approval if email fails
+    }
+
+    // Send approval SMS + WhatsApp to registered mobile (non-blocking; channels log [SMS:*] / [WhatsApp:*])
+    if (user.phone && String(user.phone).replace(/\D/g, '').length >= 10) {
+      try {
+        await sendAccountApprovedSms(user.phone, user.name);
+      } catch (error) {
+        console.error(`[admin:approveUser] approval SMS threw for user ${userId}:`, error.message || error);
+      }
+      try {
+        await sendAccountApprovedWhatsApp(user.phone, user.name);
+      } catch (error) {
+        console.error(`[admin:approveUser] approval WhatsApp threw for user ${userId}:`, error.message || error);
+      }
     }
 
     return res.json({
@@ -135,9 +149,7 @@ exports.rejectUser = async (req, res) => {
     try {
       const emailResult = await sendRejectionEmail(user.email, user.name);
 
-      if (emailResult.success) {
-        console.log(`✅ Rejection email sent successfully to ${user.email}`);
-      } else {
+      if (!emailResult.success) {
         console.error(`❌ Failed to send rejection email to ${user.email}:`, emailResult.error);
         // Log error but don't fail the rejection process
       }

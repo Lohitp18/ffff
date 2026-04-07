@@ -5,7 +5,22 @@ const connectDB = require("./config/db");
 const fs = require("fs");
 const path = require("path");
 
-dotenv.config();
+// Optional defaults first; then .env with override so your backend/.env always wins (incl. over shell vars).
+const envDir = __dirname;
+const extraEnvFiles = [
+  process.env.NODE_ENV === "production" ? "config.env.production" : null,
+  "config.env",
+].filter(Boolean);
+for (const name of extraEnvFiles) {
+  const full = path.join(envDir, name);
+  if (fs.existsSync(full)) {
+    dotenv.config({ path: full, override: false });
+  }
+}
+const envPath = path.join(envDir, ".env");
+if (fs.existsSync(envPath)) {
+  dotenv.config({ path: envPath, override: true });
+}
 
 const app = express();
 
@@ -55,6 +70,7 @@ app.get("/api/test-db", async (_req, res) => {
   }
 });
 app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/upload", require("./routes/uploadRoutes"));
 app.use("/api/content", require("./routes/contentRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
@@ -64,6 +80,7 @@ app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.use("/api/reports", require("./routes/reportRoutes"));
 app.use("/api/institutions", require("./routes/institutionRoutes"));
 app.use("/api/rsvp", require("./routes/rsvpRoutes"));
+app.use("/api/blob", require("./routes/blobRoutes"));
 
 // Minimal web admin UI (no auth) for reviewing pending items
 app.get('/admin', (_req, res) => {
@@ -245,4 +262,4 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT);
