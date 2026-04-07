@@ -5,7 +5,11 @@ import MainLayout from '../components/MainLayout'
 import PostCard from '../components/PostCard'
 import './Opportunities.css'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+const API_BASE_URL = (() => {
+  const configured = (import.meta.env.VITE_API_BASE_URL ?? '').trim()
+  if (configured) return configured
+  return import.meta.env.DEV ? 'http://localhost:5000' : ''
+})()
 
 const Opportunities = () => {
   const [opportunities, setOpportunities] = useState([])

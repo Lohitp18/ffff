@@ -65,7 +65,7 @@ services:
       context: ./alumniportal_web
       dockerfile: Dockerfile
       args:
-        - VITE_API_BASE_URL=/api
+        - VITE_API_BASE_URL=
 
     container_name: alumni_web
     restart: unless-stopped

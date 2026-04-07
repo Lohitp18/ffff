@@ -7,7 +7,11 @@ const AUTH_TOKEN_KEY = 'auth_token'
 const AUTH_REFRESH_KEY = 'auth_refresh_token'
 const AUTH_USER_KEY = 'auth_user_profile'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+const API_BASE_URL = (() => {
+  const configured = (import.meta.env.VITE_API_BASE_URL ?? '').trim()
+  if (configured) return configured
+  return import.meta.env.DEV ? 'http://localhost:5000' : ''
+})()
 
 function readCachedUser() {
   try {

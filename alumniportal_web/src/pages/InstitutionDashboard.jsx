@@ -4,7 +4,11 @@ import axios from 'axios'
 import { useAuth } from '../contexts/AuthContext'
 import './InstitutionDashboard.css'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+const API_BASE_URL = (() => {
+  const configured = (import.meta.env.VITE_API_BASE_URL ?? '').trim()
+  if (configured) return configured
+  return import.meta.env.DEV ? 'http://localhost:5000' : ''
+})()
 
 const INSTITUTION_DASHBOARD_EMAIL = 'patgarlohit818@gmail.com'
 const INSTITUTION_DASHBOARD_PASSWORD = 'Lohit@2004'
