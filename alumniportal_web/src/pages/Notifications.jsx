@@ -4,7 +4,11 @@ import axios from 'axios'
 import MainLayout from '../components/MainLayout'
 import './Notifications.css'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+const API_BASE_URL = (() => {
+  const configured = (import.meta.env.VITE_API_BASE_URL ?? '').trim()
+  if (configured) return configured
+  return import.meta.env.DEV ? 'http://localhost:5000' : ''
+})()
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState([])

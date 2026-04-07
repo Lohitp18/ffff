@@ -5,7 +5,11 @@ import { useAuth } from '../contexts/AuthContext'
 import './Profile.css'
 import SasImage from '../components/SasImage'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+const API_BASE_URL = (() => {
+  const configured = (import.meta.env.VITE_API_BASE_URL ?? '').trim()
+  if (configured) return configured
+  return import.meta.env.DEV ? 'http://localhost:5000' : ''
+})()
 
 const Profile = () => {
   const { user: currentUser } = useAuth()

@@ -7,7 +7,11 @@ import './Auth.css'
 import './InstituteAdmin.css'
 import '../components/CreatePostModal.css'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+const API_BASE_URL = (() => {
+  const configured = (import.meta.env.VITE_API_BASE_URL ?? '').trim()
+  if (configured) return configured
+  return import.meta.env.DEV ? 'http://localhost:5000' : ''
+})()
 
 const InstituteAdminLogin = () => {
   const navigate = useNavigate()
@@ -560,7 +564,11 @@ const EditInstitutionPostModal = ({ post, institution, onClose, onPostUpdated })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+  const API_BASE_URL = (() => {
+    const configured = (import.meta.env.VITE_API_BASE_URL ?? '').trim()
+    if (configured) return configured
+    return import.meta.env.DEV ? 'http://localhost:5000' : ''
+  })()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
