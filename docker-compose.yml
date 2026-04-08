@@ -35,14 +35,6 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=5000
-      - MONGO_URI=mongodb://${MONGO_USER:-alumniuser}:${MONGO_PASSWORD:-alumnipassword}@mongodb:27017/alumni_portal?authSource=alumni_portal
-      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
-      - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING:-}
-      - AZURE_STORAGE_CONTAINER_NAME=${AZURE_STORAGE_CONTAINER_NAME:-alumni-uploads}
-      - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}
-      - EMAIL_PORT=${EMAIL_PORT:-587}
-      - EMAIL_USER=${EMAIL_USER:-}
-      - EMAIL_PASS=${EMAIL_PASS:-}
     volumes:
       - backend_uploads:/app/uploads
     ports:
