@@ -76,12 +76,9 @@ const SignUp = () => {
     if (!otpRequested) {
       setSendingOtp(true);
       try {
-        const data = await sendSignupOtp(formData.phone.trim());
+        await sendSignupOtp(formData.phone.trim());
         setOtpRequested(true);
-        setOtpInfo(data.message || "OTP sent to your phone.");
-        if (data.devOtp) {
-          setOtpInfo(`${data.message} (dev OTP: ${data.devOtp})`);
-        }
+        setOtpInfo("OTP sent successfully.");
       } catch (err) {
         setError(err.response?.data?.message || "Could not send OTP");
       } finally {
@@ -122,11 +119,8 @@ const SignUp = () => {
     }
     setSendingOtp(true);
     try {
-      const data = await sendSignupOtp(formData.phone.trim());
-      setOtpInfo(data.message || "OTP resent.");
-      if (data.devOtp) {
-        setOtpInfo(`${data.message} (dev OTP: ${data.devOtp})`);
-      }
+      await sendSignupOtp(formData.phone.trim());
+      setOtpInfo("OTP sent successfully.");
     } catch (err) {
       setError(err.response?.data?.message || "Could not resend OTP");
     } finally {

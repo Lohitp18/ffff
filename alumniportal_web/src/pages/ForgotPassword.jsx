@@ -33,16 +33,8 @@ const ForgotPassword = () => {
     }
     setSending(true);
     try {
-      const data = await sendPasswordResetOtp(identifier.trim());
-      setInfo(
-        data.message ||
-          (data.channel === "email"
-            ? "Check your email for the code."
-            : "Check your phone for the code.")
-      );
-      if (data.devOtp) {
-        setInfo(`${data.message} (dev OTP: ${data.devOtp})`);
-      }
+      await sendPasswordResetOtp(identifier.trim());
+      setInfo("OTP sent successfully.");
     } catch (err) {
       setError(err.response?.data?.message || "Could not send code");
     } finally {

@@ -124,6 +124,12 @@ const Admin = () => {
         axios.get(`${API_BASE_URL}/api/admin/pending-institution-posts`, { headers: getAuthHeaders() }),
       ])
 
+      // Keep all content loaded in dashboard context.
+      setUsers([...pendingUsersRes.data, ...usersRes.data])
+      setPosts([...pendingPostsRes.data, ...postsRes.data])
+      setEvents([...pendingEventsRes.data, ...eventsRes.data])
+      setOpportunities([...pendingOppsRes.data, ...oppsRes.data])
+
       setStats({
         totalUsers: usersRes.data.length,
         pendingUsers: pendingUsersRes.data.length,
@@ -1011,6 +1017,16 @@ const Admin = () => {
                     </div>
                   </div>
                 )}
+              </div>
+
+              <div className="dashboard-card-full">
+                <h3>All Content Snapshot</h3>
+                <div className="stat-list">
+                  <div className="stat-row"><span>Users loaded:</span><strong>{users.length}</strong></div>
+                  <div className="stat-row"><span>Posts loaded:</span><strong>{posts.length}</strong></div>
+                  <div className="stat-row"><span>Events loaded:</span><strong>{events.length}</strong></div>
+                  <div className="stat-row"><span>Opportunities loaded:</span><strong>{opportunities.length}</strong></div>
+                </div>
               </div>
             </div>
           </div>
