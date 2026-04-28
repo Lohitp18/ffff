@@ -50,7 +50,6 @@ exports.getAllInstitutions = async (req, res) => {
     const institutions = hierarchy.institutions.map(inst => ({
       name: inst.name,
       email: inst.email,
-      password: inst.password, // Frontend uses this for simple validation
       establishedYear: inst.establishedYear,
       isActive: true
     })).sort((a, b) => a.name.localeCompare(b.name));

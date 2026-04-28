@@ -32,14 +32,20 @@ const seedInstitutions = async () => {
         console.log(`Cleared ${deleteResult.deletedCount} users/alumni from old/unsupported institutions.`);
 
         for (const instData of hierarchy.institutions) {
-            // Hash the password for User collection
-            const hashedPassword = await bcrypt.hash(instData.password, 10);
+            // Credentials are no longer stored in enrollmentHierarchy.json.
+            // Use existing user password if present; for new users use env default.
+            const existingUser = await User.findOne({ email: instData.email.toLowerCase().trim() });
+            const defaultPassword = process.env.INSTITUTION_DEFAULT_PASSWORD || '';
+            const shouldCreateUser = !existingUser;
+            const hashedPassword = shouldCreateUser
+                ? (defaultPassword ? await bcrypt.hash(defaultPassword, 10) : null)
+                : existingUser.password;
 
             // 1. Update/Create Institution metadata
             const instUpdateData = {
                 name: instData.name,
                 email: instData.email,
-                password: instData.password, // Plain text in Institution model per current schema
+                password: 'managed-via-user-account',
                 establishedYear: instData.establishedYear.toString(),
                 courses: instData.programs.flatMap(p => p.courses.map(c => c.name)),
                 isActive: true
@@ -59,7 +65,11 @@ const seedInstitutions = async () => {
                 role: 'institution' // Custom field if exists, but we'll use isAdmin for now
             };
 
-            const existingUser = await User.findOne({ email: userUpdateData.email });
+            if (!hashedPassword) {
+                console.log(`Skipped new user creation for ${instData.email} (set INSTITUTION_DEFAULT_PASSWORD to create missing institution users).`);
+                continue;
+            }
+
             if (existingUser) {
                 await User.findByIdAndUpdate(existingUser._id, userUpdateData);
                 console.log(`Updated user account: ${instData.email}`);

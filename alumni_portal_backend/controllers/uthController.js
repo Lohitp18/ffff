@@ -7,8 +7,6 @@ const { sendLoginAlertSms, sendSignupSuccessSms } = require("../services/dosnetS
 const { sendSignupSuccessWhatsApp } = require("../services/whatsappService");
 const { normalizePhone } = require("../utils/phone");
 const messageTemplates = require("../utils/messageTemplates");
-const fs = require("fs");
-const path = require("path");
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
@@ -180,51 +178,16 @@ const loginUser = async (req, res) => {
       user = await User.findOne({ username: normalizedUsername });
     }
 
-    // --- STATIC INSTITUTION AUTHENTICATION START ---
-    const hierarchyPath = path.join(__dirname, '..', 'data', 'enrollmentHierarchy.json');
-    if (fs.existsSync(hierarchyPath)) {
-      const hierarchyData = JSON.parse(fs.readFileSync(hierarchyPath, "utf8"));
-
-      const staticInst =
-        isEmail &&
-        hierarchyData.institutions?.find(
-          (inst) => inst.email?.toLowerCase() === trimmedEmail
-        );
-
-      if (staticInst) {
-        if (password === staticInst.password) {
-          if (!user) {
-            const hashedPassword = await bcrypt.hash(staticInst.password, 10);
-            user = await User.create({
-              name: staticInst.name,
-              email: trimmedEmail,
-              password: hashedPassword,
-              phoneVerified: true,
-              status: "approved",
-              isAdmin: true,
-              role: "admin",
-              institution: staticInst.name,
-            });
-          } else {
-            let updated = false;
-            if (user.status !== "approved") { user.status = "approved"; updated = true; }
-            if (user.role !== "admin") { user.role = "admin"; updated = true; }
-            if (updated) await user.save();
-          }
-          // Continue to token generation
-        } else {
-          return res.status(400).json({ message: "Invalid email or password" });
-        }
-      }
-    }
-    // --- STATIC INSTITUTION AUTHENTICATION END ---
     if (!user) {
+      console.log("nf1")
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
     const isPasswordMatch = await bcrypt.compare(password, user.password);
 
     if (!isPasswordMatch) {
+
+      console.log("nf")
       return res.status(400).json({ message: "Invalid email or password" });
     }
 

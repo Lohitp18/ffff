@@ -114,20 +114,18 @@ const InstituteAdminLogin = () => {
       return
     }
 
-    // Direct match against the "code" (fetched institution data from DB which was seeded from hierarchy)
-    const selectedInst = institutions.find(inst => inst.name === college)
     const trimmedEmail = email.trim().toLowerCase()
     const trimmedPassword = password.trim()
-
-    if (!selectedInst || trimmedEmail !== selectedInst.email.toLowerCase() || trimmedPassword !== selectedInst.password) {
+    const authResult = await login(trimmedEmail, trimmedPassword)
+    if (!authResult.success) {
       setError('login failed')
       setLoading(false)
       return
     }
-
-    // Trigger backend login for token if credentials match the "code"
-    const authResult = await login(trimmedEmail, trimmedPassword)
-    if (!authResult.success) {
+    const loggedInUser = authResult.user || {}
+    const adminRole = loggedInUser.isAdmin === true || loggedInUser.role === 'admin' || loggedInUser.role === 'institution'
+    const sameInstitution = (loggedInUser.institution || '').trim().toLowerCase() === college.trim().toLowerCase()
+    if (!adminRole || !sameInstitution) {
       setError('login failed')
       setLoading(false)
       return

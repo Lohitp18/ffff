@@ -24,9 +24,6 @@ class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMix
   bool _loggingIn = false;
   String? _loginError;
 
-  static const String _superAdminEmail = 'patgarlohit818@gmail.com';
-  static const String _superAdminPassword = 'Lohit@2004';
-
   @override
   void initState() {
     super.initState();
@@ -52,16 +49,53 @@ class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMix
     try {
       final email = _emailCtrl.text.trim();
       final password = _passwordCtrl.text;
-      if (email != _superAdminEmail || password != _superAdminPassword) {
+      final loginRes = await http.post(
+        Uri.parse('$_baseUrl/api/auth/signin'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'identifier': email,
+          'password': password,
+        }),
+      );
+      if (loginRes.statusCode < 200 || loginRes.statusCode >= 300) {
         setState(() {
           _loginError = 'Invalid admin credentials';
         });
         return;
       }
 
-      // Persist a local gate so the admin tabs are not open to everyone.
+      final loginData = jsonDecode(loginRes.body) as Map<String, dynamic>;
+      final token = loginData['token']?.toString();
+      if (token == null || token.isEmpty) {
+        setState(() {
+          _loginError = 'Login failed';
+        });
+        return;
+      }
+
+      final verifyRes = await http.get(
+        Uri.parse('$_baseUrl/api/auth/verify-token'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (verifyRes.statusCode < 200 || verifyRes.statusCode >= 300) {
+        setState(() {
+          _loginError = 'Admin access required';
+        });
+        return;
+      }
+      final verifyData = jsonDecode(verifyRes.body) as Map<String, dynamic>;
+      final user = (verifyData['user'] as Map?)?.cast<String, dynamic>() ?? {};
+      final isAdmin = user['isAdmin'] == true || user['role'] == 'admin';
+      if (!isAdmin) {
+        setState(() {
+          _loginError = 'Admin access required';
+        });
+        return;
+      }
+
       const storage = FlutterSecureStorage();
       await storage.write(key: 'super_admin_authenticated', value: 'true');
+      await storage.write(key: 'auth_token', value: token);
       if (!mounted) return;
       setState(() {
         _isAuthenticated = true;

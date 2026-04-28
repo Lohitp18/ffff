@@ -7,10 +7,7 @@ dotenv.config();
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    await mongoose.connect(process.env.MONGO_URI);
     console.log('✅ MongoDB Connected\n');
   } catch (error) {
     console.error('❌ MongoDB Connection Failed', error.message);
@@ -21,9 +18,9 @@ const connectDB = async () => {
 const listUsers = async () => {
   try {
     await connectDB();
-    
+
     const users = await User.find({}).select('name email isAdmin status').sort({ createdAt: -1 });
-    
+
     if (users.length === 0) {
       console.log('No users found in database');
       process.exit(0);
@@ -43,7 +40,7 @@ const listUsers = async () => {
     console.log(`\nTotal users: ${users.length}`);
     console.log('\nTo set a user as admin, run:');
     console.log('node scripts/setAdmin.js <email>');
-    
+
     process.exit(0);
   } catch (error) {
     console.error('❌ Error listing users:', error.message);

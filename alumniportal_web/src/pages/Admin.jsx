@@ -14,7 +14,7 @@ const API_BASE_URL = (() => {
 
 const Admin = () => {
   const navigate = useNavigate()
-  const { user, logout } = useAuth()
+  const { user, login, logout } = useAuth()
   const [isAuthenticated, setIsAuthenticated] = useState(localStorage.getItem('admin_authenticated') === 'true')
   const [activeTab, setActiveTab] = useState('dashboard')
   const [loginEmail, setLoginEmail] = useState('')
@@ -22,8 +22,6 @@ const Admin = () => {
   const [loginError, setLoginError] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
 
-  const SUPER_ADMIN_EMAIL = 'patgarlohit818@gmail.com'
-  const SUPER_ADMIN_PASSWORD = 'Lohit@2004'
   const [stats, setStats] = useState({})
   const [users, setUsers] = useState([])
   const [posts, setPosts] = useState([])
@@ -74,20 +72,24 @@ const Admin = () => {
     setLoginError('')
     setLoginLoading(true)
 
-    // Check if credentials match super admin
-    if (loginEmail !== SUPER_ADMIN_EMAIL || loginPassword !== SUPER_ADMIN_PASSWORD) {
-      setLoginError('Invalid admin credentials')
+    const result = await login(loginEmail.trim(), loginPassword)
+    if (!result.success) {
+      setLoginError(result.message || 'Invalid admin credentials')
+      setLoginLoading(false)
+      return
+    }
+    const loggedInUser = result.user || {}
+    const isAdminUser = loggedInUser.isAdmin === true || loggedInUser.role === 'admin'
+    if (!isAdminUser) {
+      logout()
+      setLoginError('Admin access required')
       setLoginLoading(false)
       return
     }
 
-    // Set admin authentication
     localStorage.setItem('admin_authenticated', 'true')
     setIsAuthenticated(true)
     setLoginLoading(false)
-
-    // Load dashboard stats after authentication
-    // Note: This may require a valid auth token for API calls
     setTimeout(() => {
       loadDashboardStats()
     }, 100)

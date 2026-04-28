@@ -10,12 +10,9 @@ const API_BASE_URL = (() => {
   return import.meta.env.DEV ? 'http://localhost:5000' : ''
 })()
 
-const INSTITUTION_DASHBOARD_EMAIL = 'patgarlohit818@gmail.com'
-const INSTITUTION_DASHBOARD_PASSWORD = 'Lohit@2004'
-
 const InstitutionDashboard = () => {
   const navigate = useNavigate()
-  const { logout } = useAuth()
+  const { login, logout } = useAuth()
   const [institutions, setInstitutions] = useState([])
   const [selectedInstitution, setSelectedInstitution] = useState('')
   const [email, setEmail] = useState('')
@@ -53,7 +50,7 @@ const InstitutionDashboard = () => {
     }
   }
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault()
     setError('')
 
@@ -62,8 +59,9 @@ const InstitutionDashboard = () => {
       return
     }
 
-    if (email !== INSTITUTION_DASHBOARD_EMAIL || password !== INSTITUTION_DASHBOARD_PASSWORD) {
-      setError('Invalid email or password')
+    const result = await login(email.trim(), password)
+    if (!result.success) {
+      setError(result.message || 'Invalid email or password')
       return
     }
 

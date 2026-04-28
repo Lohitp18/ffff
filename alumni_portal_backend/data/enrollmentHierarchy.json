@@ -3,7 +3,6 @@
         {
             "name": "ALVA'S ICSE SCHOOL",
             "email": "admin.icse@alvas.edu.in",
-            "password": "AlvasICSE@2026",
             "establishedYear": 2025,
             "programs": [
                 {
@@ -76,7 +75,6 @@
         {
             "name": "ALVA'S CENTRAL SCHOOL",
             "email": "admin.central@alvas.edu.in",
-            "password": "AlvasCentral@2026",
             "establishedYear": 2018,
             "programs": [
                 {
@@ -109,7 +107,6 @@
         {
             "name": "ALVA'S PRE PRIMARY SCHOOL",
             "email": "admin.preprimary@alvas.edu.in",
-            "password": "AlvasPrePrimary@2026",
             "establishedYear": 2014,
             "programs": [
                 {
@@ -140,7 +137,6 @@
         {
             "name": "ALVA'S ENGLISH MEDIUM PRIMARY SCHOOL",
             "email": "admin.primary@alvas.edu.in",
-            "password": "AlvasPrimary@2026",
             "establishedYear": 2014,
             "programs": [
                 {
@@ -159,7 +155,6 @@
         {
             "name": "ALVA'S ENGLISH MEDIUM HIGHER PRIMARY",
             "email": "admin.higherprimary@alvas.edu.in",
-            "password": "AlvasHigherPrimary@2026",
             "establishedYear": 2013,
             "programs": [
                 {
@@ -184,7 +179,6 @@
         {
             "name": "ALVA'S ENGLISH MEDIUM HIGH SCHOOL",
             "email": "admin.highschool@alvas.edu.in",
-            "password": "AlvasHighSchool@2026",
             "establishedYear": 2011,
             "programs": [
                 {
@@ -215,7 +209,6 @@
         {
             "name": "ALVA'S KANNADA MEDIUM HIGHER PRIMARY",
             "email": "admin.kannadahigherprimary@alvas.edu.in",
-            "password": "AlvasKannadaHigherPrimary@2026",
             "establishedYear": 2013,
             "programs": [
                 {
@@ -234,7 +227,6 @@
         {
             "name": "ALVA'S KANNADA MEDIUM HIGH SCHOOL",
             "email": "admin.kannadahighschool@alvas.edu.in",
-            "password": "AlvasKannadaHighSchool@2026",
             "establishedYear": 2009,
             "programs": [
                 {
@@ -265,7 +257,6 @@
         {
             "name": "ALVA'S PRE UNIVERSITY COLLEGE",
             "email": "admin.puc@alvas.edu.in",
-            "password": "AlvasPUC@2026",
             "establishedYear": 1999,
             "programs": [
                 {
@@ -333,7 +324,6 @@
         {
             "name": "ALVA'S COLLEGE",
             "email": "admin.college@alvas.edu.in",
-            "password": "AlvasCollege@2026",
             "establishedYear": 1998,
             "programs": [
                 {
@@ -457,7 +447,6 @@
         {
             "name": "ALVA'S COLLEGE OF PHYSICAL EDUCATION",
             "email": "admin.physicaleducation@alvas.edu.in",
-            "password": "AlvasPhysicalEducation@2026",
             "establishedYear": 2005,
             "programs": [
                 {
@@ -482,7 +471,6 @@
         {
             "name": "ALVA'S COLLEGE OF PHYSIOTHERAPY",
             "email": "admin.physiotherapy@alvas.edu.in",
-            "password": "AlvasPhysiotherapy@2026",
             "establishedYear": 1995,
             "programs": [
                 {
@@ -509,7 +497,6 @@
         {
             "name": "ALVA'S COLLEGE OF ALLIED SCIENCES",
             "email": "admin.alliedsciences@alvas.edu.in",
-            "password": "AlvasAlliedSciences@2026",
             "establishedYear": 1999,
             "programs": [
                 {
@@ -558,7 +545,6 @@
         {
             "name": "ALVA'S AYURVEDA MEDICAL COLLEGE",
             "email": "admin.ayurveda@alvas.edu.in",
-            "password": "AlvasAyurveda@2026",
             "establishedYear": 1996,
             "programs": [
                 {
@@ -616,7 +602,6 @@
         {
             "name": "ALVA'S COLLEGE OF NATUROPATHY AND YOGIC SCIENCES",
             "email": "admin.naturopathy@alvas.edu.in",
-            "password": "AlvasNaturopathy@2026",
             "establishedYear": 2003,
             "programs": [
                 {
@@ -647,7 +632,6 @@
         {
             "name": "ALVA'S HOMEOPATHY MEDICAL COLLEGE",
             "email": "admin.homeopathy@alvas.edu.in",
-            "password": "AlvasHomeopathy@2026",
             "establishedYear": 2004,
             "programs": [
                 {
@@ -666,7 +650,6 @@
         {
             "name": "ALVA'S COLLEGE OF PHARMACY",
             "email": "admin.pharmacy@alvas.edu.in",
-            "password": "AlvasPharmacy@2026",
             "establishedYear": 2008,
             "programs": [
                 {
@@ -685,7 +668,6 @@
         {
             "name": "ALVA'S COLLEGE OF NURSING",
             "email": "admin.nursing@alvas.edu.in",
-            "password": "AlvasNursing@2026",
             "establishedYear": 1996,
             "programs": [
                 {
@@ -730,7 +712,6 @@
         {
             "name": "ALVA'S INSTITUTE OF ENGINEERING AND TECHNOLOGY",
             "email": "admin.engineering@alvas.edu.in",
-            "password": "AlvasEngineering@2026",
             "establishedYear": 2008,
             "programs": [
                 {
@@ -772,7 +753,6 @@
         {
             "name": "Mtech",
             "email": "admin.mtech@alvas.edu.in",
-            "password": "AlvasMtech@2026",
             "establishedYear": 2020,
             "programs": [
                 {
@@ -793,7 +773,6 @@
         {
             "name": "ALVA'S COLLEGE OF EDUCATION",
             "email": "admin.bed@alvas.edu.in",
-            "password": "AlvasBEd@2026",
             "establishedYear": 2005,
             "programs": [
                 {
@@ -820,7 +799,6 @@
         {
             "name": "ALVA'S COLLEGE OF POST GRADUATE STUDIES AND RESEARCH CENTRE",
             "email": "admin.pg@alvas.edu.in",
-            "password": "AlvasPG@2026",
             "establishedYear": 1998,
             "programs": [
                 {
@@ -895,7 +873,6 @@
         {
             "name": "ALVA'S INSTITUTE OF NURSING SCIENCES",
             "email": "admin.nursingsciences@alvas.edu.in",
-            "password": "AlvasNursingSciences@2026",
             "establishedYear": 1995,
             "programs": [
                 {
@@ -914,7 +891,6 @@
         {
             "name": "ALVA'S LAW COLLEGE",
             "email": "admin.law@alvas.edu.in",
-            "password": "AlvasLaw@2026",
             "establishedYear": 2013,
             "programs": [
                 {
@@ -936,7 +912,6 @@
         {
             "name": "ALVA'S INSTITUTE OF AGRICULTURAL SCIENCE AND TECHNOLOGY",
             "email": "admin.agriculture@alvas.edu.in",
-            "password": "AlvasAgriculture@2026",
             "establishedYear": 2025,
             "programs": [
                 {
@@ -956,7 +931,6 @@
         {
             "name": "ALVA'S ACADEMY FOR EXCELLENCE",
             "email": "admin.excellence@alvas.edu.in",
-            "password": "AlvasExcellence@2026",
             "establishedYear": 2018,
             "programs": [
                 {

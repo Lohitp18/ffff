@@ -11,27 +11,19 @@ const SuperAdminLogin = () => {
   const { login } = useAuth()
   const navigate = useNavigate()
 
-  const SUPER_ADMIN_EMAIL = 'patgarlohit818@gmail.com'
-  const SUPER_ADMIN_PASSWORD = 'Lohit@2004'
-
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
-    // Check if credentials match super admin
-    if (email !== SUPER_ADMIN_EMAIL || password !== SUPER_ADMIN_PASSWORD) {
-      setError('Invalid super admin credentials')
-      setLoading(false)
-      return
-    }
-
     const result = await login(email, password)
-    if (result.success) {
+    const loggedInUser = result.user || {}
+    const isAdminUser = loggedInUser.isAdmin === true || loggedInUser.role === 'admin'
+    if (result.success && isAdminUser) {
       localStorage.setItem('admin_authenticated', 'true')
       navigate('/admin')
     } else {
-      setError(result.message || 'Login failed')
+      setError(result.success ? 'Admin access required' : (result.message || 'Login failed'))
     }
     setLoading(false)
   }

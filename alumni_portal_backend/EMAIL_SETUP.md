@@ -53,7 +53,7 @@ NODE_ENV=development
    SMTP_PORT=587
    SMTP_USER=9bdc1f001@smtp-brevo.com
    SMTP_PASS=your_smtp_password_here
-   SMTP_FROM=patgarlohit818@gmail.com
+   SMTP_FROM=your-email@example.com
    FRONTEND_URL=http://localhost:5173
    ```
 
