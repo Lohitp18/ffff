@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
+import { encryptPayload, decryptPayload } from '../utils/crypto'
 
 const AuthContext = createContext()
 
@@ -126,17 +127,91 @@ export const AuthProvider = ({ children }) => {
         }
       }
     )
-    return () => axios.interceptors.response.eject(id)
+    
+    // Add Encryption Interceptor for Outgoing Requests
+    const reqId = axios.interceptors.request.use((config) => {
+      // Check if it's a JSON payload and not multipart/form-data
+      if (
+        config.data &&
+        !(config.data instanceof FormData) &&
+        (config.headers['Content-Type'] === 'application/json' || !config.headers['Content-Type'])
+      ) {
+        try {
+          const encrypted = encryptPayload(config.data);
+          config.data = { payload: encrypted };
+        } catch (error) {
+          console.error("Encryption failed in interceptor", error);
+        }
+      }
+      return config;
+    });
+
+    // Add Decryption Interceptor for Incoming Responses
+    const resId = axios.interceptors.response.use(
+      (response) => {
+        if (response.data && response.data.payload) {
+          try {
+            const decrypted = decryptPayload(response.data.payload);
+            response.data = decrypted;
+          } catch (error) {
+            console.error("Decryption failed in interceptor", error);
+          }
+        }
+        return response;
+      },
+      (error) => {
+        if (error.response && error.response.data && error.response.data.payload) {
+          try {
+            const decrypted = decryptPayload(error.response.data.payload);
+            error.response.data = decrypted;
+          } catch (err) {
+            console.error("Decryption failed in error interceptor", err);
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      axios.interceptors.response.eject(id);
+      axios.interceptors.request.eject(reqId);
+      axios.interceptors.response.eject(resId);
+    }
   }, [logout])
 
   useEffect(() => {
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
       verifyToken()
+
+      // Client-side JWT Validation and Auto-logout
+      try {
+        const payloadStr = atob(token.split('.')[1])
+        const payload = JSON.parse(payloadStr)
+        const expiryTime = payload.exp * 1000
+        const timeUntilExpiry = expiryTime - Date.now()
+
+        if (timeUntilExpiry <= 0) {
+          logout()
+        } else {
+          const timeoutId = setTimeout(() => {
+            // Once the token expires, log out automatically
+            logout()
+            alert('Your session has expired. Please log in again.')
+            window.location.href = '/signin'
+          }, timeUntilExpiry)
+          
+          return () => clearTimeout(timeoutId)
+        }
+      } catch (error) {
+        console.error("Invalid token format", error)
+        logout()
+      }
+
     } else {
       setLoading(false)
     }
-  }, [token, verifyToken])
+  }, [token, verifyToken, logout])
 
   const login = async (identifier, password) => {
     try {
@@ -173,6 +248,67 @@ export const AuthProvider = ({ children }) => {
       setUser(finalUser)
       persistUser(finalUser)
       return { success: true, user: finalUser }
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Login failed',
+      }
+    }
+  }
+
+  const adminLogin = async (identifier, password) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/adminlogin`, {
+        identifier,
+        password,
+      })
+      const {
+        token: newToken,
+        refreshToken,
+        user: loggedInUser
+      } = response.data
+      
+      localStorage.setItem(AUTH_TOKEN_KEY, newToken)
+      if (refreshToken) {
+        localStorage.setItem(AUTH_REFRESH_KEY, refreshToken)
+      }
+      setToken(newToken)
+      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
+
+      setUser(loggedInUser)
+      persistUser(loggedInUser)
+      return { success: true, user: loggedInUser }
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Login failed',
+      }
+    }
+  }
+
+  const institutionLogin = async (identifier, password, college) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/institutionsignup`, {
+        identifier,
+        password,
+        college
+      })
+      const {
+        token: newToken,
+        refreshToken,
+        user: loggedInUser
+      } = response.data
+      
+      localStorage.setItem(AUTH_TOKEN_KEY, newToken)
+      if (refreshToken) {
+        localStorage.setItem(AUTH_REFRESH_KEY, refreshToken)
+      }
+      setToken(newToken)
+      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
+
+      setUser(loggedInUser)
+      persistUser(loggedInUser)
+      return { success: true, user: loggedInUser }
     } catch (error) {
       return {
         success: false,
@@ -238,6 +374,8 @@ export const AuthProvider = ({ children }) => {
     user,
     token,
     login,
+    adminLogin,
+    institutionLogin,
     signup,
     logout,
     loading,

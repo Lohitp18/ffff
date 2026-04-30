@@ -1,5 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const AdminCredential = require("../models/AdminCredential");
+const Institution = require("../models/Institution");
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
@@ -19,8 +21,24 @@ const authMiddleware = async (req, res, next) => {
     if (decoded.typ === "refresh") {
       return res.status(401).json({ message: "Use access token, not refresh token" });
     }
-    const user = await User.findById(decoded.id).select("-password");
+    let user = await User.findById(decoded.id).select("-password");
     
+    if (!user) {
+      user = await AdminCredential.findById(decoded.id).select("-password");
+    }
+    
+    if (!user) {
+      user = await Institution.findById(decoded.id).select("-password");
+      if (user) {
+        // Map the institution fields to act like a regular user object for downstream middlewares
+        const instObj = user.toObject();
+        instObj.role = "institution";
+        instObj.isAdmin = false;
+        instObj.institution = instObj.name;
+        user = instObj;
+      }
+    }
+
     if (!user) {
       return res.status(401).json({ message: "Token is not valid - user not found" });
     }

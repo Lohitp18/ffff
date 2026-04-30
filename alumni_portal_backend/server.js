@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const fs = require("fs");
 const path = require("path");
+const encryptionMiddleware = require("./middlewares/encryptionMiddleware");
 
 // Optional defaults first; then .env with override so your backend/.env always wins (incl. over shell vars).
 const envDir = __dirname;
@@ -37,6 +38,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static('uploads'));
 
 connectDB();
+
+app.use("/api", encryptionMiddleware);
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 

@@ -8,7 +8,7 @@ const SuperAdminLogin = () => {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { login } = useAuth()
+  const { adminLogin } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
@@ -16,14 +16,12 @@ const SuperAdminLogin = () => {
     setError('')
     setLoading(true)
 
-    const result = await login(email, password)
-    const loggedInUser = result.user || {}
-    const isAdminUser = loggedInUser.isAdmin === true || loggedInUser.role === 'admin'
-    if (result.success && isAdminUser) {
+    const result = await adminLogin(email, password)
+    if (result.success) {
       localStorage.setItem('admin_authenticated', 'true')
       navigate('/admin')
     } else {
-      setError(result.success ? 'Admin access required' : (result.message || 'Login failed'))
+      setError(result.message || 'Login failed')
     }
     setLoading(false)
   }

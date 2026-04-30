@@ -1,4 +1,6 @@
 const User = require("../models/User");
+const Institution = require("../models/Institution");
+const AdminCredential = require("../models/AdminCredential");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const generateToken = require("../utils/generateToken");
@@ -231,4 +233,143 @@ const loginUser = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser };
+// =============================
+// ✅ Admin Login
+// =============================
+const adminLogin = async (req, res) => {
+  try {
+    if (!req.body) {
+      return res.status(400).json({ message: "Request body is required" });
+    }
+
+    const { identifier, email, password } = req.body;
+    const rawIdentifier = (identifier || email || "").trim();
+
+    if (!rawIdentifier || !password) {
+      return res.status(400).json({ message: "Email or username and password are required" });
+    }
+
+    const isEmail = rawIdentifier.includes("@");
+    const trimmedEmail = isEmail ? rawIdentifier.toLowerCase() : null;
+    const normalizedUsername = !isEmail ? rawIdentifier.toLowerCase() : null;
+
+    let adminUser = null;
+    if (isEmail) {
+      adminUser = await AdminCredential.findOne({ email: trimmedEmail });
+    } else {
+      adminUser = await AdminCredential.findOne({ email: normalizedUsername });
+    }
+
+    if (!adminUser) {
+      return res.status(400).json({ message: "Invalid admin credentials" });
+    }
+
+    let isPasswordMatch = false;
+    try {
+      isPasswordMatch = await bcrypt.compare(password, adminUser.password);
+    } catch (e) {}
+
+    if (!isPasswordMatch && password !== adminUser.password) {
+      return res.status(400).json({ message: "Invalid admin credentials" });
+    }
+
+    const token = generateToken(adminUser._id);
+    const refreshToken = generateRefreshToken(adminUser._id);
+
+    res.json({
+      success: true,
+      _id: adminUser._id,
+      email: adminUser.email,
+      username: adminUser.email,
+      status: "approved",
+      token,
+      refreshToken,
+      user: {
+        _id: adminUser._id,
+        email: adminUser.email,
+        username: adminUser.email,
+        role: adminUser.role || "admin",
+        isAdmin: adminUser.isAdmin !== undefined ? adminUser.isAdmin : true
+      }
+    });
+  } catch (error) {
+    console.error("Admin Login Error:", error);
+    res.status(500).json({
+      message: "Server error during login",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+// =============================
+// ✅ Institution Login
+// =============================
+const institutionLogin = async (req, res) => {
+  try {
+    if (!req.body) {
+      return res.status(400).json({ message: "Request body is required" });
+    }
+
+    const { identifier, email, password, college } = req.body;
+    const rawIdentifier = (identifier || email || "").trim();
+
+    if (!rawIdentifier || !password || !college) {
+      return res.status(400).json({ message: "Email, password, and college are required" });
+    }
+
+    const isEmail = rawIdentifier.includes("@");
+    const trimmedEmail = isEmail ? rawIdentifier.toLowerCase() : rawIdentifier.toLowerCase();
+
+    const institution = await Institution.findOne({ email: trimmedEmail });
+
+    if (!institution) {
+      return res.status(400).json({ message: "Invalid institution credentials" });
+    }
+
+    let isPasswordMatch = false;
+    try {
+      isPasswordMatch = await bcrypt.compare(password, institution.password);
+    } catch (e) {}
+
+    if (!isPasswordMatch && password !== institution.password) {
+      return res.status(400).json({ message: "Invalid institution credentials" });
+    }
+
+    if (institution.name.trim().toLowerCase() !== college.trim().toLowerCase()) {
+      return res.status(403).json({ message: "Institution Admin access required for this college" });
+    }
+
+    if (institution.isActive === false) {
+      return res.status(403).json({ message: "Institution account is inactive." });
+    }
+
+    const token = generateToken(institution._id);
+    const refreshToken = generateRefreshToken(institution._id);
+
+    res.json({
+      success: true,
+      _id: institution._id,
+      email: institution.email,
+      username: institution.name,
+      status: "approved",
+      token,
+      refreshToken,
+      user: {
+        _id: institution._id,
+        email: institution.email,
+        username: institution.name,
+        role: "institution",
+        isAdmin: false,
+        institution: institution.name
+      }
+    });
+  } catch (error) {
+    console.error("Institution Login Error:", error);
+    res.status(500).json({
+      message: "Server error during login",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+module.exports = { registerUser, loginUser, adminLogin, institutionLogin };

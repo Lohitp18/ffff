@@ -1,6 +1,6 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
-const { registerUser, loginUser } = require("../controllers/uthController");
+const { registerUser, loginUser, adminLogin, institutionLogin } = require("../controllers/uthController");
 const {
   resetPasswordWithOtp,
   resetPasswordByEmailLegacy,
@@ -28,6 +28,8 @@ const strictOtpLimiter = rateLimit({
 router.post("/signup", registerUser);
 router.post("/signin", loginUser);
 router.post("/login", loginUser);
+router.post("/adminlogin", adminLogin);
+router.post("/institutionsignup", institutionLogin);
 
 router.get("/verify-token", authMiddleware, verifyToken);
 router.post("/refresh", refreshAccessToken);

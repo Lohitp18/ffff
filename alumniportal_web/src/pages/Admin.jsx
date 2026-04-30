@@ -14,7 +14,7 @@ const API_BASE_URL = (() => {
 
 const Admin = () => {
   const navigate = useNavigate()
-  const { user, login, logout } = useAuth()
+  const { user, adminLogin, logout } = useAuth()
   const [isAuthenticated, setIsAuthenticated] = useState(localStorage.getItem('admin_authenticated') === 'true')
   const [activeTab, setActiveTab] = useState('dashboard')
   const [loginEmail, setLoginEmail] = useState('')
@@ -72,17 +72,9 @@ const Admin = () => {
     setLoginError('')
     setLoginLoading(true)
 
-    const result = await login(loginEmail.trim(), loginPassword)
+    const result = await adminLogin(loginEmail.trim(), loginPassword)
     if (!result.success) {
       setLoginError(result.message || 'Invalid admin credentials')
-      setLoginLoading(false)
-      return
-    }
-    const loggedInUser = result.user || {}
-    const isAdminUser = loggedInUser.isAdmin === true || loggedInUser.role === 'admin'
-    if (!isAdminUser) {
-      logout()
-      setLoginError('Admin access required')
       setLoginLoading(false)
       return
     }

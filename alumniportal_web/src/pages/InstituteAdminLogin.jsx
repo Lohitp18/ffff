@@ -15,7 +15,7 @@ const API_BASE_URL = (() => {
 
 const InstituteAdminLogin = () => {
   const navigate = useNavigate()
-  const { user, login, logout } = useAuth()
+  const { user, institutionLogin, logout } = useAuth()
   const [college, setCollege] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -116,17 +116,9 @@ const InstituteAdminLogin = () => {
 
     const trimmedEmail = email.trim().toLowerCase()
     const trimmedPassword = password.trim()
-    const authResult = await login(trimmedEmail, trimmedPassword)
+    const authResult = await institutionLogin(trimmedEmail, trimmedPassword, college)
     if (!authResult.success) {
-      setError('login failed')
-      setLoading(false)
-      return
-    }
-    const loggedInUser = authResult.user || {}
-    const adminRole = loggedInUser.isAdmin === true || loggedInUser.role === 'admin' || loggedInUser.role === 'institution'
-    const sameInstitution = (loggedInUser.institution || '').trim().toLowerCase() === college.trim().toLowerCase()
-    if (!adminRole || !sameInstitution) {
-      setError('login failed')
+      setError(authResult.message || 'Login failed')
       setLoading(false)
       return
     }
