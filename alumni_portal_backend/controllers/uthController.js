@@ -1,5 +1,5 @@
-const User = require("../models/User");
 const Institution = require("../models/Institution");
+const InstitutionCredential = require("../models/InstitutionCredential");
 const AdminCredential = require("../models/AdminCredential");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -320,9 +320,15 @@ const institutionLogin = async (req, res) => {
     const isEmail = rawIdentifier.includes("@");
     const trimmedEmail = isEmail ? rawIdentifier.toLowerCase() : rawIdentifier.toLowerCase();
 
-    const institution = await Institution.findOne({ email: trimmedEmail });
+    // Fetch by institutionName instead of email
+    const institution = await InstitutionCredential.findOne({ institutionName: college.trim() });
 
     if (!institution) {
+      return res.status(400).json({ message: "Invalid institution credentials" });
+    }
+
+    // Also check if the provided email matches the institution's email
+    if (institution.email.toLowerCase() !== trimmedEmail) {
       return res.status(400).json({ message: "Invalid institution credentials" });
     }
 
@@ -333,10 +339,6 @@ const institutionLogin = async (req, res) => {
 
     if (!isPasswordMatch && password !== institution.password) {
       return res.status(400).json({ message: "Invalid institution credentials" });
-    }
-
-    if (institution.name.trim().toLowerCase() !== college.trim().toLowerCase()) {
-      return res.status(403).json({ message: "Institution Admin access required for this college" });
     }
 
     if (institution.isActive === false) {
@@ -350,17 +352,17 @@ const institutionLogin = async (req, res) => {
       success: true,
       _id: institution._id,
       email: institution.email,
-      username: institution.name,
+      username: institution.institutionName,
       status: "approved",
       token,
       refreshToken,
       user: {
         _id: institution._id,
         email: institution.email,
-        username: institution.name,
+        username: institution.institutionName,
         role: "institution",
         isAdmin: false,
-        institution: institution.name
+        institution: institution.institutionName
       }
     });
   } catch (error) {

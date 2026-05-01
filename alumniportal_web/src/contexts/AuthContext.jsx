@@ -183,31 +183,6 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
       verifyToken()
-
-      // Client-side JWT Validation and Auto-logout
-      try {
-        const payloadStr = atob(token.split('.')[1])
-        const payload = JSON.parse(payloadStr)
-        const expiryTime = payload.exp * 1000
-        const timeUntilExpiry = expiryTime - Date.now()
-
-        if (timeUntilExpiry <= 0) {
-          logout()
-        } else {
-          const timeoutId = setTimeout(() => {
-            // Once the token expires, log out automatically
-            logout()
-            alert('Your session has expired. Please log in again.')
-            window.location.href = '/signin'
-          }, timeUntilExpiry)
-          
-          return () => clearTimeout(timeoutId)
-        }
-      } catch (error) {
-        console.error("Invalid token format", error)
-        logout()
-      }
-
     } else {
       setLoading(false)
     }

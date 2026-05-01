@@ -1,40 +1,29 @@
-# Web Frontend Dockerfile
-# Build stage
-FROM node:20-alpine AS build
+# Stage 1: Build the React application using Vite
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files and install dependencies
 COPY package*.json ./
-
-# Install dependencies
 RUN npm ci
 
-# Copy source code
+# Copy the rest of the application code
 COPY . .
 
-# Build the application
-ARG VITE_API_BASE_URL
-ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+# Build the app for production
 RUN npm run build
 
-# Production stage - serve with nginx
+# Stage 2: Serve the application using Nginx
 FROM nginx:alpine
 
-# Needed for Docker HEALTHCHECK (nginx image doesn't guarantee wget)
-RUN apk add --no-cache wget
-
-# Copy custom nginx config
+# Copy the custom nginx configuration if it exists
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy built files from build stage
-COPY --from=build /app/dist /usr/share/nginx/html
+# Copy the built files from the builder stage to Nginx's default public directory
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Expose port
+# Expose port 80
 EXPOSE 80
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost/ || exit 1
-
+# Start Nginx in the foreground
 CMD ["nginx", "-g", "daemon off;"]

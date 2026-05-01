@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const AdminCredential = require("../models/AdminCredential");
-const Institution = require("../models/Institution");
+const InstitutionCredential = require("../models/InstitutionCredential");
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
@@ -28,13 +28,14 @@ const authMiddleware = async (req, res, next) => {
     }
     
     if (!user) {
-      user = await Institution.findById(decoded.id).select("-password");
+      user = await InstitutionCredential.findById(decoded.id).select("-password");
       if (user) {
         // Map the institution fields to act like a regular user object for downstream middlewares
         const instObj = user.toObject();
         instObj.role = "institution";
         instObj.isAdmin = false;
-        instObj.institution = instObj.name;
+        instObj.institution = instObj.institutionName;
+        instObj.name = instObj.institutionName;
         user = instObj;
       }
     }

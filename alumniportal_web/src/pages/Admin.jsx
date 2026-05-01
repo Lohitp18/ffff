@@ -551,7 +551,11 @@ const Admin = () => {
     if (filters.course) params.append('course', filters.course)
     if (filters.year) params.append('year', filters.year)
     if (filters.company) params.append('company', filters.company)
-    params.append('status', 'all')
+    if (filters.status) {
+      params.append('status', filters.status)
+    } else {
+      params.append('status', 'all')
+    }
     return params.toString()
   }
 
