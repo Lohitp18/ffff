@@ -32,7 +32,7 @@ const {
   deleteOpportunity,
   deletePost
 } = require('../controllers/contentController');
-const authMiddleware = require('../middlewares/authMiddleware');
+const requireAdmin = require('../middlewares/adminMiddleware');
 const { exportRSVPs, listRSVPs } = require('../controllers/rsvpController');
 const {
   exportStudentsCSV,
@@ -42,50 +42,50 @@ const {
 } = require('../controllers/studentExportController');
 
 // User management routes - accessible to all authenticated users
-router.get('/users', authMiddleware, getPendingUsers);        // Get all pending users
-router.get('/approved-users', authMiddleware, getApprovedUsers); // Get all approved users
-router.get('/blocked-users', authMiddleware, getBlockedUsers); // Get all blocked users
-router.patch('/approve/:id', authMiddleware, approveUser);    // Approve user
-router.patch('/approve-user/:id', authMiddleware, approveUser); // Alias (spec)
-router.patch('/reject/:id', authMiddleware, rejectUser);      // Reject user
-router.patch('/block/:id', authMiddleware, blockUser);        // Block user
-router.patch('/unblock/:id', authMiddleware, unblockUser);    // Unblock user
+router.get('/users', requireAdmin, getPendingUsers);        // Get all pending users
+router.get('/approved-users', requireAdmin, getApprovedUsers); // Get all approved users
+router.get('/blocked-users', requireAdmin, getBlockedUsers); // Get all blocked users
+router.patch('/approve/:id', requireAdmin, approveUser);    // Approve user
+router.patch('/approve-user/:id', requireAdmin, approveUser); // Alias (spec)
+router.patch('/reject/:id', requireAdmin, rejectUser);      // Reject user
+router.patch('/block/:id', requireAdmin, blockUser);        // Block user
+router.patch('/unblock/:id', requireAdmin, unblockUser);    // Unblock user
 
 // Institution user management routes
-router.get('/institution-users', authMiddleware, getInstitutionUsers); // Get all institution users
-router.post('/institution-users', authMiddleware, createInstitutionUser); // Create institution user
-router.delete('/institution-users/:id', authMiddleware, deleteInstitutionUser); // Delete institution user
+router.get('/institution-users', requireAdmin, getInstitutionUsers); // Get all institution users
+router.post('/institution-users', requireAdmin, createInstitutionUser); // Create institution user
+router.delete('/institution-users/:id', requireAdmin, deleteInstitutionUser); // Delete institution user
 
 // Super Admin extra routes
-router.get('/all-users-data', authMiddleware, getAllUsersFullData);
-router.get('/detailed-stats', authMiddleware, getDetailedStatistics);
+router.get('/all-users-data', requireAdmin, getAllUsersFullData);
+router.get('/detailed-stats', requireAdmin, getDetailedStatistics);
 
 // Content management routes
-router.get('/pending-events', authMiddleware, getPendingEvents);
-router.get('/pending-opportunities', authMiddleware, getPendingOpportunities);
-router.get('/pending-posts', authMiddleware, getPendingPosts);
-router.get('/pending-institution-posts', authMiddleware, getPendingInstitutionPosts);
-router.get('/approved-events', authMiddleware, getApprovedEvents);
-router.get('/approved-opportunities', authMiddleware, getApprovedOpportunities);
-router.get('/approved-posts', authMiddleware, getApprovedPosts);
-router.get('/approved-institution-posts', authMiddleware, getApprovedInstitutionPostsForAdmin);
-router.put('/events/:id/status', authMiddleware, updateEventStatus);
-router.put('/opportunities/:id/status', authMiddleware, updateOpportunityStatus);
-router.put('/posts/:id/status', authMiddleware, updatePostStatus);
-router.put('/institution-posts/:id/status', authMiddleware, updateInstitutionPostStatus);
-router.delete('/events/:id', authMiddleware, deleteEvent);
-router.delete('/opportunities/:id', authMiddleware, deleteOpportunity);
-router.delete('/posts/:id', authMiddleware, deletePost);
-router.delete('/institution-posts/:id', authMiddleware, deleteInstitutionPost);
+router.get('/pending-events', requireAdmin, getPendingEvents);
+router.get('/pending-opportunities', requireAdmin, getPendingOpportunities);
+router.get('/pending-posts', requireAdmin, getPendingPosts);
+router.get('/pending-institution-posts', requireAdmin, getPendingInstitutionPosts);
+router.get('/approved-events', requireAdmin, getApprovedEvents);
+router.get('/approved-opportunities', requireAdmin, getApprovedOpportunities);
+router.get('/approved-posts', requireAdmin, getApprovedPosts);
+router.get('/approved-institution-posts', requireAdmin, getApprovedInstitutionPostsForAdmin);
+router.put('/events/:id/status', requireAdmin, updateEventStatus);
+router.put('/opportunities/:id/status', requireAdmin, updateOpportunityStatus);
+router.put('/posts/:id/status', requireAdmin, updatePostStatus);
+router.put('/institution-posts/:id/status', requireAdmin, updateInstitutionPostStatus);
+router.delete('/events/:id', requireAdmin, deleteEvent);
+router.delete('/opportunities/:id', requireAdmin, deleteOpportunity);
+router.delete('/posts/:id', requireAdmin, deletePost);
+router.delete('/institution-posts/:id', requireAdmin, deleteInstitutionPost);
 
 // RSVP list & export
-router.get('/rsvps', authMiddleware, listRSVPs);
-router.get('/rsvps/export', authMiddleware, exportRSVPs);
+router.get('/rsvps', requireAdmin, listRSVPs);
+router.get('/rsvps/export', requireAdmin, exportRSVPs);
 
 // Registered student profile exports (CSV for Excel + PDF)
-router.get('/students/export/csv', authMiddleware, exportStudentsCSV);
-router.get('/students/export/pdf', authMiddleware, exportStudentsPDF);
-router.get('/students/:id/export/csv', authMiddleware, exportStudentCSV);
-router.get('/students/:id/export/pdf', authMiddleware, exportStudentPDF);
+router.get('/students/export/csv', requireAdmin, exportStudentsCSV);
+router.get('/students/export/pdf', requireAdmin, exportStudentsPDF);
+router.get('/students/:id/export/csv', requireAdmin, exportStudentCSV);
+router.get('/students/:id/export/pdf', requireAdmin, exportStudentPDF);
 
 module.exports = router;

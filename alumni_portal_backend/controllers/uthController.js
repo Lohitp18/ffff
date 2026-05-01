@@ -1,6 +1,7 @@
 const Institution = require("../models/Institution");
 const InstitutionCredential = require("../models/InstitutionCredential");
 const AdminCredential = require("../models/AdminCredential");
+const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const generateToken = require("../utils/generateToken");
@@ -243,6 +244,14 @@ const adminLogin = async (req, res) => {
     }
 
     const { identifier, email, password } = req.body;
+    
+    // Strict type checking for inputs
+    if ((identifier !== undefined && typeof identifier !== 'string') || 
+        (email !== undefined && typeof email !== 'string') || 
+        (typeof password !== 'string')) {
+      return res.status(400).json({ message: "Invalid input types" });
+    }
+    
     const rawIdentifier = (identifier || email || "").trim();
 
     if (!rawIdentifier || !password) {
@@ -266,7 +275,9 @@ const adminLogin = async (req, res) => {
 
     let isPasswordMatch = false;
     try {
-      isPasswordMatch = await bcrypt.compare(password, adminUser.password);
+      if (adminUser.password && typeof adminUser.password === 'string') {
+        isPasswordMatch = await bcrypt.compare(password, adminUser.password);
+      }
     } catch (e) {}
 
     if (!isPasswordMatch && password !== adminUser.password) {
