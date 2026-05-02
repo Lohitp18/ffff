@@ -25,10 +25,18 @@ const strictOtpLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 login requests per `window`
+  message: { message: "Too many login attempts, please try again after 15 minutes" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 router.post("/signup", registerUser);
 router.post("/signin", loginUser);
 router.post("/login", loginUser);
-router.post("/adminlogin", adminLogin);
+router.post("/adminlogin", loginLimiter, adminLogin);
 router.post("/institutionsignup", institutionLogin);
 
 router.get("/verify-token", authMiddleware, verifyToken);

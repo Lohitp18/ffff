@@ -1,10 +1,12 @@
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const fs = require("fs");
 const path = require("path");
 const encryptionMiddleware = require("./middlewares/encryptionMiddleware");
+const rateLimit = require("express-rate-limit");
 
 // Optional defaults first; then .env with override so your backend/.env always wins (incl. over shell vars).
 const envDir = __dirname;
@@ -24,6 +26,26 @@ if (fs.existsSync(envPath)) {
 }
 
 const app = express();
+
+// Trust proxy is required if the app is behind a reverse proxy (like Nginx)
+// to accurately track IPs for rate-limiting and security checks.
+app.set('trust proxy', 1);
+
+// Add Secure HTTP Headers with Helmet
+app.use(helmet({
+  crossOriginResourcePolicy: false, // Allow cross-origin resources (images etc.)
+  contentSecurityPolicy: false,     // Disable strict CSP to prevent breaking frontend unless properly configured
+}));
+
+// Global Rate Limiter
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 150, // Limit each IP to 150 requests per window
+  message: { message: "Too many requests, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use("/api", globalLimiter);
 
 // CORS configuration - allow all origins for development
 app.use(cors({

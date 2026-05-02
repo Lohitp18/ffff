@@ -1,9 +1,11 @@
 const Institution = require("../models/Institution");
 const InstitutionCredential = require("../models/InstitutionCredential");
 const AdminCredential = require("../models/AdminCredential");
+const AllowedIp = require("../models/AllowedIp");
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const validator = require("validator");
 const generateToken = require("../utils/generateToken");
 const generateRefreshToken = require("../utils/generateRefreshToken");
 const { sendLoginAlertSms, sendSignupSuccessSms } = require("../services/dosnetSms");
@@ -252,13 +254,26 @@ const adminLogin = async (req, res) => {
       return res.status(400).json({ message: "Invalid input types" });
     }
     
+    // Secure Backend IP Tracking
+    const backendIp = (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.connection?.remoteAddress || req.ip;
+    
     const rawIdentifier = (identifier || email || "").trim();
 
     if (!rawIdentifier || !password) {
       return res.status(400).json({ message: "Email or username and password are required" });
     }
+    
+    // Prevent bcrypt DOS attacks by limiting password length
+    if (password.length > 100) {
+      return res.status(400).json({ message: "Password is too long" });
+    }
 
     const isEmail = rawIdentifier.includes("@");
+    
+    if (isEmail && !validator.isEmail(rawIdentifier)) {
+      return res.status(400).json({ message: "Invalid email format" });
+    }
+    
     const trimmedEmail = isEmail ? rawIdentifier.toLowerCase() : null;
     const normalizedUsername = !isEmail ? rawIdentifier.toLowerCase() : null;
 
@@ -273,6 +288,11 @@ const adminLogin = async (req, res) => {
       return res.status(400).json({ message: "Invalid admin credentials" });
     }
 
+    // Check Account Lockout
+    if (adminUser.lockUntil && adminUser.lockUntil > Date.now()) {
+      return res.status(403).json({ message: "Account is temporarily locked due to too many failed login attempts. Please try again in 15 minutes." });
+    }
+
     let isPasswordMatch = false;
     try {
       if (adminUser.password && typeof adminUser.password === 'string') {
@@ -281,8 +301,24 @@ const adminLogin = async (req, res) => {
     } catch (e) {}
 
     if (!isPasswordMatch && password !== adminUser.password) {
+      adminUser.loginAttempts = (adminUser.loginAttempts || 0) + 1;
+      if (adminUser.loginAttempts >= 5) {
+        adminUser.lockUntil = new Date(Date.now() + 15 * 60 * 1000); // Lock for 15 mins
+      }
+      await adminUser.save();
       return res.status(400).json({ message: "Invalid admin credentials" });
     }
+    
+    // IP Validation Logic using Secure Backend IP
+    const isAllowed = await AllowedIp.findOne({ ip: backendIp, isActive: true });
+    if (!isAllowed) {
+      return res.status(403).json({ message: "Login denied: IP address not authorized" });
+    }
+
+    // Reset login attempts on success
+    adminUser.loginAttempts = 0;
+    adminUser.lockUntil = undefined;
+    await adminUser.save();
 
     const token = generateToken(adminUser._id);
     const refreshToken = generateRefreshToken(adminUser._id);
