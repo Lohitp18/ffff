@@ -78,6 +78,7 @@ exports.sendOtp = async (req, res) => {
       }
       const lookupKey = `${OTP_PURPOSES.SIGNUP}:${normalized}`;
       const code = randomSixDigit();
+      console.log(`[DEV] Generated OTP for signup (${phone}): ${code}`);
       try {
         await createChallenge(lookupKey, OTP_PURPOSES.SIGNUP, null, code);
       } catch (e) {
@@ -115,6 +116,7 @@ exports.sendOtp = async (req, res) => {
       }
 
       const code = randomSixDigit();
+      console.log(`[DEV] Generated OTP for password reset (${raw}): ${code}`);
       const isEmail = raw.includes("@");
 
       if (isEmail) {
