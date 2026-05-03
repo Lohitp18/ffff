@@ -6,6 +6,8 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const validator = require("validator");
+const getClientIp = require("../utils/getClientIp");
+const LoginLog = require("../models/LoginLog");
 const generateToken = require("../utils/generateToken");
 const generateRefreshToken = require("../utils/generateRefreshToken");
 const { sendLoginAlertSms, sendSignupSuccessSms } = require("../services/dosnetSms");
@@ -20,6 +22,9 @@ const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-producti
 // =============================
 const registerUser = async (req, res) => {
   try {
+    const clientIp = getClientIp(req);
+    console.log(`[Signup Page] Incoming IP: ${clientIp}`);
+    
     const {
       name,
       username,
@@ -254,8 +259,16 @@ const adminLogin = async (req, res) => {
       return res.status(400).json({ message: "Invalid input types" });
     }
     
-    // Secure Backend IP Tracking
-    const backendIp = (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.connection?.remoteAddress || req.ip;
+    // 1. Get Secure Client IP
+    const clientIp = getClientIp(req);
+    
+    // Debug logging (temporary) as requested
+    console.log(`[DEBUG] IP extraction: 
+      - req.ip: ${req.ip}
+      - x-forwarded-for: ${req.headers["x-forwarded-for"]}
+      - req.socket.remoteAddress: ${req.socket?.remoteAddress}
+      => Resolved clientIp: ${clientIp}
+    `);
     
     const rawIdentifier = (identifier || email || "").trim();
 
@@ -306,12 +319,27 @@ const adminLogin = async (req, res) => {
         adminUser.lockUntil = new Date(Date.now() + 15 * 60 * 1000); // Lock for 15 mins
       }
       await adminUser.save();
+      
+      await LoginLog.create({
+        email: rawIdentifier,
+        ip: clientIp,
+        success: false
+      });
+      
       return res.status(400).json({ message: "Invalid admin credentials" });
     }
     
     // IP Validation Logic using Secure Backend IP
-    const isAllowed = await AllowedIp.findOne({ ip: backendIp, isActive: true });
+    const isAllowed = await AllowedIp.findOne({ ip: clientIp, isActive: true });
     if (!isAllowed) {
+      console.warn(`[Admin Login Blocked] Unauthorized IP detected: ${clientIp}`);
+      
+      await LoginLog.create({
+        email: rawIdentifier,
+        ip: clientIp,
+        success: false
+      });
+      
       return res.status(403).json({ message: "Login denied: IP address not authorized" });
     }
 
@@ -319,6 +347,12 @@ const adminLogin = async (req, res) => {
     adminUser.loginAttempts = 0;
     adminUser.lockUntil = undefined;
     await adminUser.save();
+
+    await LoginLog.create({
+      email: adminUser.email,
+      ip: clientIp,
+      success: true
+    });
 
     const token = generateToken(adminUser._id);
     const refreshToken = generateRefreshToken(adminUser._id);

@@ -29,7 +29,7 @@ const app = express();
 
 // Trust proxy is required if the app is behind a reverse proxy (like Nginx)
 // to accurately track IPs for rate-limiting and security checks.
-app.set('trust proxy', 1);
+app.set('trust proxy', true);
 
 // Add Secure HTTP Headers with Helmet
 app.use(helmet({
