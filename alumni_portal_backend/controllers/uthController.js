@@ -360,6 +360,8 @@ const adminLogin = async (req, res) => {
     const token = generateToken(adminUser._id);
     const refreshToken = generateRefreshToken(adminUser._id);
 
+    console.log(`[Admin Sign In Page] Successful login for ${adminUser.email}. IP: ${clientIp}`);
+
     res.json({
       success: true,
       _id: adminUser._id,
