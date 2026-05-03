@@ -196,8 +196,13 @@ const loginUser = async (req, res) => {
     const isPasswordMatch = await bcrypt.compare(password, user.password);
 
     if (!isPasswordMatch) {
-
       console.log("nf")
+      const clientIp = getClientIp(req);
+      await LoginLog.create({
+        email: rawIdentifier,
+        ip: clientIp,
+        success: false
+      });
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
@@ -226,6 +231,12 @@ const loginUser = async (req, res) => {
 
     const clientIp = getClientIp(req);
     console.log(`[Sign In Page] Successful login for ${user.email}. IP: ${clientIp}`);
+
+    await LoginLog.create({
+      email: user.email,
+      ip: clientIp,
+      success: true
+    });
 
     res.json({
       _id: user._id,
@@ -424,6 +435,12 @@ const institutionLogin = async (req, res) => {
     } catch (e) {}
 
     if (!isPasswordMatch && password !== institution.password) {
+      const clientIp = getClientIp(req);
+      await LoginLog.create({
+        email: rawIdentifier,
+        ip: clientIp,
+        success: false
+      });
       return res.status(400).json({ message: "Invalid institution credentials" });
     }
 
@@ -433,6 +450,15 @@ const institutionLogin = async (req, res) => {
 
     const token = generateToken(institution._id);
     const refreshToken = generateRefreshToken(institution._id);
+
+    const clientIp = getClientIp(req);
+    console.log(`[Institution Sign In Page] Successful login for ${institution.email}. IP: ${clientIp}`);
+
+    await LoginLog.create({
+      email: institution.email,
+      ip: clientIp,
+      success: true
+    });
 
     res.json({
       success: true,
