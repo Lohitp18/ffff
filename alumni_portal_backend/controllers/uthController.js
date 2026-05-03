@@ -224,6 +224,9 @@ const loginUser = async (req, res) => {
       }
     }
 
+    const clientIp = getClientIp(req);
+    console.log(`[Sign In Page] Successful login for ${user.email}. IP: ${clientIp}`);
+
     res.json({
       _id: user._id,
       email: user.email,
