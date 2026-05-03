@@ -310,17 +310,9 @@ const adminLogin = async (req, res) => {
     }
     
     // IP Validation Logic using Secure Backend IP
-    let isAllowed = false;
-    if (backendIp === '127.0.0.1' || backendIp === '::1' || backendIp === '::ffff:127.0.0.1' || backendIp === 'localhost') {
-      isAllowed = true;
-    } else {
-      const allowedIpRecord = await AllowedIp.findOne({ ip: backendIp, isActive: true });
-      if (allowedIpRecord) isAllowed = true;
-    }
-
+    const isAllowed = await AllowedIp.findOne({ ip: backendIp, isActive: true });
     if (!isAllowed) {
-      console.warn(`[Admin Login] Blocked unauthorized IP: ${backendIp}`);
-      return res.status(403).json({ message: `Login denied: IP address ${backendIp} not authorized` });
+      return res.status(403).json({ message: "Login denied: IP address not authorized" });
     }
 
     // Reset login attempts on success
