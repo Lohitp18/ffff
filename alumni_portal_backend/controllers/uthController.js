@@ -23,7 +23,6 @@ const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-producti
 const registerUser = async (req, res) => {
   try {
     const clientIp = getClientIp(req);
-    console.log(`[Signup Page] Incoming IP: ${clientIp}`);
     
     const {
       name,
@@ -230,7 +229,6 @@ const loginUser = async (req, res) => {
     }
 
     const clientIp = getClientIp(req);
-    console.log(`[Sign In Page] Successful login for ${user.email}. IP: ${clientIp}`);
 
     await LoginLog.create({
       email: user.email,
@@ -275,14 +273,6 @@ const adminLogin = async (req, res) => {
     
     // 1. Get Secure Client IP
     const clientIp = getClientIp(req);
-    
-    // Debug logging (temporary) as requested
-    console.log(`[DEBUG] IP extraction: 
-      - req.ip: ${req.ip}
-      - x-forwarded-for: ${req.headers["x-forwarded-for"]}
-      - req.socket.remoteAddress: ${req.socket?.remoteAddress}
-      => Resolved clientIp: ${clientIp}
-    `);
     
     const rawIdentifier = (identifier || email || "").trim();
 
@@ -346,7 +336,6 @@ const adminLogin = async (req, res) => {
     // IP Validation Logic using Secure Backend IP
     const isAllowed = await AllowedIp.findOne({ ip: clientIp, isActive: true });
     if (!isAllowed) {
-      console.warn(`[Admin Login Blocked] Unauthorized IP detected: ${clientIp}`);
       
       await LoginLog.create({
         email: rawIdentifier,
@@ -370,8 +359,6 @@ const adminLogin = async (req, res) => {
 
     const token = generateToken(adminUser._id);
     const refreshToken = generateRefreshToken(adminUser._id);
-
-    console.log(`[Admin Sign In Page] Successful login for ${adminUser.email}. IP: ${clientIp}`);
 
     res.json({
       success: true,
@@ -452,7 +439,6 @@ const institutionLogin = async (req, res) => {
     const refreshToken = generateRefreshToken(institution._id);
 
     const clientIp = getClientIp(req);
-    console.log(`[Institution Sign In Page] Successful login for ${institution.email}. IP: ${clientIp}`);
 
     await LoginLog.create({
       email: institution.email,

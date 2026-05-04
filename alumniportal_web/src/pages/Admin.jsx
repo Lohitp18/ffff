@@ -15,7 +15,7 @@ const API_BASE_URL = (() => {
 const Admin = () => {
   const navigate = useNavigate()
   const { user, adminLogin, logout } = useAuth()
-  const [isAuthenticated, setIsAuthenticated] = useState(localStorage.getItem('admin_authenticated') === 'true')
+  const [isAuthenticated, setIsAuthenticated] = useState(localStorage.getItem('admin_authenticated') === 'true' && user?.isAdmin === true)
   const [activeTab, setActiveTab] = useState('dashboard')
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
@@ -62,6 +62,13 @@ const Admin = () => {
   const [detailedStatsLoading, setDetailedStatsLoading] = useState(false)
 
   useEffect(() => {
+    // If a user is loaded but they are explicitly NOT an admin, revoke access
+    if (user && !user.isAdmin) {
+      setIsAuthenticated(false)
+      localStorage.removeItem('admin_authenticated')
+      return
+    }
+
     if (isAuthenticated && user) {
       loadDashboardStats()
     }
@@ -143,6 +150,10 @@ const Admin = () => {
       loadDetailedStatistics()
     } catch (error) {
       console.error('Failed to load stats:', error)
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        setIsAuthenticated(false)
+        localStorage.removeItem('admin_authenticated')
+      }
     }
   }
 
