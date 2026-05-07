@@ -95,3 +95,32 @@ exports.exportRSVPs = async (_req, res) => {
   }
 };
 
+// GET /api/rsvp/status
+exports.getRSVPStatus = async (_req, res) => {
+  try {
+    const GlobalSetting = require("../models/GlobalSetting");
+    const setting = await GlobalSetting.findOne({ key: "alumni_meet_registration_enabled" });
+    res.json({ enabled: setting ? setting.value : false });
+  } catch (error) {
+    console.error("getRSVPStatus error", error);
+    return res.status(500).json({ message: "Failed to get RSVP status" });
+  }
+};
+
+// PUT /api/admin/rsvp-status
+exports.updateRSVPStatus = async (req, res) => {
+  try {
+    const GlobalSetting = require("../models/GlobalSetting");
+    const { enabled } = req.body;
+    await GlobalSetting.findOneAndUpdate(
+      { key: "alumni_meet_registration_enabled" },
+      { value: enabled },
+      { upsert: true, new: true }
+    );
+    res.json({ success: true, enabled });
+  } catch (error) {
+    console.error("updateRSVPStatus error", error);
+    return res.status(500).json({ message: "Failed to update RSVP status" });
+  }
+};
+

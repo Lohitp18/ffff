@@ -33,7 +33,7 @@ const {
   deletePost
 } = require('../controllers/contentController');
 const requireAdmin = require('../middlewares/adminMiddleware');
-const { exportRSVPs, listRSVPs } = require('../controllers/rsvpController');
+const { exportRSVPs, listRSVPs, updateRSVPStatus } = require('../controllers/rsvpController');
 const {
   exportStudentsCSV,
   exportStudentCSV,
@@ -78,9 +78,10 @@ router.delete('/opportunities/:id', requireAdmin, deleteOpportunity);
 router.delete('/posts/:id', requireAdmin, deletePost);
 router.delete('/institution-posts/:id', requireAdmin, deleteInstitutionPost);
 
-// RSVP list & export
+// RSVP list & export & status
 router.get('/rsvps', requireAdmin, listRSVPs);
 router.get('/rsvps/export', requireAdmin, exportRSVPs);
+router.put('/rsvp-status', requireAdmin, updateRSVPStatus);
 
 // Registered student profile exports (CSV for Excel + PDF)
 router.get('/students/export/csv', requireAdmin, exportStudentsCSV);

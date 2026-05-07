@@ -1,9 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import './Invitation.css';
 import RSVPForm from './RSVPForm';
 
+const API_BASE_URL = (() => {
+  const configured = (import.meta.env.VITE_API_BASE_URL ?? '').trim()
+  if (configured) return configured
+  return import.meta.env.DEV ? 'http://localhost:5000' : ''
+})()
+
 const Invitation = () => {
   const [isRSVPOpen, setIsRSVPOpen] = useState(false);
+  const [isRegistrationEnabled, setIsRegistrationEnabled] = useState(false);
+  const [isLoadingStatus, setIsLoadingStatus] = useState(true);
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/rsvp/status`);
+        setIsRegistrationEnabled(response.data.enabled);
+      } catch (error) {
+        console.error("Failed to fetch RSVP status", error);
+      } finally {
+        setIsLoadingStatus(false);
+      }
+    };
+    fetchStatus();
+  }, []);
 
   return (
     <div className="invitation-container">
@@ -36,12 +59,21 @@ const Invitation = () => {
           {/* <p className="enclosure">Encl.: Registration Form</p> */}
         </div>
 
-        <button 
-          className="invitation-register-btn"
-          onClick={() => setIsRSVPOpen(true)}
+        {/* <button 
+          className={`invitation-register-btn ${!isRegistrationEnabled && !isLoadingStatus ? 'disabled' : ''}`}
+          onClick={() => {
+            if (isRegistrationEnabled) {
+              setIsRSVPOpen(true);
+            }
+          }}
+          disabled={!isRegistrationEnabled || isLoadingStatus}
+          style={{
+            backgroundColor: !isRegistrationEnabled && !isLoadingStatus ? '#ccc' : undefined,
+            cursor: !isRegistrationEnabled && !isLoadingStatus ? 'not-allowed' : 'pointer'
+          }}
         >
-          Register Now
-        </button>
+          {isLoadingStatus ? 'Loading...' : isRegistrationEnabled ? 'Register Now' : 'Registration Closed'}
+        </button> */}
       </div>
 
       <RSVPForm isOpen={isRSVPOpen} onClose={() => setIsRSVPOpen(false)} />

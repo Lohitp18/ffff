@@ -36,6 +36,8 @@ const Admin = () => {
   const [rsvpDownloading, setRsvpDownloading] = useState(false)
   const [rsvps, setRsvps] = useState([])
   const [rsvpsLoading, setRsvpsLoading] = useState(false)
+  const [isRsvpEnabled, setIsRsvpEnabled] = useState(false)
+  const [rsvpStatusLoading, setRsvpStatusLoading] = useState(false)
   const [studentsExportLoading, setStudentsExportLoading] = useState(false)
 
   // Filter states
@@ -269,6 +271,30 @@ const Admin = () => {
     }
   }
 
+  const loadRsvpStatus = async () => {
+    setRsvpStatusLoading(true)
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/rsvp/status`)
+      setIsRsvpEnabled(response.data.enabled || false)
+    } catch (error) {
+      console.error('Failed to load RSVP status:', error)
+    } finally {
+      setRsvpStatusLoading(false)
+    }
+  }
+
+  const handleToggleRsvpStatus = async () => {
+    try {
+      const newStatus = !isRsvpEnabled;
+      await axios.put(`${API_BASE_URL}/api/admin/rsvp-status`, { enabled: newStatus }, { headers: getAuthHeaders() })
+      setIsRsvpEnabled(newStatus);
+      alert(`Alumni Meet Registration has been ${newStatus ? 'enabled' : 'disabled'}.`);
+    } catch (error) {
+      console.error('Failed to toggle RSVP status:', error)
+      alert('Failed to toggle registration status');
+    }
+  }
+
   useEffect(() => {
     if (isAuthenticated) {
       if (activeTab === 'users') loadUsers()
@@ -277,7 +303,10 @@ const Admin = () => {
       if (activeTab === 'opportunities') loadOpportunities()
       if (activeTab === 'reports') loadReports()
       if (activeTab === 'whatsapp') loadUsers() // Load users for WhatsApp tab
-      if (activeTab === 'alumniMeet') loadRsvps()
+      if (activeTab === 'alumniMeet') {
+        loadRsvps()
+        loadRsvpStatus()
+      }
     }
   }, [activeTab, isAuthenticated])
 
@@ -1684,8 +1713,29 @@ const Admin = () => {
 
         {activeTab === 'alumniMeet' && (
           <div className="admin-section-full">
-            <h2>Alumni Meet Registrations</h2>
-            <div style={{ marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2>Alumni Meet Registrations</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontWeight: 'bold' }}>Registration Status:</span>
+                <button 
+                  onClick={handleToggleRsvpStatus} 
+                  disabled={rsvpStatusLoading}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    color: '#fff',
+                    backgroundColor: isRsvpEnabled ? '#2e7d32' : '#d32f2f',
+                    transition: 'background-color 0.3s'
+                  }}
+                >
+                  {rsvpStatusLoading ? 'Loading...' : isRsvpEnabled ? 'ON - Enabled' : 'OFF - Disabled'}
+                </button>
+              </div>
+            </div>
+            <div style={{ marginBottom: '16px', marginTop: '16px' }}>
               <button onClick={downloadRSVPs} className="action-btn-full" disabled={rsvpDownloading}>
                 📥 {rsvpDownloading ? 'Downloading RSVPs...' : 'Download RSVPs (Excel/CSV)'}
               </button>
