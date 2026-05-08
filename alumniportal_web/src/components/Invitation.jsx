@@ -59,7 +59,7 @@ const Invitation = () => {
           {/* <p className="enclosure">Encl.: Registration Form</p> */}
         </div>
 
-        {/* <button 
+        <button 
           className={`invitation-register-btn ${!isRegistrationEnabled && !isLoadingStatus ? 'disabled' : ''}`}
           onClick={() => {
             if (isRegistrationEnabled) {
@@ -73,7 +73,7 @@ const Invitation = () => {
           }}
         >
           {isLoadingStatus ? 'Loading...' : isRegistrationEnabled ? 'Register Now' : 'Registration Closed'}
-        </button> */}
+        </button>
       </div>
 
       <RSVPForm isOpen={isRSVPOpen} onClose={() => setIsRSVPOpen(false)} />
