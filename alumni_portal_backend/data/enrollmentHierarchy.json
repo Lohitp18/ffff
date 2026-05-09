@@ -759,10 +759,14 @@
                     "name": "M.Tech",
                     "courses": [
                         {
-                            "name": "Post Graduate Engineering",
+                            "name": "CSE",
                             "specializations": [
-                                "CSE",
-                                "Structural Engineering",
+                                "General"
+                            ]
+                        },
+                        {
+                            "name": "ECE",
+                            "specializations": [
                                 "General"
                             ]
                         }

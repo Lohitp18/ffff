@@ -4,12 +4,9 @@ const mongoose = require("mongoose");
 
 const bcrypt = require('bcryptjs');
 const jwt = require("jsonwebtoken");
-const { sendPasswordResetConfirmationSms } = require("../services/dosnetSms");
-const { sendPasswordResetSuccessWhatsApp } = require("../services/whatsappService");
-const { sendPasswordResetSuccessEmail } = require("../utils/emailService");
-
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-const multer = require('multer');
+const { sendPasswordResetConfirmationSms, sendAccountApprovedSms } = require("../services/dosnetSms");
+const { sendPasswordResetSuccessWhatsApp, sendAccountApprovedWhatsApp } = require("../services/whatsappService");
+const { sendPasswordResetSuccessEmail, sendApprovalEmail, sendRejectionEmail } = require("../utils/emailService");
 const { saveBufferToUploads } = require("../utils/localStorage");
 
 // GET /api/users/approved?year=&institution=&course=&q=
@@ -80,16 +77,26 @@ exports.getAlumniByInstitution = async (req, res) => {
       }
     }
     
+    // Determine whether to fetch only "approved" or all users
+    let statusFilter = { status: "approved" };
+    if (req.user && req.user.role === "institution" && req.user.institutionName === institutionName) {
+      statusFilter = {}; // Fetch all users (pending, approved, rejected) for the institution admin
+    } else if (req.user && (req.user.role === "admin" || req.user.isAdmin)) {
+      statusFilter = {}; // Super admins also can see everything
+    }
+
     // First, try a simple case-insensitive match without regex (faster and more reliable)
-    let users = await User.find({
+    let queryArgs = {
       $expr: {
         $eq: [
           { $toLower: "$institution" },
           { $toLower: institutionName }
         ]
       },
-      status: "approved"
-    })
+      ...statusFilter
+    };
+
+    let users = await User.find(queryArgs)
       .select("-password")
       .sort({ createdAt: -1 });
 
@@ -100,7 +107,7 @@ exports.getAlumniByInstitution = async (req, res) => {
       
       users = await User.find({
         institution: { $regex: new RegExp(escapedName, "i") },
-        status: "approved"
+        ...statusFilter
       })
         .select("-password")
         .sort({ createdAt: -1 });
@@ -113,7 +120,7 @@ exports.getAlumniByInstitution = async (req, res) => {
       
       users = await User.find({
         institution: { $regex: new RegExp(escapedName, "i") },
-        status: "approved"
+        ...statusFilter
       })
         .select("-password")
         .sort({ createdAt: -1 });
@@ -123,6 +130,128 @@ exports.getAlumniByInstitution = async (req, res) => {
   } catch (err) {
     console.error("getAlumniByInstitution error", err);
     return res.status(500).json({ message: "Failed to fetch alumni", error: err.message });
+  }
+};
+
+/**
+ * Approve a user account by Institution Admin
+ */
+exports.approveUserByInstitution = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const institutionName = req.user.institutionName;
+
+    if (!userId) {
+      return res.status(400).json({ message: 'User ID is required' });
+    }
+
+    // Verify user belongs to this institution and update status
+    // Using case insensitive match for institution
+    const user = await User.findOne({ _id: userId });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.institution.toLowerCase() !== institutionName.toLowerCase()) {
+      return res.status(403).json({ message: 'Not authorized to approve users for this institution' });
+    }
+
+    user.status = 'approved';
+    await user.save();
+
+    // Send approval email (non-blocking)
+    try {
+      const emailResult = await sendApprovalEmail(user.email, user.name);
+      if (!emailResult.success) {
+        console.error(`❌ Failed to send approval email to ${user.email}:`, emailResult.error);
+      }
+    } catch (emailError) {
+      console.error('Error sending approval email (non-blocking):', emailError);
+    }
+
+    // Send approval SMS + WhatsApp
+    if (user.phone && String(user.phone).replace(/\D/g, '').length >= 10) {
+      try {
+        await sendAccountApprovedSms(user.phone, user.name);
+      } catch (error) {
+        console.error(`[inst:approveUser] approval SMS threw for user ${userId}:`, error.message || error);
+      }
+      try {
+        await sendAccountApprovedWhatsApp(user.phone, user.name);
+      } catch (error) {
+        console.error(`[inst:approveUser] approval WhatsApp threw for user ${userId}:`, error.message || error);
+      }
+    }
+
+    // Convert to object and omit password
+    const userObj = user.toObject();
+    delete userObj.password;
+
+    return res.json({
+      success: true,
+      message: 'User approved successfully',
+      user: userObj
+    });
+  } catch (err) {
+    console.error('Error approving user:', err);
+    return res.status(500).json({
+      message: 'Failed to approve user',
+      error: err.message
+    });
+  }
+};
+
+/**
+ * Reject a user account by Institution Admin
+ */
+exports.rejectUserByInstitution = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const institutionName = req.user.institutionName;
+
+    if (!userId) {
+      return res.status(400).json({ message: 'User ID is required' });
+    }
+
+    const user = await User.findOne({ _id: userId });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.institution.toLowerCase() !== institutionName.toLowerCase()) {
+      return res.status(403).json({ message: 'Not authorized to reject users for this institution' });
+    }
+
+    user.status = 'rejected';
+    await user.save();
+
+    // Send rejection email (non-blocking)
+    try {
+      const emailResult = await sendRejectionEmail(user.email, user.name);
+      if (!emailResult.success) {
+        console.error(`❌ Failed to send rejection email to ${user.email}:`, emailResult.error);
+      }
+    } catch (emailError) {
+      console.error('Error sending rejection email (non-blocking):', emailError);
+    }
+
+    // Convert to object and omit password
+    const userObj = user.toObject();
+    delete userObj.password;
+
+    return res.json({
+      success: true,
+      message: 'User rejected successfully',
+      user: userObj
+    });
+  } catch (err) {
+    console.error('Error rejecting user:', err);
+    return res.status(500).json({
+      message: 'Failed to reject user',
+      error: err.message
+    });
   }
 };
 

@@ -39,7 +39,10 @@ const InstituteAdminLogin = () => {
     setAlumniLoading(true)
     try {
       const response = await axios.get(`${API_BASE_URL}/api/users/institution-dashboard`, {
-        params: { institutionName }
+        params: { institutionName },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+        }
       })
       setAlumniUsers(response.data)
     } catch (err) {
@@ -47,6 +50,37 @@ const InstituteAdminLogin = () => {
       setAlumniUsers([])
     } finally {
       setAlumniLoading(false)
+    }
+  }
+
+  const handleApproveUser = async (userId) => {
+    try {
+      await axios.patch(`${API_BASE_URL}/api/users/institution-approve/${userId}`, {}, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+        }
+      })
+      // Reload alumni list
+      loadAlumniUsers(college)
+    } catch (err) {
+      console.error('Failed to approve user:', err)
+      alert('Failed to approve user: ' + (err.response?.data?.message || err.message))
+    }
+  }
+
+  const handleRejectUser = async (userId) => {
+    if (!window.confirm('Are you sure you want to reject this user?')) return;
+    try {
+      await axios.patch(`${API_BASE_URL}/api/users/institution-reject/${userId}`, {}, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+        }
+      })
+      // Reload alumni list
+      loadAlumniUsers(college)
+    } catch (err) {
+      console.error('Failed to reject user:', err)
+      alert('Failed to reject user: ' + (err.response?.data?.message || err.message))
     }
   }
 
@@ -478,12 +512,13 @@ const InstituteAdminLogin = () => {
                     <th>Status</th>
                     <th>Current Company</th>
                     <th>Contact</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredAlumni.length === 0 ? (
                     <tr>
-                      <td colSpan="6" style={{ textAlign: 'center', padding: '40px' }}>
+                      <td colSpan="7" style={{ textAlign: 'center', padding: '40px' }}>
                         No alumni found matching your criteria
                       </td>
                     </tr>
@@ -512,6 +547,30 @@ const InstituteAdminLogin = () => {
                         </td>
                         <td>{u.privateInfo?.currentCompany || 'N/A'}</td>
                         <td>{u.phone || 'N/A'}</td>
+                        <td>
+                          {u.status === 'pending' && (
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button
+                                onClick={() => handleApproveUser(u._id)}
+                                style={{
+                                  background: '#4CAF50', color: 'white', border: 'none', 
+                                  padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'
+                                }}
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => handleRejectUser(u._id)}
+                                style={{
+                                  background: '#f44336', color: 'white', border: 'none', 
+                                  padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'
+                                }}
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          )}
+                        </td>
                       </tr>
                     ))
                   )}

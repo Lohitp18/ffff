@@ -81,6 +81,9 @@ const InstitutionDashboard = () => {
         {
           params: {
             institutionName: institutionName
+          },
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
           }
         }
       )
@@ -91,6 +94,35 @@ const InstitutionDashboard = () => {
       setError(errorMessage)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleApproveUser = async (userId) => {
+    try {
+      await axios.patch(`${API_BASE_URL}/api/users/institution-approve/${userId}`, {}, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+        }
+      })
+      loadAlumni(selectedInstitution)
+    } catch (err) {
+      console.error('Failed to approve user:', err)
+      alert('Failed to approve user: ' + (err.response?.data?.message || err.message))
+    }
+  }
+
+  const handleRejectUser = async (userId) => {
+    if (!window.confirm('Are you sure you want to reject this user?')) return;
+    try {
+      await axios.patch(`${API_BASE_URL}/api/users/institution-reject/${userId}`, {}, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+        }
+      })
+      loadAlumni(selectedInstitution)
+    } catch (err) {
+      console.error('Failed to reject user:', err)
+      alert('Failed to reject user: ' + (err.response?.data?.message || err.message))
     }
   }
 
@@ -227,6 +259,7 @@ const InstitutionDashboard = () => {
                     <th>Experience</th>
                     <th>Status</th>
                     <th>Joined Date</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -259,6 +292,30 @@ const InstitutionDashboard = () => {
                           {alumnus.createdAt
                             ? new Date(alumnus.createdAt).toLocaleDateString()
                             : '-'}
+                        </td>
+                        <td>
+                          {alumnus.status === 'pending' && (
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button
+                                onClick={() => handleApproveUser(alumnus._id)}
+                                style={{
+                                  background: '#4CAF50', color: 'white', border: 'none', 
+                                  padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'
+                                }}
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => handleRejectUser(alumnus._id)}
+                                style={{
+                                  background: '#f44336', color: 'white', border: 'none', 
+                                  padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px'
+                                }}
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     )

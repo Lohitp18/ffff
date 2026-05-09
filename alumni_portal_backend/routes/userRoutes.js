@@ -10,6 +10,8 @@ const {
   uploadProfileImage,
   uploadCoverImage,
   getAlumniByInstitution,
+  approveUserByInstitution,
+  rejectUserByInstitution,
 } = require("../controllers/userController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
@@ -29,6 +31,10 @@ router.put("/privacy-settings", authMiddleware, updatePrivacySettings);
 router.put("/change-password", authMiddleware, changePassword);
 router.put("/profile-image", authMiddleware, handleImageUpload, uploadProfileImage);
 router.put("/cover-image", authMiddleware, handleImageUpload, uploadCoverImage);
+
+// Institution admin actions
+router.patch("/institution-approve/:id", authMiddleware, approveUserByInstitution);
+router.patch("/institution-reject/:id", authMiddleware, rejectUserByInstitution);
 
 // Dynamic route must come last
 router.get("/:id", getUserById); // Get user profile by ID (public, but respects privacy settings)
