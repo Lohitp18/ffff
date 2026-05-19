@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import './Invitation.css';
-import RSVPForm from './RSVPForm';
+import React, { useState } from "react";
+import "./Invitation.css";
+import RSVPForm from "./RSVPForm";
 
 const Invitation = () => {
   const [isRSVPOpen, setIsRSVPOpen] = useState(false);
@@ -8,7 +8,8 @@ const Invitation = () => {
   return (
     <div className="invitation-container">
       <div className="invitation-content">
-        <h1 className="invitation-title">Alva's Engineering Alumni Meet - 2026</h1>
+        {/* Commented out invitation text */}
+        {/* <h1 className="invitation-title">Alva's Engineering Alumni Meet - 2026</h1>
         
         <div className="invitation-body">
           <p className="salutation">Dear Alumni,</p>
@@ -33,15 +34,51 @@ const Invitation = () => {
             <p><strong>THE MANAGEMENT, PRINCIPAL & STAFF</strong></p>
           </div>
           
-          {/* <p className="enclosure">Encl.: Registration Form</p> */}
+          <p className="enclosure">Encl.: Registration Form</p>
+        </div> */}
+
+        {/* Video Section */}
+        <div
+          style={{
+            position: "relative",
+            width: "100%",
+            maxWidth: "100%",
+            aspectRatio: "16 / 9",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: "0",
+            margin: "0 auto",
+            borderRadius: "8px",
+            backgroundColor: "#000",
+            overflow: "hidden",
+          }}
+        >
+          <video
+            className="invitation-video"
+            autoPlay
+            loop
+            muted
+            style={{
+              width: "100%",
+              height: "100%",
+              display: "block",
+              backgroundColor: "#000",
+              objectFit: "contain",
+              transform: "rotate(270deg) scale(1.7778)",
+            }}
+          >
+            <source src="/alumnimeet.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
         </div>
 
-        <button 
+        {/* <button 
           className="invitation-register-btn"
           onClick={() => setIsRSVPOpen(true)}
         >
           Register Now
-        </button>
+        </button> */}
       </div>
 
       <RSVPForm isOpen={isRSVPOpen} onClose={() => setIsRSVPOpen(false)} />
