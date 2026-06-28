@@ -5,6 +5,7 @@ const Opportunity = require('../models/Opportunity');
 const InstitutionPost = require('../models/InstitutionPost');
 const Report = require('../models/Report');
 const Institution = require('../models/Institution');
+const InstituteCredential = require('../models/InstituteCredential');
 const bcrypt = require('bcryptjs');
 const { sendApprovalEmail, sendRejectionEmail } = require('../utils/emailService');
 const { sendAccountApprovedSms } = require('../services/dosnetSms');
@@ -457,3 +458,80 @@ exports.getDetailedStatistics = async (req, res) => {
     });
   }
 };
+
+/**
+ * Get all institution credentials
+ */
+exports.getInstituteCredentials = async (req, res) => {
+  try {
+    const credentials = await InstituteCredential.find({}).select('-password').lean();
+    return res.json(credentials);
+  } catch (err) {
+    console.error('Error fetching institution credentials:', err);
+    return res.status(500).json({
+      message: 'Failed to fetch institution credentials',
+      error: err.message
+    });
+  }
+};
+
+/**
+ * Create or update institution credentials
+ */
+exports.createInstituteCredential = async (req, res) => {
+  try {
+    const { institution, username, password } = req.body;
+
+    if (!institution || !username || !password) {
+      return res.status(400).json({
+        message: 'Institution, username, and password are required'
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Update if exists, otherwise create
+    const credential = await InstituteCredential.findOneAndUpdate(
+      { institution },
+      { username, password: hashedPassword },
+      { new: true, upsert: true }
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: 'Credentials configured successfully',
+      data: {
+        _id: credential._id,
+        institution: credential.institution,
+        username: credential.username
+      }
+    });
+  } catch (err) {
+    console.error('Error creating institution credential:', err);
+    return res.status(500).json({
+      message: 'Failed to configure credentials',
+      error: err.message
+    });
+  }
+};
+
+/**
+ * Delete institution credentials
+ */
+exports.deleteInstituteCredential = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await InstituteCredential.findByIdAndDelete(id);
+    return res.json({
+      success: true,
+      message: 'Credentials deleted successfully'
+    });
+  } catch (err) {
+    console.error('Error deleting institution credentials:', err);
+    return res.status(500).json({
+      message: 'Failed to delete credentials',
+      error: err.message
+    });
+  }
+};
+

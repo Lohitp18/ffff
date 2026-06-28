@@ -53,9 +53,14 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem(AUTH_TOKEN_KEY)
     localStorage.removeItem(AUTH_REFRESH_KEY)
     localStorage.removeItem(AUTH_USER_KEY)
+    localStorage.removeItem('admin_authenticated')
+    localStorage.removeItem('institute_admin_authenticated')
+    localStorage.removeItem('institute_admin_college')
+    localStorage.removeItem('institute_admin_email')
     setToken(null)
     setUser(null)
     delete axios.defaults.headers.common['Authorization']
+    window.location.href = '/signin'
   }, [])
 
   const verifyToken = useCallback(async () => {
@@ -104,6 +109,7 @@ export const AuthProvider = ({ children }) => {
         }
         const rt = localStorage.getItem(AUTH_REFRESH_KEY)
         if (!rt) {
+          logout()
           return Promise.reject(error)
         }
         cfg._retry = true

@@ -6,7 +6,8 @@ const {
   updateInstitution,
   updateCoverImage,
   deleteInstitution,
-  handleImageUpload
+  handleImageUpload,
+  getCredentialedInstitutions
 } = require('../controllers/institutionController');
 const authMiddleware = require('../middlewares/authMiddleware');
 const adminMiddleware = require('../middlewares/adminMiddleware');
@@ -15,6 +16,7 @@ const router = express.Router();
 
 // Public routes
 router.get('/', getAllInstitutions);
+router.get('/credentials', getCredentialedInstitutions);
 router.get('/:name', getInstitutionByName);
 
 // Admin routes (require authentication and admin role)

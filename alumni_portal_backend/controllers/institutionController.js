@@ -1,6 +1,8 @@
 const Institution = require('../models/Institution');
+const InstituteCredential = require('../models/InstituteCredential');
 const multer = require('multer');
 const fs = require('fs');
+const path = require('path');
 const { saveBufferToUploads } = require("../utils/localStorage");
 const { IMAGE_MIMES } = require("../utils/mediaStorage");
 
@@ -206,3 +208,24 @@ exports.deleteInstitution = async (req, res) => {
     return res.status(500).json({ message: 'Failed to delete institution' });
   }
 };
+
+// GET /api/institutions/credentials - Get all institutions with credentials (public)
+exports.getCredentialedInstitutions = async (req, res) => {
+  try {
+    const credentials = await InstituteCredential.find({}).select('institution username').lean();
+    
+    // Map to the format that the login dropdown expects: { name, email }
+    const list = credentials.map(c => ({
+      name: c.institution,
+      email: c.username,
+      isActive: true
+    })).sort((a, b) => a.name.localeCompare(b.name));
+
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return res.json(list);
+  } catch (err) {
+    console.error('Error fetching credentialed institutions:', err);
+    return res.status(500).json({ message: 'Failed to fetch credentialed institutions' });
+  }
+};
+

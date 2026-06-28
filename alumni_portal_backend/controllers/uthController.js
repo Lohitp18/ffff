@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const InstituteCredential = require("../models/InstituteCredential");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const generateToken = require("../utils/generateToken");
@@ -179,6 +180,54 @@ const loginUser = async (req, res) => {
     } else {
       user = await User.findOne({ username: normalizedUsername });
     }
+
+    // --- DYNAMIC INSTITUTION CREDENTIALS AUTHENTICATION START ---
+    const dynamicInst = await InstituteCredential.findOne({
+      username: rawIdentifier.toLowerCase()
+    });
+
+    if (dynamicInst) {
+      const isPassMatch = await bcrypt.compare(password, dynamicInst.password);
+      if (!isPassMatch) {
+        return res.status(400).json({ message: "Invalid email or password" });
+      }
+
+      let dbUser = await User.findOne({ email: dynamicInst.username.toLowerCase() });
+      if (!dbUser) {
+        dbUser = await User.create({
+          name: dynamicInst.institution,
+          email: dynamicInst.username.toLowerCase(),
+          username: dynamicInst.username.toLowerCase(),
+          password: dynamicInst.password,
+          phoneVerified: true,
+          status: "approved",
+          isAdmin: true,
+          role: "admin",
+          institution: dynamicInst.institution,
+        });
+      } else {
+        let updated = false;
+        if (dbUser.password !== dynamicInst.password) { dbUser.password = dynamicInst.password; updated = true; }
+        if (dbUser.status !== "approved") { dbUser.status = "approved"; updated = true; }
+        if (dbUser.role !== "admin") { dbUser.role = "admin"; updated = true; }
+        if (dbUser.name !== dynamicInst.institution) { dbUser.name = dynamicInst.institution; updated = true; }
+        if (dbUser.institution !== dynamicInst.institution) { dbUser.institution = dynamicInst.institution; updated = true; }
+        if (updated) await dbUser.save();
+      }
+
+      const token = generateToken(dbUser._id);
+      const refreshToken = generateRefreshToken(dbUser._id);
+
+      return res.json({
+        _id: dbUser._id,
+        email: dbUser.email,
+        username: dbUser.username,
+        status: dbUser.status,
+        token,
+        refreshToken,
+      });
+    }
+    // --- DYNAMIC INSTITUTION CREDENTIALS AUTHENTICATION END ---
 
     // --- STATIC INSTITUTION AUTHENTICATION START ---
     const hierarchyPath = path.join(__dirname, '..', 'data', 'enrollmentHierarchy.json');

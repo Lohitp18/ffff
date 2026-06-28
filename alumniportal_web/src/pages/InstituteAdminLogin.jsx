@@ -15,7 +15,9 @@ const API_BASE_URL = (() => {
 
 const InstituteAdminLogin = () => {
   const navigate = useNavigate()
-  const { user, login, logout } = useAuth()
+  const { user, login, logout, loading: authLoading } = useAuth()
+  const [step, setStep] = useState('select') // 'select' or 'login'
+  const [searchTerm, setSearchTerm] = useState('')
   const [college, setCollege] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -47,6 +49,27 @@ const InstituteAdminLogin = () => {
       setAlumniUsers([])
     } finally {
       setAlumniLoading(false)
+    }
+  }
+
+  const handleUpdateUserStatus = async (userId, action) => {
+    if (!window.confirm(`Are you sure you want to ${action} this alumnus account?`)) return;
+    try {
+      const endpoint = action === 'approve' ? 'approve-user' : action;
+      await axios.patch(
+        `${API_BASE_URL}/api/admin/${endpoint}/${userId}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+          },
+        }
+      );
+      loadAlumniUsers(college);
+      alert(`User ${action}d successfully`);
+    } catch (err) {
+      console.error(`Failed to ${action} user:`, err);
+      alert(`Failed to ${action} user: ${err.response?.data?.message || err.message}`);
     }
   }
 
@@ -88,7 +111,7 @@ const InstituteAdminLogin = () => {
   useEffect(() => {
     const fetchInstitutions = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/institutions`)
+        const response = await axios.get(`${API_BASE_URL}/api/institutions/credentials`)
         setInstitutions(response.data) // Store full objects
       } catch (err) {
         console.error('Failed to load institutions:', err)
@@ -103,6 +126,17 @@ const InstituteAdminLogin = () => {
     }
   }, [isAuthenticated])
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (!authLoading && !user) {
+        localStorage.removeItem('institute_admin_authenticated')
+        localStorage.removeItem('institute_admin_college')
+        localStorage.removeItem('institute_admin_email')
+        logout()
+      }
+    }
+  }, [isAuthenticated, user, authLoading, logout])
+
   const handleLogin = async (e) => {
     e.preventDefault()
     setError('')
@@ -114,21 +148,21 @@ const InstituteAdminLogin = () => {
       return
     }
 
-    // Direct match against the "code" (fetched institution data from DB which was seeded from hierarchy)
-    const selectedInst = institutions.find(inst => inst.name === college)
     const trimmedEmail = email.trim().toLowerCase()
     const trimmedPassword = password.trim()
 
-    if (!selectedInst || trimmedEmail !== selectedInst.email.toLowerCase() || trimmedPassword !== selectedInst.password) {
-      setError('login failed')
+    // Trigger backend login for token
+    const authResult = await login(trimmedEmail, trimmedPassword)
+    if (!authResult.success) {
+      setError(authResult.message || 'Login failed. Please check your credentials.')
       setLoading(false)
       return
     }
 
-    // Trigger backend login for token if credentials match the "code"
-    const authResult = await login(trimmedEmail, trimmedPassword)
-    if (!authResult.success) {
-      setError('login failed')
+    // Verify that the logged-in user belongs to this institution
+    if (authResult.user?.institution !== college) {
+      setError('Credentials do not match the selected institution')
+      logout()
       setLoading(false)
       return
     }
@@ -233,8 +267,6 @@ const InstituteAdminLogin = () => {
   }
 
   if (!isAuthenticated) {
-    const [step, setStep] = useState('select') // 'select' or 'login'
-    const [searchTerm, setSearchTerm] = useState('')
 
     const filteredInstitutions = institutions.filter(inst =>
       inst.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -488,12 +520,13 @@ const InstituteAdminLogin = () => {
                     <th>Status</th>
                     <th>Current Company</th>
                     <th>Contact</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredAlumni.length === 0 ? (
                     <tr>
-                      <td colSpan="6" style={{ textAlign: 'center', padding: '40px' }}>
+                      <td colSpan="7" style={{ textAlign: 'center', padding: '40px' }}>
                         No alumni found matching your criteria
                       </td>
                     </tr>
@@ -522,6 +555,42 @@ const InstituteAdminLogin = () => {
                         </td>
                         <td>{u.privateInfo?.currentCompany || 'N/A'}</td>
                         <td>{u.phone || 'N/A'}</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            {u.status === 'pending' && (
+                              <>
+                                <button
+                                  onClick={() => handleUpdateUserStatus(u._id, 'approve')}
+                                  style={{ padding: '6px 10px', background: '#28a745', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '500' }}
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateUserStatus(u._id, 'reject')}
+                                  style={{ padding: '6px 10px', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '500' }}
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
+                            {u.status === 'approved' && (
+                              <button
+                                onClick={() => handleUpdateUserStatus(u._id, 'block')}
+                                style={{ padding: '6px 10px', background: '#ffc107', color: '#000', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '500' }}
+                              >
+                                Block
+                              </button>
+                            )}
+                            {u.status === 'blocked' && (
+                              <button
+                                onClick={() => handleUpdateUserStatus(u._id, 'unblock')}
+                                style={{ padding: '6px 10px', background: '#17a2b8', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '500' }}
+                              >
+                                Unblock
+                              </button>
+                            )}
+                          </div>
+                        </td>
                       </tr>
                     ))
                   )}

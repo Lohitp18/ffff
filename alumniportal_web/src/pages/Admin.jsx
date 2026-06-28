@@ -14,7 +14,7 @@ const API_BASE_URL = (() => {
 
 const Admin = () => {
   const navigate = useNavigate()
-  const { user, logout } = useAuth()
+  const { user, login, logout, loading } = useAuth()
   const [isAuthenticated, setIsAuthenticated] = useState(localStorage.getItem('admin_authenticated') === 'true')
   const [activeTab, setActiveTab] = useState('dashboard')
   const [loginEmail, setLoginEmail] = useState('')
@@ -63,11 +63,115 @@ const Admin = () => {
   const [detailedStats, setDetailedStats] = useState(null)
   const [detailedStatsLoading, setDetailedStatsLoading] = useState(false)
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      loadDashboardStats()
+  // Institution credentials states
+  const [institutions, setInstitutions] = useState([])
+  const [credentials, setCredentials] = useState([])
+  const [credentialsLoading, setCredentialsLoading] = useState(false)
+  const [credCollege, setCredCollege] = useState('')
+  const [credUsername, setCredUsername] = useState('')
+  const [credPassword, setCredPassword] = useState('')
+  const [credError, setCredError] = useState('')
+  const [credSuccess, setCredSuccess] = useState('')
+
+  const loadCredentialsData = async () => {
+    setCredentialsLoading(true);
+    setCredError('');
+    setCredSuccess('');
+    try {
+      const [instRes, credRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/api/institutions`, { headers: getAuthHeaders() }),
+        axios.get(`${API_BASE_URL}/api/admin/institution-credentials`, { headers: getAuthHeaders() })
+      ]);
+      setInstitutions(instRes.data);
+      setCredentials(credRes.data);
+    } catch (err) {
+      console.error('Failed to load credentials data:', err);
+      setCredError('Failed to load institution credentials data');
+    } finally {
+      setCredentialsLoading(false);
     }
-  }, [user, isAuthenticated])
+  };
+
+  useEffect(() => {
+    if (activeTab === 'credentials') {
+      loadCredentialsData();
+    }
+  }, [activeTab]);
+
+  const handleCreateCredential = async (e) => {
+    e.preventDefault();
+    setCredError('');
+    setCredSuccess('');
+
+    if (!credCollege || !credUsername || !credPassword) {
+      setCredError('All fields are required');
+      return;
+    }
+
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/api/admin/institution-credentials`,
+        {
+          institution: credCollege,
+          username: credUsername,
+          password: credPassword
+        },
+        { headers: getAuthHeaders() }
+      );
+
+      if (response.data.success) {
+        setCredSuccess(response.data.message || 'Credentials configured successfully');
+        setCredCollege('');
+        setCredUsername('');
+        setCredPassword('');
+        // Reload list
+        const credList = await axios.get(
+          `${API_BASE_URL}/api/admin/institution-credentials`,
+          { headers: getAuthHeaders() }
+        );
+        setCredentials(credList.data);
+      }
+    } catch (err) {
+      setCredError(err.response?.data?.message || 'Failed to configure credentials');
+    }
+  };
+
+  const handleDeleteCredential = async (id) => {
+    if (!window.confirm('Are you sure you want to delete these credentials?')) return;
+    setCredError('');
+    setCredSuccess('');
+
+    try {
+      const response = await axios.delete(
+        `${API_BASE_URL}/api/admin/institution-credentials/${id}`,
+        { headers: getAuthHeaders() }
+      );
+
+      if (response.data.success) {
+        setCredSuccess('Credentials deleted successfully');
+        // Reload list
+        const credList = await axios.get(
+          `${API_BASE_URL}/api/admin/institution-credentials`,
+          { headers: getAuthHeaders() }
+        );
+        setCredentials(credList.data);
+      }
+    } catch (err) {
+      setCredError('Failed to delete credentials');
+    }
+  };
+
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (!loading && !user) {
+        localStorage.removeItem('admin_authenticated')
+        logout()
+      } else if (user) {
+        loadDashboardStats()
+      }
+    }
+  }, [user, isAuthenticated, loading, logout])
 
   const handleAdminLogin = async (e) => {
     e.preventDefault()
@@ -81,16 +185,17 @@ const Admin = () => {
       return
     }
 
-    // Set admin authentication
-    localStorage.setItem('admin_authenticated', 'true')
-    setIsAuthenticated(true)
+    const result = await login(loginEmail, loginPassword)
+    if (result.success) {
+      localStorage.setItem('admin_authenticated', 'true')
+      setIsAuthenticated(true)
+      setTimeout(() => {
+        loadDashboardStats()
+      }, 100)
+    } else {
+      setLoginError(result.message || 'Login failed')
+    }
     setLoginLoading(false)
-
-    // Load dashboard stats after authentication
-    // Note: This may require a valid auth token for API calls
-    setTimeout(() => {
-      loadDashboardStats()
-    }, 100)
   }
 
   const getAuthHeaders = () => {
@@ -864,6 +969,12 @@ const Admin = () => {
           onClick={() => setActiveTab('whatsapp')}
         >
           💬 WhatsApp Messages
+        </button>
+        <button
+          className={activeTab === 'credentials' ? 'active' : ''}
+          onClick={() => setActiveTab('credentials')}
+        >
+          🔑 Institution Credentials
         </button>
       </div>
 
@@ -1752,6 +1863,106 @@ const Admin = () => {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'credentials' && (
+          <div className="admin-section-full">
+            <h2>Institution Credentials Management</h2>
+            <p className="section-desc">Configure username and password for each college portal</p>
+            
+            {credError && <div className="error-message" style={{ background: '#f8d7da', color: '#721c24', padding: '12px', borderRadius: '4px', margin: '15px 0' }}>{credError}</div>}
+            {credSuccess && <div className="success-message" style={{ background: '#d4edda', color: '#155724', padding: '12px', borderRadius: '4px', margin: '15px 0', fontWeight: 'bold' }}>{credSuccess}</div>}
+
+            <div className="credentials-container" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px', marginTop: '20px' }}>
+              {/* Form Block */}
+              <div className="credentials-form-card" style={{ background: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                <h3 style={{ margin: '0 0 15px 0', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>Configure Credentials</h3>
+                <form onSubmit={handleCreateCredential}>
+                  <div className="form-group" style={{ marginBottom: '15px' }}>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Select Institution</label>
+                    <select
+                      value={credCollege}
+                      onChange={(e) => setCredCollege(e.target.value)}
+                      required
+                      style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd', background: '#fff' }}
+                    >
+                      <option value="">-- Choose Institution --</option>
+                      {institutions.map((inst, index) => (
+                        <option key={index} value={inst.name}>{inst.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ marginBottom: '15px' }}>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Username / Email</label>
+                    <input
+                      type="text"
+                      placeholder="Enter username"
+                      value={credUsername}
+                      onChange={(e) => setCredUsername(e.target.value)}
+                      required
+                      style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: '20px' }}>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Password</label>
+                    <input
+                      type="password"
+                      placeholder="Enter password"
+                      value={credPassword}
+                      onChange={(e) => setCredPassword(e.target.value)}
+                      required
+                      style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <button type="submit" className="action-btn-full" style={{ width: '100%', padding: '12px', background: '#0a66c2', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}>
+                    Save Credentials
+                  </button>
+                </form>
+              </div>
+
+              {/* List Block */}
+              <div className="credentials-list-card" style={{ background: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                <h3 style={{ margin: '0 0 15px 0', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>Configured Institution Credentials</h3>
+                {credentialsLoading ? (
+                  <div className="loading" style={{ padding: '20px 0', textAlign: 'center' }}>Loading credentials...</div>
+                ) : credentials.length === 0 ? (
+                  <div className="empty-state" style={{ padding: '40px 0', textAlign: 'center', color: '#666' }}>No credentials configured yet.</div>
+                ) : (
+                  <div className="table-responsive" style={{ marginTop: '15px', overflowX: 'auto' }}>
+                    <table className="alumni-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ background: '#f5f5f5', textAlign: 'left' }}>
+                          <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Institution</th>
+                          <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Username</th>
+                          <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Configured Date</th>
+                          <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {credentials.map((cred) => (
+                          <tr key={cred._id} style={{ borderBottom: '1px solid #eee' }}>
+                            <td style={{ padding: '12px', fontWeight: '500' }}>{cred.institution}</td>
+                            <td style={{ padding: '12px' }}>{cred.username}</td>
+                            <td style={{ padding: '12px', color: '#666', fontSize: '13px' }}>
+                              {new Date(cred.createdAt).toLocaleDateString()}
+                            </td>
+                            <td style={{ padding: '12px' }}>
+                              <button
+                                onClick={() => handleDeleteCredential(cred._id)}
+                                style={{ padding: '6px 12px', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>

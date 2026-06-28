@@ -87,8 +87,7 @@ exports.getAlumniByInstitution = async (req, res) => {
           { $toLower: "$institution" },
           { $toLower: institutionName }
         ]
-      },
-      status: "approved"
+      }
     })
       .select("-password")
       .sort({ createdAt: -1 });
@@ -99,8 +98,7 @@ exports.getAlumniByInstitution = async (req, res) => {
       const escapedName = institutionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       
       users = await User.find({
-        institution: { $regex: new RegExp(escapedName, "i") },
-        status: "approved"
+        institution: { $regex: new RegExp(escapedName, "i") }
       })
         .select("-password")
         .sort({ createdAt: -1 });
@@ -112,8 +110,7 @@ exports.getAlumniByInstitution = async (req, res) => {
       const escapedName = simplifiedName.replace(/[.*+?^${}|[\]\\]/g, '\\$&');
       
       users = await User.find({
-        institution: { $regex: new RegExp(escapedName, "i") },
-        status: "approved"
+        institution: { $regex: new RegExp(escapedName, "i") }
       })
         .select("-password")
         .sort({ createdAt: -1 });
