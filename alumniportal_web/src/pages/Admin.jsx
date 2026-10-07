@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import './Admin.css'
 import './Auth.css'
 import SasImage from '../components/SasImage'
+import SuperAdminLogin from './SuperAdminLogin'
 
 const API_BASE_URL = (() => {
   const configured = (import.meta.env.VITE_API_BASE_URL ?? '').trim()
@@ -12,11 +13,75 @@ const API_BASE_URL = (() => {
   return import.meta.env.DEV ? 'http://localhost:5000' : ''
 })()
 
+export const MODULE_DEFINITIONS = [
+  {
+    id: 'dashboard',
+    label: 'Dashboard',
+    category: 'OVERVIEW',
+    description: 'System overview, KPI cards, and quick navigation'
+  },
+  {
+    id: 'users',
+    label: 'Users',
+    category: 'CORE MODULES',
+    description: 'Student and Alumni member accounts, approval and verification'
+  },
+  {
+    id: 'posts',
+    label: 'Posts',
+    category: 'CORE MODULES',
+    description: 'Campus stories, media content, and feed posts moderation'
+  },
+  {
+    id: 'events',
+    label: 'Events',
+    category: 'CORE MODULES',
+    description: 'Alumni summits, reunions, seminars, and attendee registrations'
+  },
+  {
+    id: 'opportunities',
+    label: 'Opportunities',
+    category: 'CORE MODULES',
+    description: 'Career vacancies, internships, referrals, and job postings'
+  },
+  {
+    id: 'reports',
+    label: 'Reports',
+    category: 'CORE MODULES',
+    description: 'Flagged user reports, policy violations, and content moderation'
+  },
+  {
+    id: 'alumniMeet',
+    label: 'Alumni Meet',
+    category: 'ENGAGEMENT & CONFIG',
+    description: 'Annual reunion registrations, batch RSVP tracking, and badge downloads'
+  },
+  {
+    id: 'whatsapp',
+    label: 'WhatsApp Messages',
+    category: 'ENGAGEMENT & CONFIG',
+    description: 'Broadcast directory and instant WhatsApp engagement'
+  },
+  {
+    id: 'credentials',
+    label: 'Institutional Credential',
+    category: 'ENGAGEMENT & CONFIG',
+    description: 'Configure and provision institution college portal login accounts'
+  },
+  {
+    id: 'createSuperAdmin',
+    label: 'Create Super Admin',
+    category: 'ADMINISTRATION',
+    description: 'Create super admin users and configure module display permissions'
+  }
+]
+
 const Admin = () => {
   const navigate = useNavigate()
   const { user, login, logout, loading } = useAuth()
   const [isAuthenticated, setIsAuthenticated] = useState(localStorage.getItem('admin_authenticated') === 'true')
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [loginError, setLoginError] = useState('')
@@ -63,6 +128,169 @@ const Admin = () => {
   const [detailedStats, setDetailedStats] = useState(null)
   const [detailedStatsLoading, setDetailedStatsLoading] = useState(false)
 
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('auth_token')
+    if (!token) {
+      return {}
+    }
+    return {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  }
+
+  // Super admin creation and module permissions state
+  const [superAdmins, setSuperAdmins] = useState([])
+  const [superAdminsLoading, setSuperAdminsLoading] = useState(false)
+  const [adminFormName, setAdminFormName] = useState('')
+  const [adminFormEmail, setAdminFormEmail] = useState('')
+  const [adminFormPassword, setAdminFormPassword] = useState('')
+  const [adminFormPhone, setAdminFormPhone] = useState('')
+  const [adminFormModules, setAdminFormModules] = useState([
+    'dashboard', 'users', 'posts', 'events', 'opportunities', 'reports', 'alumniMeet', 'whatsapp', 'credentials', 'createSuperAdmin'
+  ])
+  const [adminFormError, setAdminFormError] = useState('')
+  const [adminFormSuccess, setAdminFormSuccess] = useState('')
+  const [creatingAdmin, setCreatingAdmin] = useState(false)
+
+  // Module access check for currently logged in admin
+  const isModuleAllowed = (moduleId) => {
+    const email = (user?.email || '').toLowerCase()
+    if (email === 'patgarlohit818@gmail.com' || email === 'admin@alumniportal.com') {
+      return true
+    }
+    if (user?.allowedModules && Array.isArray(user.allowedModules) && user.allowedModules.length > 0) {
+      return user.allowedModules.includes(moduleId)
+    }
+    return true
+  }
+
+  // Ensure active tab is within permitted modules
+  useEffect(() => {
+    const email = (user?.email || '').toLowerCase()
+    if (email === 'patgarlohit818@gmail.com' || email === 'admin@alumniportal.com') {
+      return
+    }
+    if (user?.allowedModules && Array.isArray(user.allowedModules) && user.allowedModules.length > 0) {
+      if (!user.allowedModules.includes(activeTab)) {
+        const firstPermitted = MODULE_DEFINITIONS.find((m) => user.allowedModules.includes(m.id))
+        if (firstPermitted) {
+          setActiveTab(firstPermitted.id)
+        }
+      }
+    }
+  }, [user?.allowedModules, user?.email, activeTab])
+
+  const loadSuperAdmins = async () => {
+    setSuperAdminsLoading(true)
+    setAdminFormError('')
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/admin/super-admins`, {
+        headers: getAuthHeaders()
+      })
+      setSuperAdmins(Array.isArray(res.data) ? res.data : [])
+    } catch (err) {
+      console.error('Failed to load super admins:', err)
+      setAdminFormError('Failed to load super admin accounts')
+    } finally {
+      setSuperAdminsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'createSuperAdmin') {
+      loadSuperAdmins()
+    }
+  }, [activeTab])
+
+  const handleCreateSuperAdmin = async (e) => {
+    e.preventDefault()
+    setAdminFormError('')
+    setAdminFormSuccess('')
+
+    if (!adminFormName || !adminFormEmail || !adminFormPassword) {
+      setAdminFormError('Please fill in Name, Email, and Password')
+      return
+    }
+
+    if (adminFormPassword.length < 6) {
+      setAdminFormError('Password must be at least 6 characters long')
+      return
+    }
+
+    if (!adminFormPhone || adminFormPhone.trim().replace(/\D/g, '').length < 10) {
+      setAdminFormError('Please enter a valid 10-digit mobile number for login OTP verification')
+      return
+    }
+
+    if (adminFormModules.length === 0) {
+      setAdminFormError('Please select at least one module for this Super Admin to access')
+      return
+    }
+
+    setCreatingAdmin(true)
+    try {
+      const res = await axios.post(
+        `${API_BASE_URL}/api/admin/super-admins`,
+        {
+          name: adminFormName.trim(),
+          email: adminFormEmail.trim(),
+          password: adminFormPassword,
+          phone: adminFormPhone.trim(),
+          allowedModules: adminFormModules
+        },
+        { headers: getAuthHeaders() }
+      )
+
+      if (res.data?.success) {
+        setAdminFormSuccess(res.data.message || 'Super Admin created successfully!')
+        setAdminFormName('')
+        setAdminFormEmail('')
+        setAdminFormPassword('')
+        setAdminFormPhone('')
+        setAdminFormModules(MODULE_DEFINITIONS.map((m) => m.id))
+        loadSuperAdmins()
+      }
+    } catch (err) {
+      setAdminFormError(err.response?.data?.message || 'Failed to create Super Admin')
+    } finally {
+      setCreatingAdmin(false)
+    }
+  }
+
+  const handleDeleteSuperAdmin = async (adminId, adminEmail) => {
+    if (!window.confirm(`Are you sure you want to delete Super Admin: ${adminEmail}?`)) return
+    setAdminFormError('')
+    setAdminFormSuccess('')
+
+    try {
+      const res = await axios.delete(
+        `${API_BASE_URL}/api/admin/super-admins/${adminId}`,
+        { headers: getAuthHeaders() }
+      )
+      if (res.data?.success) {
+        setAdminFormSuccess(res.data.message || 'Super Admin removed successfully')
+        loadSuperAdmins()
+      }
+    } catch (err) {
+      setAdminFormError(err.response?.data?.message || 'Failed to remove Super Admin')
+    }
+  }
+
+  const toggleModuleSelection = (modId) => {
+    setAdminFormModules((prev) =>
+      prev.includes(modId) ? prev.filter((id) => id !== modId) : [...prev, modId]
+    )
+  }
+
+  const selectAllModules = () => {
+    setAdminFormModules(MODULE_DEFINITIONS.map((m) => m.id))
+  }
+
+  const clearAllModules = () => {
+    setAdminFormModules([])
+  }
+
   // Institution credentials states
   const [institutions, setInstitutions] = useState([])
   const [credentials, setCredentials] = useState([])
@@ -70,6 +298,7 @@ const Admin = () => {
   const [credCollege, setCredCollege] = useState('')
   const [credUsername, setCredUsername] = useState('')
   const [credPassword, setCredPassword] = useState('')
+  const [credPhone, setCredPhone] = useState('')
   const [credError, setCredError] = useState('')
   const [credSuccess, setCredSuccess] = useState('')
 
@@ -104,7 +333,12 @@ const Admin = () => {
     setCredSuccess('');
 
     if (!credCollege || !credUsername || !credPassword) {
-      setCredError('All fields are required');
+      setCredError('Institution, username, and password are required');
+      return;
+    }
+
+    if (!credPhone || credPhone.trim().replace(/\D/g, '').length < 10) {
+      setCredError('Please enter a valid 10-digit mobile number for login OTP verification');
       return;
     }
 
@@ -114,7 +348,8 @@ const Admin = () => {
         {
           institution: credCollege,
           username: credUsername,
-          password: credPassword
+          password: credPassword,
+          phone: credPhone.trim()
         },
         { headers: getAuthHeaders() }
       );
@@ -124,6 +359,7 @@ const Admin = () => {
         setCredCollege('');
         setCredUsername('');
         setCredPassword('');
+        setCredPhone('');
         // Reload list
         const credList = await axios.get(
           `${API_BASE_URL}/api/admin/institution-credentials`,
@@ -165,48 +401,47 @@ const Admin = () => {
   useEffect(() => {
     if (isAuthenticated) {
       if (!loading && !user) {
-        localStorage.removeItem('admin_authenticated')
-        logout()
+        const token = localStorage.getItem('auth_token')
+        if (!token) {
+          localStorage.removeItem('admin_authenticated')
+          setIsAuthenticated(false)
+        }
       } else if (user) {
         loadDashboardStats()
       }
     }
-  }, [user, isAuthenticated, loading, logout])
+  }, [user, isAuthenticated, loading])
 
   const handleAdminLogin = async (e) => {
     e.preventDefault()
     setLoginError('')
     setLoginLoading(true)
 
-    // Check if credentials match super admin
-    if (loginEmail !== SUPER_ADMIN_EMAIL || loginPassword !== SUPER_ADMIN_PASSWORD) {
-      setLoginError('Invalid admin credentials')
-      setLoginLoading(false)
-      return
-    }
-
     const result = await login(loginEmail, loginPassword)
     if (result.success) {
-      localStorage.setItem('admin_authenticated', 'true')
-      setIsAuthenticated(true)
-      setTimeout(() => {
-        loadDashboardStats()
-      }, 100)
+      const emailLower = (result.user?.email || '').toLowerCase()
+      const isAdminUser =
+        result.user?.role === 'admin' ||
+        result.user?.role === 'superadmin' ||
+        result.user?.isAdmin === true ||
+        emailLower === 'patgarlohit818@gmail.com' ||
+        emailLower === 'admin@alumniportal.com'
+
+      if (isAdminUser) {
+        localStorage.setItem('admin_authenticated', 'true')
+        setIsAuthenticated(true)
+        setTimeout(() => {
+          loadDashboardStats()
+        }, 100)
+      } else if (result.user?.role === 'instituteadmin') {
+        setLoginError('This account has the role "instituteadmin". Please sign in via the Institution Admin Portal (/instituteadmin).')
+      } else {
+        setLoginError('Access denied: You do not have administrator privileges.')
+      }
     } else {
-      setLoginError(result.message || 'Login failed')
+      setLoginError(result.message || 'Invalid admin credentials')
     }
     setLoginLoading(false)
-  }
-
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('auth_token')
-    if (!token) {
-      return {}
-    }
-    return {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
   }
 
 
@@ -372,6 +607,7 @@ const Admin = () => {
       if (activeTab === 'reports') loadReports()
       if (activeTab === 'whatsapp') loadUsers() // Load users for WhatsApp tab
       if (activeTab === 'alumniMeet') loadRsvps()
+      if (activeTab === 'createSuperAdmin') loadSuperAdmins()
     }
   }, [activeTab, isAuthenticated])
 
@@ -761,48 +997,21 @@ const Admin = () => {
   // Show login form if not authenticated
   if (!isAuthenticated) {
     return (
-      <div className="auth-container">
-        <div className="auth-card">
-          <h1>Alumni Portal</h1>
-          <h2>Admin Sign In</h2>
-          {loginError && <div className="error-message">{loginError}</div>}
-          <form onSubmit={handleAdminLogin}>
-            <div className="form-group">
-              <label>Email</label>
-              <input
-                type="email"
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-                required
-                placeholder="Enter admin email"
-              />
-            </div>
-            <div className="form-group">
-              <label>Password</label>
-              <input
-                type="password"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                required
-                placeholder="Enter admin password"
-              />
-            </div>
-            <button type="submit" disabled={loginLoading} className="auth-button">
-              {loginLoading ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
-          <p className="auth-link">
-            <a href="/signin">Back to Regular Login</a>
-          </p>
-        </div>
-      </div>
+      <SuperAdminLogin
+        onSuccess={() => {
+          setIsAuthenticated(true)
+          setTimeout(() => {
+            loadDashboardStats()
+          }, 100)
+        }}
+      />
     )
   }
 
   const handleLogout = () => {
     localStorage.removeItem('admin_authenticated')
     logout()
-    navigate('/signin')
+    setIsAuthenticated(false)
   }
 
   const downloadCSV = (data, filename) => {
@@ -855,130 +1064,323 @@ const Admin = () => {
   }
 
   return (
-    <div className="admin-container-full">
-      <div className="admin-header-full">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <h1>Super Admin Dashboard</h1>
-          <button
-            onClick={handleLogout}
-            style={{
-              padding: '8px 16px',
-              background: '#fff',
-              color: '#0a66c2',
-              border: '1px solid #0a66c2',
-              borderRadius: '24px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '600',
-              transition: 'all 0.2s'
-            }}
-            onMouseOver={(e) => {
-              e.target.style.background = '#f0f7ff'
-            }}
-            onMouseOut={(e) => {
-              e.target.style.background = '#fff'
-            }}
+    <div className="admin-pro-layout">
+      {/* Mobile Backdrop */}
+      {mobileMenuOpen && (
+        <div className="admin-pro-backdrop" onClick={() => setMobileMenuOpen(false)} />
+      )}
+
+      {/* LEFT SIDEBAR */}
+      <aside className={`admin-pro-sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
+        <div className="sidebar-brand">
+          <div className="brand-logo-wrap">
+            <div className="brand-emblem-badge">
+              <svg viewBox="0 0 24 24" width="22" height="22" stroke="#ffffff" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+              </svg>
+            </div>
+            <div className="brand-text">
+              <span className="brand-title">Alumni Portal</span>
+              <span className="brand-badge">Super Admin</span>
+            </div>
+          </div>
+          <button 
+            type="button"
+            className="mobile-close-btn" 
+            onClick={() => setMobileMenuOpen(false)}
+            aria-label="Close Navigation Menu"
           >
-            Logout
+            ✕
           </button>
         </div>
-        <div className="admin-stats-full">
-          <div className="stat-card-full">
-            <div className="stat-value-full">{stats.totalUsers || 0}</div>
-            <div className="stat-label-full">Total Users</div>
-            {stats.pendingUsers > 0 && (
-              <div className="stat-badge-full">{stats.pendingUsers} pending</div>
-            )}
+
+        {/* Navigation list */}
+        <nav className="admin-sidebar-nav">
+          {['OVERVIEW', 'CORE MODULES', 'ENGAGEMENT & CONFIG', 'ADMINISTRATION'].map((category) => {
+            const categoryModules = MODULE_DEFINITIONS.filter(
+              (m) => m.category === category && isModuleAllowed(m.id)
+            )
+            if (categoryModules.length === 0) return null
+
+            return (
+              <div key={category} className="admin-nav-group-section">
+                <div className="admin-nav-group-label">{category}</div>
+                {categoryModules.map((item) => {
+                  let badgeCount = null
+                  let badgeDanger = false
+                  if (item.id === 'users' && stats.pendingUsers > 0) badgeCount = stats.pendingUsers
+                  if (item.id === 'posts' && stats.pendingPosts > 0) badgeCount = stats.pendingPosts
+                  if (item.id === 'events' && stats.pendingEvents > 0) badgeCount = stats.pendingEvents
+                  if (item.id === 'opportunities' && stats.pendingOpportunities > 0) badgeCount = stats.pendingOpportunities
+                  if (item.id === 'reports' && stats.pendingReports > 0) {
+                    badgeCount = stats.pendingReports
+                    badgeDanger = true
+                  }
+
+                  const getModuleIcon = (id) => {
+                    switch (id) {
+                      case 'dashboard':
+                        return (
+                          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+                            <rect x="3" y="3" width="7" height="9" rx="1"/>
+                            <rect x="14" y="3" width="7" height="5" rx="1"/>
+                            <rect x="14" y="12" width="7" height="9" rx="1"/>
+                            <rect x="3" y="16" width="7" height="5" rx="1"/>
+                          </svg>
+                        )
+                      case 'users':
+                        return (
+                          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                          </svg>
+                        )
+                      case 'posts':
+                        return (
+                          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                          </svg>
+                        )
+                      case 'events':
+                        return (
+                          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                          </svg>
+                        )
+                      case 'opportunities':
+                        return (
+                          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                          </svg>
+                        )
+                      case 'reports':
+                        return (
+                          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+                            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                            <line x1="4" y1="22" x2="4" y2="15"/>
+                          </svg>
+                        )
+                      case 'alumniMeet':
+                        return (
+                          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+                            <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                            <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                          </svg>
+                        )
+                      case 'whatsapp':
+                        return (
+                          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+                            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                          </svg>
+                        )
+                      case 'credentials':
+                        return (
+                          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+                            <path d="M21 2l-2 2m-1.5 1.5L14 9l-1.5-1.5-4 4 1.5 1.5L9 14l-5 5H2v-2l5-5 1.5 1.5 4-4-1.5-1.5 3.5-3.5z"/>
+                            <circle cx="17.5" cy="6.5" r="2.5"/>
+                          </svg>
+                        )
+                      case 'createSuperAdmin':
+                        return (
+                          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            <path d="M12 8v4"/>
+                            <path d="M12 16h.01"/>
+                          </svg>
+                        )
+                      default:
+                        return (
+                          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+                            <circle cx="12" cy="12" r="10"/>
+                          </svg>
+                        )
+                    }
+                  }
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`admin-nav-item ${activeTab === item.id ? 'active' : ''}`}
+                      onClick={() => {
+                        setActiveTab(item.id)
+                        setMobileMenuOpen(false)
+                      }}
+                      title={item.label}
+                    >
+                      <span className="admin-nav-icon">{getModuleIcon(item.id)}</span>
+                      <span className="admin-nav-label">{item.label}</span>
+                      {badgeCount !== null && (
+                        <span className={`admin-nav-badge ${badgeDanger ? 'danger' : ''}`}>
+                          {badgeCount}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            )
+          })}
+        </nav>
+
+        {/* Sidebar Footer with Super Admin Profile and Logout */}
+        <div className="sidebar-footer">
+          <div className="sidebar-user-card">
+            <div className="user-avatar-badge">SA</div>
+            <div className="user-details">
+              <span className="user-name">Super Admin</span>
+              <span className="user-role" title={user?.email || 'patgarlohit818@gmail.com'}>
+                {user?.email || 'patgarlohit818@gmail.com'}
+              </span>
+            </div>
           </div>
-          <div className="stat-card-full">
-            <div className="stat-value-full">{stats.totalPosts || 0}</div>
-            <div className="stat-label-full">Posts</div>
-            {stats.pendingPosts > 0 && (
-              <div className="stat-badge-full">{stats.pendingPosts} pending</div>
-            )}
-          </div>
-          <div className="stat-card-full">
-            <div className="stat-value-full">{stats.totalEvents || 0}</div>
-            <div className="stat-label-full">Events</div>
-            {stats.pendingEvents > 0 && (
-              <div className="stat-badge-full">{stats.pendingEvents} pending</div>
-            )}
-          </div>
-          <div className="stat-card-full">
-            <div className="stat-value-full">{stats.totalOpportunities || 0}</div>
-            <div className="stat-label-full">Opportunities</div>
-            {stats.pendingOpportunities > 0 && (
-              <div className="stat-badge-full">{stats.pendingOpportunities} pending</div>
-            )}
-          </div>
-          <div className="stat-card-full">
-            <div className="stat-value-full">{stats.totalReports || 0}</div>
-            <div className="stat-label-full">Reports</div>
-            {stats.pendingReports > 0 && (
-              <div className="stat-badge-full">{stats.pendingReports} pending</div>
-            )}
-          </div>
+          <button type="button" className="admin-nav-item admin-logout-btn" onClick={handleLogout}>
+            <span className="admin-nav-icon">
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+            </span>
+            <span className="admin-nav-label">Logout</span>
+          </button>
         </div>
-      </div>
+      </aside>
 
-      <div className="admin-tabs-full">
-        <button
-          className={activeTab === 'dashboard' ? 'active' : ''}
-          onClick={() => setActiveTab('dashboard')}
-        >
-          📊 Dashboard
-        </button>
-        <button
-          className={activeTab === 'users' ? 'active' : ''}
-          onClick={() => setActiveTab('users')}
-        >
-          👥 Users
-        </button>
-        <button
-          className={activeTab === 'posts' ? 'active' : ''}
-          onClick={() => setActiveTab('posts')}
-        >
-          📝 Posts
-        </button>
-        <button
-          className={activeTab === 'events' ? 'active' : ''}
-          onClick={() => setActiveTab('events')}
-        >
-          📅 Events
-        </button>
-        <button
-          className={activeTab === 'opportunities' ? 'active' : ''}
-          onClick={() => setActiveTab('opportunities')}
-        >
-          💼 Opportunities
-        </button>
-        <button
-          className={activeTab === 'reports' ? 'active' : ''}
-          onClick={() => setActiveTab('reports')}
-        >
-          🚩 Reports
-        </button>
-        <button
-          className={activeTab === 'alumniMeet' ? 'active' : ''}
-          onClick={() => setActiveTab('alumniMeet')}
-        >
-          🎓 Alumni Meet
-        </button>
-        <button
-          className={activeTab === 'whatsapp' ? 'active' : ''}
-          onClick={() => setActiveTab('whatsapp')}
-        >
-          💬 WhatsApp Messages
-        </button>
-        <button
-          className={activeTab === 'credentials' ? 'active' : ''}
-          onClick={() => setActiveTab('credentials')}
-        >
-          🔑 Institution Credentials
-        </button>
-      </div>
+      {/* MAIN VIEW AREA */}
+      <div className="admin-pro-main">
+        {/* Sleek Topbar */}
+        <header className="admin-pro-topbar">
+          <div className="topbar-left">
+            <button 
+              type="button"
+              className="mobile-hamburger-btn" 
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Open Navigation Menu"
+            >
+              <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2" fill="none">
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </button>
+            <div className="breadcrumb-area">
+              <span className="breadcrumb-root">Super Admin</span>
+              <span className="breadcrumb-separator">/</span>
+              <span className="breadcrumb-current">
+                {MODULE_DEFINITIONS.find((m) => m.id === activeTab)?.label || 'Dashboard Overview'}
+              </span>
+            </div>
+          </div>
 
-      <div className="admin-content-full">
+          <div className="topbar-right">
+            <span className="live-status-pill">
+              <span className="status-dot"></span> Online
+            </span>
+            <button 
+              type="button"
+              className="topbar-action-btn"
+              onClick={loadDashboardStats}
+              title="Refresh Data"
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                <polyline points="23 4 23 10 17 10"/>
+                <polyline points="1 20 1 14 7 14"/>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+              </svg>
+              Refresh
+            </button>
+            <button 
+              type="button"
+              className="topbar-action-btn portal-btn"
+              onClick={() => navigate('/')}
+            >
+              Public Site ↗
+            </button>
+          </div>
+        </header>
+
+        {/* Top KPI Cards (Featured when on Dashboard) */}
+        {activeTab === 'dashboard' && (
+          <div className="dashboard-kpi-strip">
+            <div className="kpi-card" onClick={() => setActiveTab('users')}>
+              <div className="kpi-icon-wrap user-kpi">
+                <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <div className="kpi-body">
+                <span className="kpi-title">Total Users</span>
+                <span className="kpi-value">{stats.totalUsers || 0}</span>
+              </div>
+              {stats.pendingUsers > 0 && (
+                <span className="kpi-badge warning">{stats.pendingUsers} pending</span>
+              )}
+            </div>
+
+            <div className="kpi-card" onClick={() => setActiveTab('posts')}>
+              <div className="kpi-icon-wrap post-kpi">
+                <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              </div>
+              <div className="kpi-body">
+                <span className="kpi-title">Total Posts</span>
+                <span className="kpi-value">{stats.totalPosts || 0}</span>
+              </div>
+              {stats.pendingPosts > 0 && (
+                <span className="kpi-badge warning">{stats.pendingPosts} pending</span>
+              )}
+            </div>
+
+            <div className="kpi-card" onClick={() => setActiveTab('events')}>
+              <div className="kpi-icon-wrap event-kpi">
+                <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </div>
+              <div className="kpi-body">
+                <span className="kpi-title">Events</span>
+                <span className="kpi-value">{stats.totalEvents || 0}</span>
+              </div>
+              {stats.pendingEvents > 0 && (
+                <span className="kpi-badge warning">{stats.pendingEvents} pending</span>
+              )}
+            </div>
+
+            <div className="kpi-card" onClick={() => setActiveTab('opportunities')}>
+              <div className="kpi-icon-wrap opp-kpi">
+                <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2" fill="none"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              </div>
+              <div className="kpi-body">
+                <span className="kpi-title">Opportunities</span>
+                <span className="kpi-value">{stats.totalOpportunities || 0}</span>
+              </div>
+              {stats.pendingOpportunities > 0 && (
+                <span className="kpi-badge warning">{stats.pendingOpportunities} pending</span>
+              )}
+            </div>
+
+            <div className="kpi-card" onClick={() => setActiveTab('reports')}>
+              <div className="kpi-icon-wrap report-kpi">
+                <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2" fill="none"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+              </div>
+              <div className="kpi-body">
+                <span className="kpi-title">Reports</span>
+                <span className="kpi-value">{stats.totalReports || 0}</span>
+              </div>
+              {stats.pendingReports > 0 && (
+                <span className="kpi-badge danger">{stats.pendingReports} pending</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="admin-content-full">
         {activeTab === 'dashboard' && (
           <div className="dashboard-view-full">
             <h2>Overview</h2>
@@ -1878,6 +2280,9 @@ const Admin = () => {
               {/* Form Block */}
               <div className="credentials-form-card" style={{ background: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
                 <h3 style={{ margin: '0 0 15px 0', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>Configure Credentials</h3>
+                <div style={{ marginBottom: '15px', padding: '10px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '13px', color: '#1e40af' }}>
+                  <strong>Assigned Role:</strong> <code>instituteadmin</code> (strictly separate from <code>admin</code>).
+                </div>
                 <form onSubmit={handleCreateCredential}>
                   <div className="form-group" style={{ marginBottom: '15px' }}>
                     <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Select Institution</label>
@@ -1904,7 +2309,7 @@ const Admin = () => {
                       style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd', boxSizing: 'border-box' }}
                     />
                   </div>
-                  <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <div className="form-group" style={{ marginBottom: '15px' }}>
                     <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Password</label>
                     <input
                       type="password"
@@ -1914,6 +2319,22 @@ const Admin = () => {
                       required
                       style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd', boxSizing: 'border-box' }}
                     />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: '20px' }}>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>
+                      Phone Number (for Login OTP) <span style={{ color: '#e11d48' }}>*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="e.g. 9876543210 (10 digits)"
+                      value={credPhone}
+                      onChange={(e) => setCredPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      required
+                      style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd', boxSizing: 'border-box' }}
+                    />
+                    <small style={{ color: '#64748b', fontSize: '12px' }}>
+                      An OTP will be sent to this phone number via SMS on every login attempt.
+                    </small>
                   </div>
                   <button type="submit" className="action-btn-full" style={{ width: '100%', padding: '12px', background: '#0a66c2', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}>
                     Save Credentials
@@ -1935,6 +2356,8 @@ const Admin = () => {
                         <tr style={{ background: '#f5f5f5', textAlign: 'left' }}>
                           <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Institution</th>
                           <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Username</th>
+                          <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>OTP Mobile</th>
+                          <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Role</th>
                           <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Configured Date</th>
                           <th style={{ padding: '12px', borderBottom: '2px solid #ddd' }}>Actions</th>
                         </tr>
@@ -1944,6 +2367,26 @@ const Admin = () => {
                           <tr key={cred._id} style={{ borderBottom: '1px solid #eee' }}>
                             <td style={{ padding: '12px', fontWeight: '500' }}>{cred.institution}</td>
                             <td style={{ padding: '12px' }}>{cred.username}</td>
+                            <td style={{ padding: '12px' }}>
+                              {cred.phone ? (
+                                <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>{cred.phone}</code>
+                              ) : (
+                                <span style={{ color: '#94a3b8', fontSize: '12px' }}>None</span>
+                              )}
+                            </td>
+                            <td style={{ padding: '12px' }}>
+                              <span style={{
+                                display: 'inline-block',
+                                padding: '3px 8px',
+                                background: '#e0f2fe',
+                                color: '#0369a1',
+                                borderRadius: '12px',
+                                fontSize: '12px',
+                                fontWeight: '600'
+                              }}>
+                                {cred.role || 'instituteadmin'}
+                              </span>
+                            </td>
                             <td style={{ padding: '12px', color: '#666', fontSize: '13px' }}>
                               {new Date(cred.createdAt).toLocaleDateString()}
                             </td>
@@ -1965,9 +2408,311 @@ const Admin = () => {
             </div>
           </div>
         )}
+
+        {/* CREATE SUPER ADMIN MODULE */}
+        {activeTab === 'createSuperAdmin' && (
+          <div className="admin-section-full">
+            <div className="section-header-compact">
+              <div>
+                <h2 className="section-title-sm">Create Super Admin</h2>
+                <p className="section-desc-sm">
+                  Create new Super Admin accounts and specify which modules they are permitted to display.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn-refresh-sm"
+                onClick={loadSuperAdmins}
+                disabled={superAdminsLoading}
+              >
+                <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" strokeWidth="2.2" fill="none">
+                  <polyline points="23 4 23 10 17 10"/>
+                  <polyline points="1 20 1 14 7 14"/>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                </svg>
+                {superAdminsLoading ? 'Refreshing...' : 'Refresh List'}
+              </button>
+            </div>
+
+            {adminFormError && (
+              <div className="sa-alert error">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span>{adminFormError}</span>
+              </div>
+            )}
+
+            {adminFormSuccess && (
+              <div className="sa-alert success">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <span>{adminFormSuccess}</span>
+              </div>
+            )}
+
+            <div className="sa-grid-layout">
+              {/* Creation Form Card */}
+              <div className="sa-card">
+                <div className="sa-card-header">
+                  <div className="sa-card-title">Add New Super Admin</div>
+                  <div className="sa-card-subtitle">Set account credentials and select module permissions</div>
+                </div>
+
+                <form onSubmit={handleCreateSuperAdmin} className="sa-form">
+                  <div className="sa-form-row">
+                    <div className="form-group-sm">
+                      <label className="form-label-sm">
+                        Full Name <span className="req-star">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. John Doe"
+                        value={adminFormName}
+                        onChange={(e) => setAdminFormName(e.target.value)}
+                        required
+                        className="form-input-sm"
+                      />
+                    </div>
+
+                    <div className="form-group-sm">
+                      <label className="form-label-sm">
+                        Email Address <span className="req-star">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        placeholder="e.g. admin.dept@college.edu"
+                        value={adminFormEmail}
+                        onChange={(e) => setAdminFormEmail(e.target.value)}
+                        required
+                        className="form-input-sm"
+                      />
+                    </div>
+
+                    <div className="form-group-sm">
+                      <label className="form-label-sm">
+                        Password <span className="req-star">*</span>
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="Min 6 characters"
+                        value={adminFormPassword}
+                        onChange={(e) => setAdminFormPassword(e.target.value)}
+                        required
+                        className="form-input-sm"
+                      />
+                    </div>
+
+                    <div className="form-group-sm">
+                      <label className="form-label-sm">
+                        Phone (for Login OTP) <span className="req-star">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        placeholder="e.g. 9876543210 (10 digits)"
+                        value={adminFormPhone}
+                        onChange={(e) => setAdminFormPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        required
+                        className="form-input-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Module Access Selector */}
+                  <div className="sa-module-picker-wrap">
+                    <div className="sa-module-picker-top">
+                      <div>
+                        <span className="sa-module-picker-title">Module Display Permissions</span>
+                        <span className="sa-module-picker-count">
+                          {adminFormModules.length} of {MODULE_DEFINITIONS.length} selected
+                        </span>
+                      </div>
+                      <div className="sa-module-picker-actions">
+                        <button
+                          type="button"
+                          className="btn-link-sm"
+                          onClick={selectAllModules}
+                        >
+                          Select All
+                        </button>
+                        <span className="divider-dot">•</span>
+                        <button
+                          type="button"
+                          className="btn-link-sm text-muted"
+                          onClick={clearAllModules}
+                        >
+                          Clear All
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="sa-modules-grid">
+                      {MODULE_DEFINITIONS.map((mod) => {
+                        const isSelected = adminFormModules.includes(mod.id)
+                        return (
+                          <div
+                            key={mod.id}
+                            className={`sa-module-chip-card ${isSelected ? 'selected' : ''}`}
+                            onClick={() => toggleModuleSelection(mod.id)}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {}}
+                              className="sa-module-checkbox"
+                            />
+                            <div className="sa-module-chip-info">
+                              <div className="sa-module-chip-title-row">
+                                <span className="sa-module-name">{mod.label}</span>
+                                <span className="sa-module-id-badge">ID: {mod.id}</span>
+                              </div>
+                              <span className="sa-module-desc">{mod.description}</span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="sa-form-submit-row">
+                    <button
+                      type="submit"
+                      className="btn-primary-sm"
+                      disabled={creatingAdmin}
+                    >
+                      {creatingAdmin ? (
+                        <>Creating Super Admin...</>
+                      ) : (
+                        <>
+                          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" style={{ marginRight: '6px' }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                          Create Super Admin
+                        </>
+                      )}
+                    </button>
+                    <span className="form-hint-sm">
+                      The super admin will only be able to view and manage the modules selected above.
+                    </span>
+                  </div>
+                </form>
+              </div>
+
+              {/* Existing Super Admins Table */}
+              <div className="sa-card">
+                <div className="sa-card-header">
+                  <div className="sa-card-title">
+                    Existing Super Admins
+                    <span className="sa-count-badge">{superAdmins.length}</span>
+                  </div>
+                  <div className="sa-card-subtitle">
+                    Registered super admins and their configured module access
+                  </div>
+                </div>
+
+                {superAdminsLoading ? (
+                  <div className="sa-loading-state">
+                    Loading super administrator accounts...
+                  </div>
+                ) : superAdmins.length === 0 ? (
+                  <div className="sa-empty-state">
+                    No super administrators found.
+                  </div>
+                ) : (
+                  <div className="sa-table-wrap">
+                    <table className="sa-table">
+                      <thead>
+                        <tr>
+                          <th>Super Admin</th>
+                          <th>Role</th>
+                          <th>OTP Mobile</th>
+                          <th>Allowed Modules</th>
+                          <th>Created</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {superAdmins.map((adm) => {
+                          const isCurrent = user?._id === adm._id || user?.email?.toLowerCase() === adm.email?.toLowerCase()
+                          const isMaster = adm.email === 'patgarlohit818@gmail.com' || adm.email === 'admin@alumniportal.com'
+                          const hasCustomModules = Array.isArray(adm.allowedModules) && adm.allowedModules.length > 0
+
+                          return (
+                            <tr key={adm._id}>
+                              <td>
+                                <div className="sa-user-cell">
+                                  <div className="sa-user-avatar">
+                                    {(adm.name || adm.email || 'A')[0].toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <div className="sa-user-name">
+                                      {adm.name || 'Admin'}
+                                      {isCurrent && <span className="sa-self-badge">You</span>}
+                                    </div>
+                                    <div className="sa-user-email">{adm.email}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td>
+                                <span className="sa-status-badge">
+                                  {adm.role || 'admin'}
+                                </span>
+                              </td>
+                              <td>
+                                {adm.phone ? (
+                                  <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>{adm.phone}</code>
+                                ) : (
+                                  <span style={{ color: '#94a3b8', fontSize: '12px' }}>None</span>
+                                )}
+                              </td>
+                              <td>
+                                <div className="sa-modules-pill-wrap">
+                                  {!hasCustomModules ? (
+                                    <span className="sa-module-pill-all">All Modules (Full Access)</span>
+                                  ) : (
+                                    adm.allowedModules.map((mId) => {
+                                      const found = MODULE_DEFINITIONS.find((m) => m.id === mId)
+                                      return (
+                                        <span key={mId} className="sa-module-pill">
+                                          {found ? found.label : mId}
+                                          <span className="sa-pill-id">[{mId}]</span>
+                                        </span>
+                                      )
+                                    })
+                                  )}
+                                </div>
+                              </td>
+                              <td>
+                                <span className="sa-date-cell">
+                                  {adm.createdAt ? new Date(adm.createdAt).toLocaleDateString() : '—'}
+                                </span>
+                              </td>
+                              <td>
+                                {isCurrent || isMaster ? (
+                                  <span className="sa-protected-badge" title="Master / current account cannot be deleted">
+                                    Protected
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="btn-danger-sm"
+                                    onClick={() => handleDeleteSuperAdmin(adm._id, adm.email)}
+                                    title="Delete Super Admin"
+                                  >
+                                    Delete
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-    </div >
-  )
+    </div>
+  </div>
+)
 }
 
 export default Admin

@@ -37,7 +37,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/super-admin-login" element={<SuperAdminLogin />} />
         <Route path="/instituteadmin" element={<InstituteAdminLogin />} />
-        <Route path="/institutiondashboard" element={<InstitutionDashboard />} />
+        <Route path="/institutiondashboard" element={<InstituteAdminLogin />} />
         <Route path="/privacy-policy" element={<Privacy />} />
         <Route path="/contactchildpolicy" element={<ContactChild />} />
 

@@ -1,6 +1,12 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
-const { registerUser, loginUser } = require("../controllers/uthController");
+const {
+  registerUser,
+  loginUser,
+  verifyAdminLoginOtp,
+  resendAdminLoginOtp,
+  submitAdminPhoneForOtp,
+} = require("../controllers/uthController");
 const {
   resetPasswordWithOtp,
   resetPasswordByEmailLegacy,
@@ -28,6 +34,11 @@ const strictOtpLimiter = rateLimit({
 router.post("/signup", registerUser);
 router.post("/signin", loginUser);
 router.post("/login", loginUser);
+
+// Admin / Institute Admin OTP 2FA routes
+router.post("/admin-verify-otp", otpLimiter, verifyAdminLoginOtp);
+router.post("/admin-resend-otp", strictOtpLimiter, resendAdminLoginOtp);
+router.post("/admin-submit-phone", strictOtpLimiter, submitAdminPhoneForOtp);
 
 router.get("/verify-token", authMiddleware, verifyToken);
 router.post("/refresh", refreshAccessToken);

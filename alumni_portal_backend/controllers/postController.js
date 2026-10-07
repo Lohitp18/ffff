@@ -46,6 +46,8 @@ exports.createPost = async (req, res) => {
     if (img && vid) return res.status(400).json({ message: 'Attach either an image or a video, not both' });
 
     const uid = req.user._id;
+    const isUserAdmin = req.user?.role === 'admin' || req.user?.role === 'superadmin' || req.user?.isAdmin === true ||
+      (req.user?.email && (req.user.email.toLowerCase() === 'patgarlohit818@gmail.com' || req.user.email.toLowerCase() === 'admin@alumniportal.com'));
 
     const data = {
       title,
@@ -53,7 +55,8 @@ exports.createPost = async (req, res) => {
       author: req.user?.email,
       authorId: uid,
       userId: uid,
-      status: 'pending',
+      status: isUserAdmin ? 'approved' : 'pending',
+      isAdminPost: Boolean(isUserAdmin),
     };
 
     const file = img || vid;

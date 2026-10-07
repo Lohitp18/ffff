@@ -2,13 +2,41 @@ const nodemailer = require('nodemailer');
 const messageTemplates = require('./messageTemplates');
 
 /**
- * Creates and returns a configured Nodemailer transporter for Brevo SMTP
+ * Checks if email service is configured (Google OAuth2 or SMTP)
+ */
+const hasEmailConfig = () => {
+  if (process.env.GOOGLE_EMAIL && process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_REFRESH_TOKEN) {
+    return true;
+  }
+  return Boolean(process.env.SMTP_USER && process.env.SMTP_PASS);
+};
+
+const getFromEmail = () => {
+  return process.env.GOOGLE_EMAIL || process.env.SMTP_FROM || process.env.SMTP_USER || "renewal@aiet.org.in";
+};
+
+/**
+ * Creates and returns a configured Nodemailer transporter
+ * Supports Gmail OAuth2 (priority) and Brevo / standard SMTP (fallback)
  * @returns {Object} Nodemailer transporter instance
  */
 const createTransporter = () => {
-  // Validate required environment variables
+  if (process.env.GOOGLE_EMAIL && process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_REFRESH_TOKEN) {
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        type: 'OAuth2',
+        user: process.env.GOOGLE_EMAIL,
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
+      },
+    });
+  }
+
+  // Validate required environment variables for SMTP fallback
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    throw new Error('SMTP credentials are not configured. Please set SMTP_USER and SMTP_PASS environment variables.');
+    throw new Error('Email credentials are not configured. Please set GOOGLE_EMAIL/GOOGLE_REFRESH_TOKEN or SMTP_USER/SMTP_PASS.');
   }
 
   return nodemailer.createTransport({
@@ -21,7 +49,6 @@ const createTransporter = () => {
       pass: process.env.SMTP_PASS,
     },
     tls: {
-      // Do not fail on invalid certs (useful for development)
       rejectUnauthorized: process.env.NODE_ENV === 'production',
     },
   });
@@ -29,27 +56,18 @@ const createTransporter = () => {
 
 /**
  * Sends an approval email to a user after their account is approved
- * @param {string} userEmail - The recipient's email address
- * @param {string} userName - The recipient's name
- * @returns {Promise<Object>} Result object with success status and messageId or error
  */
 const sendApprovalEmail = async (userEmail, userName) => {
   try {
-    // Validate inputs
     if (!userEmail || !userEmail.includes('@')) {
       throw new Error('Invalid email address provided');
     }
-
-    // Validate SMTP configuration
-    if (!process.env.SMTP_FROM && !process.env.SMTP_USER) {
-      throw new Error('SMTP_FROM or SMTP_USER environment variable is required');
+    if (!hasEmailConfig()) {
+      throw new Error('Email configuration is missing');
     }
 
     const transporter = createTransporter();
-
-    // Use SMTP_FROM if provided, otherwise fall back to SMTP_USER
-    const fromEmail = process.env.SMTP_FROM || process.env.SMTP_USER;
-
+    const fromEmail = getFromEmail();
     const bodyText = messageTemplates.adminApproval.emailText();
     const subject = messageTemplates.adminApproval.emailSubject;
     const safeBodyHtml = bodyText.replace(/\n/g, '<br/>');
@@ -63,7 +81,6 @@ const sendApprovalEmail = async (userEmail, userName) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
-    
     return {
       success: true,
       messageId: info.messageId,
@@ -81,26 +98,18 @@ const sendApprovalEmail = async (userEmail, userName) => {
 
 /**
  * Sends a rejection email to a user after their account is rejected
- * @param {string} userEmail - The recipient's email address
- * @param {string} userName - The recipient's name
- * @returns {Promise<Object>} Result object with success status and messageId or error
  */
 const sendRejectionEmail = async (userEmail, userName) => {
   try {
-    // Validate inputs
     if (!userEmail || !userEmail.includes('@')) {
       throw new Error('Invalid email address provided');
     }
-
-    // Validate SMTP configuration
-    if (!process.env.SMTP_FROM && !process.env.SMTP_USER) {
-      throw new Error('SMTP_FROM or SMTP_USER environment variable is required');
+    if (!hasEmailConfig()) {
+      throw new Error('Email configuration is missing');
     }
 
     const transporter = createTransporter();
-
-    // Use SMTP_FROM if provided, otherwise fall back to SMTP_USER
-    const fromEmail = process.env.SMTP_FROM || process.env.SMTP_USER;
+    const fromEmail = getFromEmail();
 
     const mailOptions = {
       from: `"Alumni Portal" <${fromEmail}>`,
@@ -171,7 +180,6 @@ const sendRejectionEmail = async (userEmail, userName) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
-    
     return {
       success: true,
       messageId: info.messageId,
@@ -188,21 +196,69 @@ const sendRejectionEmail = async (userEmail, userName) => {
 };
 
 /**
+ * Send 6-digit OTP for Admin / Institute Admin Login (email channel).
+ */
+const sendAdminLoginOtpEmail = async (userEmail, userName, code) => {
+  try {
+    if (!userEmail || !userEmail.includes('@')) {
+      return { success: false, error: 'Invalid email' };
+    }
+    if (!hasEmailConfig()) {
+      return { success: false, error: 'Email service not configured' };
+    }
+
+    const transporter = createTransporter();
+    const fromEmail = getFromEmail();
+    const subject = 'Admin Login Verification Code - Alvas Alumni Portal';
+    const bodyHtml = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 28px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h2 style="color: #1e3a8a; margin: 0; font-size: 24px;">Alvas Alumni Portal</h2>
+          <p style="color: #64748b; margin: 6px 0 0 0; font-size: 14px;">Administrator Security Verification</p>
+        </div>
+        <div style="padding: 24px; background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%); border-radius: 10px; border: 1px solid #dbeafe; margin-bottom: 24px;">
+          <p style="margin: 0 0 12px 0; font-size: 15px; color: #1e293b;">Hello <strong>${userName || 'Admin'}</strong>,</p>
+          <p style="margin: 0 0 18px 0; font-size: 15px; color: #334155;">Use the verification code below to complete your administrator sign in:</p>
+          <div style="text-align: center; margin: 24px 0;">
+            <span style="font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #1e40af; background: #ffffff; padding: 14px 32px; border-radius: 8px; border: 2px dashed #93c5fd; display: inline-block;">${code}</span>
+          </div>
+          <p style="margin: 0; font-size: 13px; color: #64748b; text-align: center;">This code is valid for <strong>10 minutes</strong>. Never share this code with anyone.</p>
+        </div>
+        <p style="margin: 0; font-size: 12px; color: #94a3b8; text-align: center;">If you did not initiate this login request, please contact security immediately.</p>
+      </div>
+    `;
+    const bodyText = `Hello ${userName || 'Admin'},\n\nYour Alvas Alumni Portal login OTP is: ${code}\n\nThis OTP is valid for 10 minutes. Do not share this code.\n\nAlvas Alumni Portal`;
+
+    const info = await transporter.sendMail({
+      from: `"Alvas Alumni Portal" <${fromEmail}>`,
+      to: userEmail,
+      subject,
+      text: bodyText,
+      html: bodyHtml,
+    });
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Error sending admin login OTP email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
  * Send 6-digit OTP for password reset (email channel).
  */
 const sendPasswordResetOtpEmail = async (userEmail, _userName, code) => {
   try {
-    if (!userEmail || !userEmail.includes("@")) {
-      return { success: false, error: "Invalid email" };
+    if (!userEmail || !userEmail.includes('@')) {
+      return { success: false, error: 'Invalid email' };
     }
-    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      return { success: false, error: "SMTP not configured" };
+    if (!hasEmailConfig()) {
+      return { success: false, error: 'Email service not configured' };
     }
     const transporter = createTransporter();
-    const fromEmail = process.env.SMTP_FROM || process.env.SMTP_USER;
+    const fromEmail = getFromEmail();
     const bodyText = messageTemplates.forgotPasswordOtp.emailText(code);
     const subject = messageTemplates.forgotPasswordOtp.emailSubject;
-    const htmlBody = bodyText.replace(/\n/g, "<br/>");
+    const htmlBody = bodyText.replace(/\n/g, '<br/>');
     const mailOptions = {
       from: `"Alumni Portal" <${fromEmail}>`,
       to: userEmail,
@@ -213,24 +269,24 @@ const sendPasswordResetOtpEmail = async (userEmail, _userName, code) => {
     const info = await transporter.sendMail(mailOptions);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error("Error sending password reset OTP email:", error);
+    console.error('Error sending password reset OTP email:', error);
     return { success: false, error: error.message };
   }
 };
 
 const sendPasswordResetSuccessEmail = async (userEmail) => {
   try {
-    if (!userEmail || !userEmail.includes("@")) {
-      return { success: false, error: "Invalid email" };
+    if (!userEmail || !userEmail.includes('@')) {
+      return { success: false, error: 'Invalid email' };
     }
-    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      return { success: false, error: "SMTP not configured" };
+    if (!hasEmailConfig()) {
+      return { success: false, error: 'Email service not configured' };
     }
     const transporter = createTransporter();
-    const fromEmail = process.env.SMTP_FROM || process.env.SMTP_USER;
+    const fromEmail = getFromEmail();
     const bodyText = messageTemplates.passwordResetSuccess.emailText();
     const subject = messageTemplates.passwordResetSuccess.emailSubject;
-    const htmlBody = bodyText.replace(/\n/g, "<br/>");
+    const htmlBody = bodyText.replace(/\n/g, '<br/>');
     const mailOptions = {
       from: `"Alumni Portal" <${fromEmail}>`,
       to: userEmail,
@@ -241,7 +297,7 @@ const sendPasswordResetSuccessEmail = async (userEmail) => {
     const info = await transporter.sendMail(mailOptions);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error("Error sending password reset success email:", error);
+    console.error('Error sending password reset success email:', error);
     return { success: false, error: error.message };
   }
 };
@@ -249,6 +305,8 @@ const sendPasswordResetSuccessEmail = async (userEmail) => {
 module.exports = {
   sendApprovalEmail,
   sendRejectionEmail,
+  sendAdminLoginOtpEmail,
   sendPasswordResetOtpEmail,
   sendPasswordResetSuccessEmail,
 };
+

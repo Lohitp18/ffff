@@ -141,7 +141,17 @@ module.exports = {
       const postedBySelect = includeSensitive
         ? "name username profileImage headline institution program course specialization year phone email location"
         : "name username profileImage headline institution program course specialization year location";
-      const events = await Event.find({ status: "approved" })
+
+      const query = { status: "approved" };
+      if (req.query.institution) {
+        query.$or = [
+          { institution: new RegExp(req.query.institution.trim(), "i") },
+          { institution: { $exists: false } },
+          { institution: null }
+        ];
+      }
+
+      const events = await Event.find(query)
         .populate("postedBy", postedBySelect)
         .sort({ createdAt: -1 })
         .limit(100);
@@ -161,31 +171,54 @@ module.exports = {
     }
   },
 
+  getEventsByInstitution: async (req, res) => {
+    try {
+      const institution = req.query.institution || req.params.institution;
+      const query = {};
+      if (institution && institution.trim()) {
+        query.institution = new RegExp(institution.trim(), "i");
+      }
+      const events = await Event.find(query)
+        .populate("postedBy", "name email profileImage institution")
+        .sort({ createdAt: -1 });
+      return res.json(events);
+    } catch (err) {
+      console.error("getEventsByInstitution error", err);
+      return res.status(500).json({ message: "Failed to fetch institution events" });
+    }
+  },
+
   createEvent: async (req, res) => {
     try {
-      const { title, description, date, location, status } = req.body;
+      const { title, description, date, location, status, googleFormUrl, institution, imageUrl: bodyImageUrl } = req.body;
       if (!title || !description || !date) {
-        return res.status(400).json({ message: "title, description, date are required" });
+        return res.status(400).json({ message: "title, description, and date are required" });
       }
       
       const eventData = {
         title,
         description,
-        date,
+        date: new Date(date),
         location: location || null,
-        status: status || "pending",
-        postedBy: req.user?.id,
+        googleFormUrl: googleFormUrl || null,
+        institution: institution || null,
+        status: status || (req.user?.role === 'admin' ? "approved" : "approved"),
+        postedBy: req.user?._id || req.user?.id || null,
       };
 
       if (req.file) {
-        eventData.imageUrl = await uploadToLocal(req.file, "events", req.user._id);
+        eventData.imageUrl = await uploadToLocal(req.file, "events", req.user?._id || req.user?.id || "admin");
+        eventData.mediaUrl = eventData.imageUrl;
+      } else if (bodyImageUrl) {
+        eventData.imageUrl = bodyImageUrl;
+        eventData.mediaUrl = bodyImageUrl;
       }
 
       const event = await Event.create(eventData);
       return res.status(201).json(event);
     } catch (err) {
       console.error("createEvent error", err);
-      return res.status(500).json({ message: "Failed to create event" });
+      return res.status(500).json({ message: "Failed to create event", error: err.message });
     }
   },
 
@@ -249,9 +282,9 @@ module.exports = {
       const userId = req.user?._id?.toString() || null;
       const includeSensitive = Boolean(req.user);
       const authorSelect = includeSensitive
-        ? "name username profileImage headline institution program course specialization year phone email location"
-        : "name username profileImage headline institution program course specialization year location";
-      // For admin, only return approved posts
+        ? "name username profileImage headline institution program course specialization year phone email location role isAdmin"
+        : "name username profileImage headline institution program course specialization year location role isAdmin";
+      
       const posts = await Post.find({ status: "approved" })
         .populate("authorId", authorSelect)
         .sort({ createdAt: -1 })
@@ -260,8 +293,17 @@ module.exports = {
       const postsWithLikes = posts.map(post => {
         const postObj = post.toObject();
         postObj.isLiked = userId ? post.likes.includes(userId) : false;
-        postObj.likeCount = post.likes.length;
+        postObj.likeCount = post.likes ? post.likes.length : 0;
         postObj.category = 'Post';
+        const author = postObj.authorId;
+        const isAuthorAdmin = author && (
+          author.role === 'admin' ||
+          author.role === 'superadmin' ||
+          author.isAdmin === true ||
+          (author.email && (author.email.toLowerCase() === 'patgarlohit818@gmail.com' || author.email.toLowerCase() === 'admin@alumniportal.com'))
+        );
+        postObj.isAdminPost = Boolean(post.isAdminPost || isAuthorAdmin);
+        postObj.isPriority = postObj.isAdminPost;
         return postObj;
       });
       
@@ -271,7 +313,44 @@ module.exports = {
       return res.status(500).json({ message: "Failed to fetch approved posts" });
     }
   },
-  getApprovedInstitutionPosts: async (_req, res) => listApproved(InstitutionPost, res),
+  getApprovedInstitutionPosts: async (req, res) => {
+    try {
+      const user = req.user;
+      let query = { status: "approved" };
+
+      // Admins and Super Admins can see all institution posts
+      const isUserAdmin = user && (user.role === 'admin' || user.role === 'superadmin' || user.isAdmin === true);
+      if (!isUserAdmin) {
+        if (user && user.institution) {
+          // Regular users only see posts from their institution or global posts
+          query.$or = [
+            { institution: new RegExp(`^${user.institution.trim()}$`, 'i') },
+            { institution: { $in: ["All", "All Institutions", "all", "ALL INSTITUTIONS"] } }
+          ];
+        } else {
+          query.institution = { $in: ["All", "All Institutions", "all", "ALL INSTITUTIONS"] };
+        }
+      }
+
+      const posts = await InstitutionPost.find(query)
+        .sort({ createdAt: -1 })
+        .limit(100);
+
+      const userId = user?._id?.toString() || null;
+      const formatted = posts.map(post => {
+        const obj = post.toObject();
+        obj.isLiked = userId ? (post.likes || []).includes(userId) : false;
+        obj.likeCount = post.likes ? post.likes.length : 0;
+        obj.category = 'InstitutionPost';
+        return obj;
+      });
+
+      return res.json(formatted);
+    } catch (err) {
+      console.error("getApprovedInstitutionPosts error", err);
+      return res.status(500).json({ message: "Failed to fetch institution posts" });
+    }
+  },
   createInstitutionPost: async (req, res) => {
     try {
       const { institution, title, content, status } = req.body;

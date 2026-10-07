@@ -1,6 +1,11 @@
+const https = require("https");
 const axios = require("axios");
 const { normalizePhone, maskPhoneForLog } = require("../utils/phone");
 const messageTemplates = require("../utils/messageTemplates");
+
+const dosnetHttpsAgent = new https.Agent({
+  rejectUnauthorized: process.env.DOSNET_STRICT_SSL === "true",
+});
 
 /** Mask digit runs that look like OTPs / codes in logged payloads. */
 function redactNumericCodes(s) {
@@ -172,6 +177,7 @@ async function sendDosnetSms(rawPhone, messageText, options = {}) {
   try {
     const res = await axios.get(url, {
       timeout: 60000,
+      httpsAgent: dosnetHttpsAgent,
       validateStatus: () => true,
       transformResponse: [(data) => data],
     });

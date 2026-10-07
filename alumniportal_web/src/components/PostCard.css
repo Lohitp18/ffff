@@ -622,3 +622,51 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Event Metadata & Registration Link */
+.post-event-badge-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 12px 0;
+}
+
+.event-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.post-event-link-section {
+  margin: 14px 0 8px 0;
+}
+
+.post-event-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  background: #eff6ff;
+  border: 1.5px solid #2563eb;
+  border-radius: 8px;
+  color: #1d4ed8;
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.post-event-link-btn:hover {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  transform: translateY(-1px);
+}
+

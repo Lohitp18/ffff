@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const logout = useCallback(() => {
+  const logout = useCallback((redirectPath = null) => {
     localStorage.removeItem(AUTH_TOKEN_KEY)
     localStorage.removeItem(AUTH_REFRESH_KEY)
     localStorage.removeItem(AUTH_USER_KEY)
@@ -60,7 +60,9 @@ export const AuthProvider = ({ children }) => {
     setToken(null)
     setUser(null)
     delete axios.defaults.headers.common['Authorization']
-    window.location.href = '/signin'
+    if (redirectPath) {
+      window.location.href = redirectPath
+    }
   }, [])
 
   const verifyToken = useCallback(async () => {
@@ -144,12 +146,25 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token, verifyToken])
 
-  const login = async (identifier, password) => {
+  const login = async (identifier, password, options = {}) => {
     try {
       const response = await axios.post(`${API_BASE_URL}/api/auth/signin`, {
         identifier,
         password,
+        isAdminLogin: Boolean(options?.isAdminLogin),
       })
+
+      if (response.data?.requiresOtp) {
+        return {
+          requiresOtp: true,
+          tempToken: response.data.tempToken,
+          phoneMasked: response.data.phoneMasked,
+          emailMasked: response.data.emailMasked,
+          needsPhone: response.data.needsPhone,
+          message: response.data.message,
+        }
+      }
+
       const {
         token: newToken,
         refreshToken,
@@ -183,6 +198,93 @@ export const AuthProvider = ({ children }) => {
       return {
         success: false,
         message: error.response?.data?.message || 'Login failed',
+      }
+    }
+  }
+
+  const verifyAdminOtp = async (tempToken, code) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/admin-verify-otp`, {
+        tempToken,
+        code: String(code).trim(),
+      })
+      const {
+        token: newToken,
+        refreshToken,
+        _id,
+        email: userEmail,
+        username,
+        status,
+        role,
+        isAdmin,
+        institution,
+        allowedModules,
+      } = response.data
+
+      localStorage.setItem(AUTH_TOKEN_KEY, newToken)
+      if (refreshToken) {
+        localStorage.setItem(AUTH_REFRESH_KEY, refreshToken)
+      }
+      setToken(newToken)
+      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
+
+      let finalUser = { _id, email: userEmail, username, status, role, isAdmin, institution, allowedModules }
+      try {
+        const verifyRes = await axios.get(`${API_BASE_URL}/api/auth/verify-token`, {
+          headers: { Authorization: `Bearer ${newToken}` },
+        })
+        if (verifyRes.data?.user) {
+          finalUser = verifyRes.data.user
+        }
+      } catch {
+        /* fallback to response data */
+      }
+      setUser(finalUser)
+      persistUser(finalUser)
+      return { success: true, user: finalUser }
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'OTP verification failed',
+      }
+    }
+  }
+
+  const resendAdminOtp = async (tempToken) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/admin-resend-otp`, {
+        tempToken,
+      })
+      return {
+        success: true,
+        message: response.data?.message || 'New OTP sent to your phone and email.',
+        emailMasked: response.data?.emailMasked,
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to resend OTP',
+      }
+    }
+  }
+
+  const submitAdminPhone = async (tempToken, phone) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/admin-submit-phone`, {
+        tempToken,
+        phone,
+      })
+      return {
+        success: true,
+        tempToken: response.data?.tempToken,
+        phoneMasked: response.data?.phoneMasked,
+        emailMasked: response.data?.emailMasked,
+        message: response.data?.message,
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to send OTP to this number',
       }
     }
   }
@@ -247,6 +349,9 @@ export const AuthProvider = ({ children }) => {
     signup,
     logout,
     loading,
+    verifyAdminOtp,
+    resendAdminOtp,
+    submitAdminPhone,
     sendSignupOtp,
     verifySignupOtp,
     sendPasswordResetOtp,

@@ -24,9 +24,9 @@ if (fs.existsSync(envPath)) {
 
 const app = express();
 
-// CORS configuration - allow all origins for development
+// CORS configuration - allow requesting origin with credentials for development
 app.use(cors({
-  origin: '*',
+  origin: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   credentials: true
@@ -262,4 +262,6 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT);
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT} (http://localhost:${PORT})`);
+});

@@ -252,7 +252,7 @@ exports.getBlockedUsers = async (req, res) => {
  */
 exports.getInstitutionUsers = async (req, res) => {
   try {
-    const users = await User.find({ role: 'institution' }).select('-password').lean();
+    const users = await User.find({ role: { $in: ['institution', 'instituteadmin'] } }).select('-password').lean();
     return res.json(users);
   } catch (err) {
     console.error('Error fetching institution users:', err);
@@ -287,12 +287,13 @@ exports.createInstitutionUser = async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create institution user
+    // Create institution user with role: instituteadmin
     const user = await User.create({
       name: institution,
       email,
       password: hashedPassword,
-      role: 'institution',
+      role: 'instituteadmin',
+      isAdmin: false,
       status: 'approved', // Institution users are auto-approved
       institution: institution,
     });
@@ -465,7 +466,11 @@ exports.getDetailedStatistics = async (req, res) => {
 exports.getInstituteCredentials = async (req, res) => {
   try {
     const credentials = await InstituteCredential.find({}).select('-password').lean();
-    return res.json(credentials);
+    const formatted = credentials.map((cred) => ({
+      ...cred,
+      role: 'instituteadmin',
+    }));
+    return res.json(formatted);
   } catch (err) {
     console.error('Error fetching institution credentials:', err);
     return res.status(500).json({
@@ -480,7 +485,7 @@ exports.getInstituteCredentials = async (req, res) => {
  */
 exports.createInstituteCredential = async (req, res) => {
   try {
-    const { institution, username, password } = req.body;
+    const { institution, username, password, phone } = req.body;
 
     if (!institution || !username || !password) {
       return res.status(400).json({
@@ -488,22 +493,60 @@ exports.createInstituteCredential = async (req, res) => {
       });
     }
 
+    const normalizedUser = username.toLowerCase().trim();
     const hashedPassword = await bcrypt.hash(password, 10);
+    const updateCred = { username: normalizedUser, password: hashedPassword };
+    if (phone !== undefined) {
+      updateCred.phone = phone ? phone.trim() : "";
+    }
 
-    // Update if exists, otherwise create
+    // Update if exists, otherwise create in institutecredentials collection
     const credential = await InstituteCredential.findOneAndUpdate(
       { institution },
-      { username, password: hashedPassword },
+      updateCred,
       { new: true, upsert: true }
     );
 
+    // Ensure corresponding User account is configured with role: 'instituteadmin' (NOT 'admin')
+    let dbUser = await User.findOne({
+      $or: [{ email: normalizedUser }, { username: normalizedUser }]
+    });
+
+    if (!dbUser) {
+      await User.create({
+        name: institution,
+        email: normalizedUser,
+        username: normalizedUser,
+        password: hashedPassword,
+        phone: phone ? phone.trim() : "",
+        phoneVerified: true,
+        status: "approved",
+        role: "instituteadmin",
+        isAdmin: false,
+        institution: institution
+      });
+    } else {
+      dbUser.password = hashedPassword;
+      dbUser.role = "instituteadmin";
+      dbUser.isAdmin = false;
+      dbUser.status = "approved";
+      dbUser.name = institution;
+      dbUser.institution = institution;
+      if (phone !== undefined) {
+        dbUser.phone = phone ? phone.trim() : "";
+      }
+      await dbUser.save();
+    }
+
     return res.status(201).json({
       success: true,
-      message: 'Credentials configured successfully',
+      message: 'Institution credentials configured successfully with role instituteadmin',
       data: {
         _id: credential._id,
         institution: credential.institution,
-        username: credential.username
+        username: credential.username,
+        phone: credential.phone || "",
+        role: 'instituteadmin'
       }
     });
   } catch (err) {
@@ -521,7 +564,16 @@ exports.createInstituteCredential = async (req, res) => {
 exports.deleteInstituteCredential = async (req, res) => {
   try {
     const { id } = req.params;
-    await InstituteCredential.findByIdAndDelete(id);
+    const cred = await InstituteCredential.findById(id);
+    if (cred) {
+      if (cred.username) {
+        await User.deleteMany({
+          email: cred.username.toLowerCase(),
+          role: 'instituteadmin'
+        });
+      }
+      await InstituteCredential.findByIdAndDelete(id);
+    }
     return res.json({
       success: true,
       message: 'Credentials deleted successfully'
@@ -530,6 +582,131 @@ exports.deleteInstituteCredential = async (req, res) => {
     console.error('Error deleting institution credentials:', err);
     return res.status(500).json({
       message: 'Failed to delete credentials',
+      error: err.message
+    });
+  }
+};
+
+/**
+ * Get all super admins
+ */
+exports.getSuperAdmins = async (req, res) => {
+  try {
+    const admins = await User.find({
+      $or: [{ role: 'admin' }, { isAdmin: true, role: { $nin: ['institution', 'instituteadmin'] } }],
+      role: { $nin: ['institution', 'instituteadmin'] }
+    })
+      .select('name email phone role isAdmin status allowedModules createdAt')
+      .sort({ createdAt: -1 })
+      .lean();
+    return res.json(admins);
+  } catch (err) {
+    console.error('Error fetching super admins:', err);
+    return res.status(500).json({
+      message: 'Failed to fetch super admins',
+      error: err.message
+    });
+  }
+};
+
+/**
+ * Create or update a super admin with assigned module permissions
+ */
+exports.createSuperAdmin = async (req, res) => {
+  try {
+    const { name, email, password, allowedModules, phone } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        message: 'Name, email, and password are required'
+      });
+    }
+
+    const trimmedEmail = email.trim().toLowerCase();
+    const existingUser = await User.findOne({ email: trimmedEmail });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const modules = Array.isArray(allowedModules) ? allowedModules : [];
+
+    if (existingUser) {
+      existingUser.name = name.trim();
+      existingUser.password = hashedPassword;
+      existingUser.role = 'admin';
+      existingUser.isAdmin = true;
+      existingUser.status = 'approved';
+      existingUser.phoneVerified = true;
+      existingUser.allowedModules = modules;
+      if (phone !== undefined) {
+        existingUser.phone = phone ? phone.trim() : "";
+      }
+      await existingUser.save();
+
+      return res.status(200).json({
+        success: true,
+        message: 'Super Admin updated successfully',
+        data: {
+          _id: existingUser._id,
+          name: existingUser.name,
+          email: existingUser.email,
+          phone: existingUser.phone || "",
+          allowedModules: existingUser.allowedModules
+        }
+      });
+    }
+
+    const newAdmin = await User.create({
+      name: name.trim(),
+      email: trimmedEmail,
+      password: hashedPassword,
+      role: 'admin',
+      isAdmin: true,
+      status: 'approved',
+      phoneVerified: true,
+      allowedModules: modules,
+      phone: phone ? phone.trim() : ""
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Super Admin created successfully',
+      data: {
+        _id: newAdmin._id,
+        name: newAdmin.name,
+        email: newAdmin.email,
+        phone: newAdmin.phone || "",
+        allowedModules: newAdmin.allowedModules
+      }
+    });
+  } catch (err) {
+    console.error('Error creating super admin:', err);
+    return res.status(500).json({
+      message: 'Failed to create super admin',
+      error: err.message
+    });
+  }
+};
+
+/**
+ * Delete a super admin
+ */
+exports.deleteSuperAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (req.user && (req.user._id?.toString() === id || req.user.id === id)) {
+      return res.status(400).json({
+        message: 'Cannot delete your own super admin account'
+      });
+    }
+
+    await User.findByIdAndDelete(id);
+    return res.json({
+      success: true,
+      message: 'Super Admin deleted successfully'
+    });
+  } catch (err) {
+    console.error('Error deleting super admin:', err);
+    return res.status(500).json({
+      message: 'Failed to delete super admin',
       error: err.message
     });
   }

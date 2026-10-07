@@ -25,6 +25,7 @@ const postSchema = new mongoose.Schema(
       postId: mongoose.Schema.Types.Mixed,
       postType: String,
     },
+    isAdminPost: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

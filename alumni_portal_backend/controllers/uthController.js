@@ -1,11 +1,13 @@
 const User = require("../models/User");
 const InstituteCredential = require("../models/InstituteCredential");
+const OtpChallenge = require("../models/OtpChallenge");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const generateToken = require("../utils/generateToken");
 const generateRefreshToken = require("../utils/generateRefreshToken");
-const { sendLoginAlertSms, sendSignupSuccessSms } = require("../services/dosnetSms");
+const { sendLoginAlertSms, sendSignupSuccessSms, sendOtpSms } = require("../services/dosnetSms");
 const { sendSignupSuccessWhatsApp } = require("../services/whatsappService");
+const { sendAdminLoginOtpEmail } = require("../utils/emailService");
 const { normalizePhone } = require("../utils/phone");
 const messageTemplates = require("../utils/messageTemplates");
 const fs = require("fs");
@@ -161,7 +163,8 @@ const loginUser = async (req, res) => {
       return res.status(400).json({ message: "Request body is required" });
     }
 
-    const { identifier, email, password } = req.body;
+    const { identifier, email, password, isAdminLogin: reqIsAdminLogin, adminLogin: reqAdminLogin } = req.body;
+    const isAdminLogin = reqIsAdminLogin === true || reqAdminLogin === true;
 
     const rawIdentifier = (identifier || email || "").trim();
 
@@ -199,30 +202,41 @@ const loginUser = async (req, res) => {
           email: dynamicInst.username.toLowerCase(),
           username: dynamicInst.username.toLowerCase(),
           password: dynamicInst.password,
+          phone: dynamicInst.phone || "",
           phoneVerified: true,
           status: "approved",
-          isAdmin: true,
-          role: "admin",
+          isAdmin: false,
+          role: "instituteadmin",
           institution: dynamicInst.institution,
         });
       } else {
         let updated = false;
         if (dbUser.password !== dynamicInst.password) { dbUser.password = dynamicInst.password; updated = true; }
         if (dbUser.status !== "approved") { dbUser.status = "approved"; updated = true; }
-        if (dbUser.role !== "admin") { dbUser.role = "admin"; updated = true; }
+        if (dbUser.role !== "instituteadmin") { dbUser.role = "instituteadmin"; updated = true; }
+        if (dbUser.isAdmin !== false) { dbUser.isAdmin = false; updated = true; }
         if (dbUser.name !== dynamicInst.institution) { dbUser.name = dynamicInst.institution; updated = true; }
         if (dbUser.institution !== dynamicInst.institution) { dbUser.institution = dynamicInst.institution; updated = true; }
+        if (dynamicInst.phone && !dbUser.phone) { dbUser.phone = dynamicInst.phone; updated = true; }
         if (updated) await dbUser.save();
       }
 
+      const adminPhone = dynamicInst.phone || dbUser.phone;
+      if (isAdminLogin) {
+        return await initiateAdminLoginOtp(res, dbUser, adminPhone);
+      }
       const token = generateToken(dbUser._id);
       const refreshToken = generateRefreshToken(dbUser._id);
-
       return res.json({
         _id: dbUser._id,
+        name: dbUser.name,
         email: dbUser.email,
         username: dbUser.username,
         status: dbUser.status,
+        role: dbUser.role,
+        isAdmin: dbUser.isAdmin,
+        institution: dbUser.institution,
+        allowedModules: dbUser.allowedModules || [],
         token,
         refreshToken,
       });
@@ -250,17 +264,35 @@ const loginUser = async (req, res) => {
               password: hashedPassword,
               phoneVerified: true,
               status: "approved",
-              isAdmin: true,
-              role: "admin",
+              isAdmin: false,
+              role: "instituteadmin",
               institution: staticInst.name,
             });
           } else {
             let updated = false;
             if (user.status !== "approved") { user.status = "approved"; updated = true; }
-            if (user.role !== "admin") { user.role = "admin"; updated = true; }
+            if (user.role !== "instituteadmin") { user.role = "instituteadmin"; updated = true; }
+            if (user.isAdmin !== false) { user.isAdmin = false; updated = true; }
             if (updated) await user.save();
           }
-          // Continue to token generation
+          if (isAdminLogin) {
+            return await initiateAdminLoginOtp(res, user, user.phone);
+          }
+          const token = generateToken(user._id);
+          const refreshToken = generateRefreshToken(user._id);
+          return res.json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            username: user.username,
+            status: user.status,
+            role: user.role,
+            isAdmin: user.isAdmin,
+            institution: user.institution,
+            allowedModules: user.allowedModules || [],
+            token,
+            refreshToken,
+          });
         } else {
           return res.status(400).json({ message: "Invalid email or password" });
         }
@@ -289,6 +321,12 @@ const loginUser = async (req, res) => {
       });
     }
 
+    // Require OTP only when logging in via Admin / Institution Admin portals
+    const isAdminOrInstitute = user.role === 'admin' || user.isAdmin === true || user.role === 'instituteadmin';
+    if (isAdminLogin && isAdminOrInstitute) {
+      return await initiateAdminLoginOtp(res, user, user.phone);
+    }
+
     const token = generateToken(user._id);
     const refreshToken = generateRefreshToken(user._id);
 
@@ -302,9 +340,14 @@ const loginUser = async (req, res) => {
 
     res.json({
       _id: user._id,
+      name: user.name,
       email: user.email,
       username: user.username,
       status: user.status,
+      role: user.role,
+      isAdmin: user.isAdmin,
+      institution: user.institution,
+      allowedModules: user.allowedModules || [],
       token,
       refreshToken,
     });
@@ -317,4 +360,350 @@ const loginUser = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser };
+/**
+ * Helper to initiate OTP sending for Admin & Institute Admin logins
+ */
+async function initiateAdminLoginOtp(res, user, rawPhone) {
+  const phone = rawPhone ? String(rawPhone).trim() : "";
+  if (!phone) {
+    // If no phone number is configured for this admin account, give option to input phone
+    const tempToken = jwt.sign(
+      { typ: "admin_login_otp", sub: String(user._id), needsPhone: true },
+      JWT_SECRET,
+      { expiresIn: "10m" }
+    );
+    return res.json({
+      requiresOtp: true,
+      needsPhone: true,
+      tempToken,
+      message: "No phone number is registered for this account. Please enter your mobile number to receive your login OTP.",
+    });
+  }
+
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const codeHash = await bcrypt.hash(code, 10);
+  const lookupKey = `admin_login:${user._id}`;
+
+  await OtpChallenge.deleteMany({ lookupKey });
+  await OtpChallenge.create({
+    lookupKey,
+    codeHash,
+    userId: user._id,
+    purpose: "admin_login",
+    expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+    verifyFailCount: 0,
+    resendCount: 0,
+  });
+
+  // Send OTP via SMS
+  try {
+    await sendOtpSms(phone, code);
+  } catch (smsErr) {
+    console.error("[admin_login_otp] SMS send error:", smsErr.message);
+  }
+
+  // Send OTP via Email (always attempt if user has an email)
+  let emailMasked = null;
+  if (user.email) {
+    try {
+      await sendAdminLoginOtpEmail(user.email, user.name || "Admin", code);
+      const [localPart, domain] = user.email.split("@");
+      const maskedLocal = localPart.length <= 3
+        ? localPart[0] + "*".repeat(localPart.length - 1)
+        : localPart.slice(0, 2) + "*".repeat(localPart.length - 2);
+      emailMasked = `${maskedLocal}@${domain}`;
+    } catch (emailErr) {
+      console.error("[admin_login_otp] Email send error:", emailErr.message);
+    }
+  }
+
+  const tempToken = jwt.sign(
+    { typ: "admin_login_otp", sub: String(user._id), phone },
+    JWT_SECRET,
+    { expiresIn: "10m" }
+  );
+
+  const normalized = normalizePhone(phone);
+  const maskedPhone =
+    normalized.length >= 10
+      ? `+${normalized.slice(0, 2)} ${normalized.slice(2, 4)}******${normalized.slice(-4)}`
+      : `******${phone.slice(-4)}`;
+
+  const deliveryInfo = emailMasked
+    ? `OTP sent via SMS to ${maskedPhone} and email to ${emailMasked}`
+    : `Verification code sent to registered number ${maskedPhone}`;
+
+  const payload = {
+    requiresOtp: true,
+    tempToken,
+    phoneMasked: maskedPhone,
+    emailMasked,
+    message: deliveryInfo,
+  };
+
+  return res.json(payload);
+}
+
+/**
+ * Verify OTP entered by Admin / Institute Admin
+ */
+const verifyAdminLoginOtp = async (req, res) => {
+  try {
+    const { tempToken, code } = req.body;
+    if (!tempToken || !code) {
+      return res.status(400).json({ message: "Temporary token and OTP code are required" });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(tempToken, JWT_SECRET);
+    } catch {
+      return res.status(401).json({ message: "Verification session expired. Please sign in again." });
+    }
+
+    if (decoded.typ !== "admin_login_otp" || !decoded.sub) {
+      return res.status(400).json({ message: "Invalid verification session" });
+    }
+
+    const userId = decoded.sub;
+    const lookupKey = `admin_login:${userId}`;
+    const challenge = await OtpChallenge.findOne({ lookupKey }).sort({ createdAt: -1 });
+
+    if (!challenge || challenge.expiresAt < new Date()) {
+      return res.status(400).json({ message: "OTP expired or not found. Please request a new code." });
+    }
+
+    const isMatch = await bcrypt.compare(String(code).trim(), challenge.codeHash);
+    if (!isMatch) {
+      challenge.verifyFailCount = (challenge.verifyFailCount || 0) + 1;
+      await challenge.save();
+      if (challenge.verifyFailCount >= 5) {
+        await OtpChallenge.deleteMany({ lookupKey });
+        return res.status(400).json({ message: "Too many failed attempts. Please login again." });
+      }
+      return res.status(400).json({ message: "Incorrect OTP code. Please try again." });
+    }
+
+    // OTP verified successfully
+    await OtpChallenge.deleteMany({ lookupKey });
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User account not found" });
+    }
+
+    // Save phone if provided through needsPhone flow
+    if (decoded.phone && !user.phone) {
+      user.phone = decoded.phone;
+      await user.save();
+      if (user.role === 'instituteadmin') {
+        await InstituteCredential.findOneAndUpdate(
+          { username: user.email },
+          { phone: decoded.phone }
+        );
+      }
+    }
+
+    const token = generateToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
+
+    return res.json({
+      success: true,
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      username: user.username,
+      status: user.status,
+      role: user.role,
+      isAdmin: user.isAdmin,
+      institution: user.institution,
+      allowedModules: user.allowedModules || [],
+      token,
+      refreshToken,
+    });
+  } catch (err) {
+    console.error("verifyAdminLoginOtp error:", err);
+    return res.status(500).json({ message: "Failed to verify OTP", error: err.message });
+  }
+};
+
+/**
+ * Resend OTP for Admin Login
+ */
+const resendAdminLoginOtp = async (req, res) => {
+  try {
+    const { tempToken } = req.body;
+    if (!tempToken) {
+      return res.status(400).json({ message: "Temporary token is required" });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(tempToken, JWT_SECRET);
+    } catch {
+      return res.status(401).json({ message: "Verification session expired. Please sign in again." });
+    }
+
+    if (decoded.typ !== "admin_login_otp" || !decoded.sub) {
+      return res.status(400).json({ message: "Invalid verification session" });
+    }
+
+    const user = await User.findById(decoded.sub);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const phone = decoded.phone || user.phone;
+    if (!phone) {
+      return res.status(400).json({ message: "No phone number available for OTP" });
+    }
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const codeHash = await bcrypt.hash(code, 10);
+    const lookupKey = `admin_login:${user._id}`;
+
+    await OtpChallenge.deleteMany({ lookupKey });
+    await OtpChallenge.create({
+      lookupKey,
+      codeHash,
+      userId: user._id,
+      purpose: "admin_login",
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      verifyFailCount: 0,
+      resendCount: 1,
+    });
+
+    try {
+      await sendOtpSms(phone, code);
+    } catch (smsErr) {
+      console.error("[admin_login_otp_resend] SMS send error:", smsErr.message);
+    }
+
+    // Resend via Email too
+    let emailMasked = null;
+    if (user.email) {
+      try {
+        await sendAdminLoginOtpEmail(user.email, user.name || "Admin", code);
+        const [localPart, domain] = user.email.split("@");
+        const maskedLocal = localPart.length <= 3
+          ? localPart[0] + "*".repeat(localPart.length - 1)
+          : localPart.slice(0, 2) + "*".repeat(localPart.length - 2);
+        emailMasked = `${maskedLocal}@${domain}`;
+      } catch (emailErr) {
+        console.error("[admin_login_otp_resend] Email send error:", emailErr.message);
+      }
+    }
+
+    const payload = {
+      success: true,
+      message: emailMasked
+        ? `New OTP sent to phone and ${emailMasked}`
+        : "New OTP sent successfully to your phone.",
+      emailMasked,
+    };
+
+    return res.json(payload);
+  } catch (err) {
+    console.error("resendAdminLoginOtp error:", err);
+    return res.status(500).json({ message: "Failed to resend OTP", error: err.message });
+  }
+};
+
+/**
+ * Submit Phone Number for Admin Login when account doesn't have phone configured
+ */
+const submitAdminPhoneForOtp = async (req, res) => {
+  try {
+    const { tempToken, phone } = req.body;
+    if (!tempToken || !phone) {
+      return res.status(400).json({ message: "Token and phone number are required" });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(tempToken, JWT_SECRET);
+    } catch {
+      return res.status(401).json({ message: "Session expired. Please sign in again." });
+    }
+
+    if (decoded.typ !== "admin_login_otp" || !decoded.sub) {
+      return res.status(400).json({ message: "Invalid session" });
+    }
+
+    const cleanPhone = String(phone).trim();
+    if (cleanPhone.replace(/\D/g, "").length < 10) {
+      return res.status(400).json({ message: "Please enter a valid 10-digit mobile number" });
+    }
+
+    const user = await User.findById(decoded.sub);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const codeHash = await bcrypt.hash(code, 10);
+    const lookupKey = `admin_login:${user._id}`;
+
+    await OtpChallenge.deleteMany({ lookupKey });
+    await OtpChallenge.create({
+      lookupKey,
+      codeHash,
+      userId: user._id,
+      purpose: "admin_login",
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      verifyFailCount: 0,
+      resendCount: 0,
+    });
+
+    try {
+      await sendOtpSms(cleanPhone, code);
+    } catch (smsErr) {
+      console.error("[admin_send_phone_otp] SMS send error:", smsErr.message);
+    }
+
+    // Also send email OTP if user has email
+    let emailMasked = null;
+    if (user.email) {
+      try {
+        await sendAdminLoginOtpEmail(user.email, user.name || "Admin", code);
+        const [localPart, domain] = user.email.split("@");
+        const maskedLocal = localPart.length <= 3
+          ? localPart[0] + "*".repeat(localPart.length - 1)
+          : localPart.slice(0, 2) + "*".repeat(localPart.length - 2);
+        emailMasked = `${maskedLocal}@${domain}`;
+      } catch (emailErr) {
+        console.error("[admin_send_phone_otp] Email send error:", emailErr.message);
+      }
+    }
+
+    const newTempToken = jwt.sign(
+      { typ: "admin_login_otp", sub: String(user._id), phone: cleanPhone, needsPhone: true },
+      JWT_SECRET,
+      { expiresIn: "10m" }
+    );
+
+    const normalized = normalizePhone(cleanPhone);
+    const maskedPhone = `+${normalized.slice(0, 2)} ${normalized.slice(2, 4)}******${normalized.slice(-4)}`;
+
+    const payload = {
+      requiresOtp: true,
+      tempToken: newTempToken,
+      phoneMasked: maskedPhone,
+      emailMasked,
+      message: emailMasked ? `OTP sent to ${maskedPhone} and ${emailMasked}` : `OTP sent to ${maskedPhone}`,
+    };
+
+    return res.json(payload);
+  } catch (err) {
+    console.error("submitAdminPhoneForOtp error:", err);
+    return res.status(500).json({ message: "Failed to send OTP", error: err.message });
+  }
+};
+
+module.exports = {
+  registerUser,
+  loginUser,
+  verifyAdminLoginOtp,
+  resendAdminLoginOtp,
+  submitAdminPhoneForOtp,
+};

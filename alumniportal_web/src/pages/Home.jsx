@@ -68,14 +68,46 @@ const Home = () => {
         axios.get(`${API_BASE_URL}/api/content/institution-posts`, { headers }),
       ])
 
+      const isSuperAdmin = user?.role === 'admin' || user?.role === 'superadmin' || user?.isAdmin === true
+      const userInst = (user?.institution || '').toLowerCase().trim()
+
+      // Institution posts: visible to users belonging to that institution and admins
+      const validInstitutionPosts = (institutionPostsRes.data || [])
+        .filter((ip) => {
+          if (isSuperAdmin) return true
+          if (!ip.institution) return true
+          const postInst = ip.institution.toLowerCase().trim()
+          if (postInst === 'all' || postInst === 'all institutions') return true
+          return userInst && postInst === userInst
+        })
+        .map((ip) => ({ ...ip, category: 'InstitutionPost' }))
+
       const allPosts = [
         ...eventsRes.data.map((e) => ({ ...e, category: 'Event' })),
         ...opportunitiesRes.data.map((o) => ({ ...o, category: 'Opportunity' })),
         ...postsRes.data.map((p) => ({ ...p, category: 'Post' })),
-        ...institutionPostsRes.data.map((ip) => ({ ...ip, category: 'InstitutionPost' })),
+        ...validInstitutionPosts,
       ]
 
+      // Helper to check if a post is an Admin / Super Admin post
+      const isPriorityPost = (p) => {
+        if (p.isPriority || p.isAdminPost) return true
+        const author = p.authorId || p.postedBy || p.author
+        if (author && typeof author === 'object') {
+          if (author.role === 'admin' || author.role === 'superadmin' || author.isAdmin === true) return true
+          const authorEmail = (author.email || '').toLowerCase()
+          if (authorEmail === 'patgarlohit818@gmail.com' || authorEmail === 'admin@alumniportal.com') return true
+        }
+        return false
+      }
+
+      // Super Admin and Admin posts will be in priority at top
       allPosts.sort((a, b) => {
+        const aPriority = isPriorityPost(a)
+        const bPriority = isPriorityPost(b)
+        if (aPriority && !bPriority) return -1
+        if (!aPriority && bPriority) return 1
+
         const dateA = new Date(a.date || a.createdAt || 0)
         const dateB = new Date(b.date || b.createdAt || 0)
         return dateB - dateA

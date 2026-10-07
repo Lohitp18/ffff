@@ -24,7 +24,8 @@ const userSchema = new mongoose.Schema({
     /** True after signup phone OTP is verified (legacy users default true). */
     phoneVerified: { type: Boolean, default: true },
     isAdmin: { type: Boolean, default: false },
-    role: { type: String, default: "user" }, // user, institution, admin
+    role: { type: String, default: "user" }, // user, instituteadmin, admin
+    allowedModules: { type: [String], default: [] }, // Module IDs permitted for admin users
 
     // LinkedIn-like profile fields
     profileImage: String,

@@ -15,7 +15,10 @@ const {
   getDetailedStatistics,
   getInstituteCredentials,
   createInstituteCredential,
-  deleteInstituteCredential
+  deleteInstituteCredential,
+  getSuperAdmins,
+  createSuperAdmin,
+  deleteSuperAdmin
 } = require('../controllers/adminController');
 const {
   getPendingEvents,
@@ -67,6 +70,11 @@ router.get('/detailed-stats', authMiddleware, getDetailedStatistics);
 router.get('/institution-credentials', authMiddleware, getInstituteCredentials);
 router.post('/institution-credentials', authMiddleware, createInstituteCredential);
 router.delete('/institution-credentials/:id', authMiddleware, deleteInstituteCredential);
+
+// Super Admin management routes
+router.get('/super-admins', authMiddleware, getSuperAdmins);
+router.post('/super-admins', authMiddleware, createSuperAdmin);
+router.delete('/super-admins/:id', authMiddleware, deleteSuperAdmin);
 
 // Content management routes
 router.get('/pending-events', authMiddleware, getPendingEvents);

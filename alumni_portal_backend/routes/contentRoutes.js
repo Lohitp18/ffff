@@ -1,7 +1,9 @@
 const express = require("express");
 const {
   getApprovedEvents,
+  getEventsByInstitution,
   createEvent,
+  deleteEvent,
   getApprovedOpportunities,
   createOpportunity,
   getApprovedPosts,
@@ -57,9 +59,11 @@ const optionalAuth = async (req, res, next) => {
 };
 
 router.get("/events", optionalAuth, getApprovedEvents);
+router.get("/institution-events", optionalAuth, getEventsByInstitution);
+router.delete("/events/:id", authMiddleware, deleteEvent);
 router.get("/opportunities", optionalAuth, getApprovedOpportunities);
 router.get("/posts", optionalAuth, getApprovedPosts);
-router.get("/institution-posts", getApprovedInstitutionPosts);
+router.get("/institution-posts", optionalAuth, getApprovedInstitutionPosts);
 
 // Protected routes - create content (requires auth)
 router.post("/events", authMiddleware, uploadOptionalImage, createEvent);
