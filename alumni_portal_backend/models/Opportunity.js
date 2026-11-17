@@ -7,6 +7,8 @@ const opportunitySchema = new mongoose.Schema(
     company: { type: String },
     applyLink: { type: String },
     type: { type: String },
+    location: { type: String },
+    institution: { type: String },
     imageUrl: { type: String },
     status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
     postedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

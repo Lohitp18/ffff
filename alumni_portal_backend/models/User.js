@@ -66,6 +66,7 @@ const userSchema = new mongoose.Schema({
     // Privacy settings
     privacySettings: {
         profileVisibility: { type: String, enum: ['public', 'private'], default: 'public' },
+        personalInfoVisibility: { type: String, enum: ['public', 'private'], default: 'private' },
         showEmail: { type: Boolean, default: false },
         showPhone: { type: Boolean, default: false },
         showExperience: { type: Boolean, default: true },
@@ -73,6 +74,34 @@ const userSchema = new mongoose.Schema({
         showSkills: { type: Boolean, default: true },
         showConnections: { type: Boolean, default: true },
         allowMessages: { type: Boolean, default: true }
+    },
+
+    // Dedicated Personal Information (with public / private option)
+    personalInfo: {
+        dob: Date,
+        phone: String,
+        personalEmail: String,
+        gender: String,
+        bloodGroup: String,
+        city: String,
+        state: String,
+        country: String,
+        languages: [String],
+        hobbies: String,
+        isPublic: { type: Boolean, default: false } // User option: personal information public or private
+    },
+
+    // Dedicated Professional Information
+    professionalInfo: {
+        currentTitle: String,
+        company: String,
+        industry: String,
+        totalExperience: String, // e.g. "3 Years"
+        skills: [String],
+        workSummary: String,
+        linkedin: String,
+        github: String,
+        portfolio: String
     },
 
     // Private fields (not disclosed to others)

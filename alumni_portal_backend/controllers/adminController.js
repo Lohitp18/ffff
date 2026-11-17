@@ -712,3 +712,52 @@ exports.deleteSuperAdmin = async (req, res) => {
   }
 };
 
+/**
+ * Delete a user account (Super Admin & Institute Admin)
+ */
+exports.deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ message: 'User ID is required' });
+    }
+
+    const targetUser = await User.findById(id);
+    if (!targetUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Protect master admin
+    if (targetUser.email && targetUser.email.toLowerCase() === 'patgarlohit818@gmail.com') {
+      return res.status(403).json({ message: 'Cannot delete the master Super Admin account' });
+    }
+
+    // Prevent deleting own account via this endpoint
+    if (req.user && (req.user._id?.toString() === id || req.user.id === id)) {
+      return res.status(400).json({ message: 'Cannot delete your own active account here' });
+    }
+
+    // Cascade delete user's posts, connections, and notifications
+    const Connection = require('../models/Connection');
+    const Notification = require('../models/Notification');
+    await Promise.all([
+      Post.deleteMany({ authorId: id }),
+      Connection.deleteMany({ $or: [{ requester: id }, { recipient: id }] }),
+      Notification.deleteMany({ $or: [{ user: id }, { sender: id }] }),
+      User.findByIdAndDelete(id),
+    ]);
+
+    return res.json({
+      success: true,
+      message: `User ${targetUser.name || ''} deleted successfully`,
+    });
+  } catch (err) {
+    console.error('Error deleting user:', err);
+    return res.status(500).json({
+      message: 'Failed to delete user',
+      error: err.message,
+    });
+  }
+};
+
+

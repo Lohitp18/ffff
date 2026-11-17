@@ -31,7 +31,13 @@ const InstitutionDetail = () => {
     phone: '',
     email: '',
     address: '',
+    city: '',
+    state: '',
     website: '',
+    description: '',
+    establishedYear: '',
+    facilities: '',
+    courses: '',
   })
   const [logoFile, setLogoFile] = useState(null)
   const [coverFile, setCoverFile] = useState(null)
@@ -49,7 +55,14 @@ const InstitutionDetail = () => {
   }, [decodedInstitutionName, user])
 
   const checkAdminStatus = () => {
-    if (user && (user.isAdmin === true || user.role === 'admin' || user.isAdmin === 'true')) {
+    const isInstituteAdmin =
+      localStorage.getItem('institute_admin_authenticated') === 'true' &&
+      (localStorage.getItem('institute_admin_college') || '').toLowerCase() === decodedInstitutionName.toLowerCase()
+
+    if (
+      (user && (user.isAdmin === true || user.role === 'admin' || user.isAdmin === 'true' || user.role === 'instituteadmin')) ||
+      isInstituteAdmin
+    ) {
       setIsAdmin(true)
     } else {
       setIsAdmin(false)
@@ -74,11 +87,16 @@ const InstitutionDetail = () => {
           phone: res.data.phone || '',
           email: res.data.email || '',
           address: res.data.address || '',
+          city: res.data.city || '',
+          state: res.data.state || '',
           website: res.data.website || '',
+          description: res.data.description || '',
+          establishedYear: res.data.establishedYear ? String(res.data.establishedYear) : '',
+          facilities: Array.isArray(res.data.facilities) ? res.data.facilities.join(', ') : (res.data.facilities || ''),
+          courses: Array.isArray(res.data.courses) ? res.data.courses.join(', ') : (res.data.courses || ''),
         })
       }
     } catch (err) {
-      // If not found (404), keep profile null - this is expected for new institutions
       if (err.response?.status !== 404) {
         console.error('Error loading institution profile:', err)
         setError('Failed to load institution profile')
@@ -95,7 +113,13 @@ const InstitutionDetail = () => {
       phone: profile?.phone || '',
       email: profile?.email || '',
       address: profile?.address || '',
+      city: profile?.city || '',
+      state: profile?.state || '',
       website: profile?.website || '',
+      description: profile?.description || '',
+      establishedYear: profile?.establishedYear ? String(profile?.establishedYear) : '',
+      facilities: Array.isArray(profile?.facilities) ? profile.facilities.join(', ') : (profile?.facilities || ''),
+      courses: Array.isArray(profile?.courses) ? profile.courses.join(', ') : (profile?.courses || ''),
     })
     setLogoFile(null)
     setCoverFile(null)
@@ -167,6 +191,12 @@ const InstitutionDetail = () => {
       if (profileForm.phone) formData.append('phone', profileForm.phone.trim())
       if (profileForm.email) formData.append('email', profileForm.email.trim())
       if (profileForm.address) formData.append('address', profileForm.address.trim())
+      if (profileForm.city) formData.append('city', profileForm.city.trim())
+      if (profileForm.state) formData.append('state', profileForm.state.trim())
+      if (profileForm.description) formData.append('description', profileForm.description.trim())
+      if (profileForm.establishedYear) formData.append('establishedYear', profileForm.establishedYear.trim())
+      if (profileForm.facilities) formData.append('facilities', profileForm.facilities.trim())
+      if (profileForm.courses) formData.append('courses', profileForm.courses.trim())
       if (profileForm.website) {
         let website = profileForm.website.trim()
         // Add http:// if no protocol is specified
@@ -333,6 +363,24 @@ const InstitutionDetail = () => {
           </div>
         </div>
 
+        {/* Institution Bio & Overview Card */}
+        {profile?.description && (
+          <div className="institution-bio-banner" style={{
+            background: '#ffffff',
+            borderRadius: '10px',
+            padding: '22px 26px',
+            margin: '16px 0',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+          }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', margin: '0 0 10px 0' }}>
+              About {decodedInstitutionName}
+            </h2>
+            <p style={{ margin: 0, fontSize: '15px', lineHeight: '1.65', color: '#334155', whiteSpace: 'pre-line' }}>
+              {profile.description}
+            </p>
+          </div>
+        )}
 
         {/* College / Institution profile – all filled details */}
         {profile && (profile.phone || profile.email || profile.address || profile.city || profile.state || profile.pincode || profile.country || profile.website || profile.establishedYear || profile.type || profile.affiliation || profile.description || (profile.facilities && profile.facilities.length > 0) || (profile.courses && profile.courses.length > 0) || profile.contactPerson || profile.contactPersonEmail || profile.contactPersonPhone || profile.facebook || profile.twitter || profile.linkedin || profile.instagram) && (
@@ -549,6 +597,76 @@ const InstitutionDetail = () => {
                   />
                   {formErrors.website && <span className="field-error">{formErrors.website}</span>}
                   <small className="field-hint">Include http:// or https:// or leave blank</small>
+                </label>
+
+                <label className="full-width">
+                  Institution Bio / About the College *
+                  <textarea
+                    rows={4}
+                    value={profileForm.description || ''}
+                    onChange={(e) => handleProfileInputChange('description', e.target.value)}
+                    placeholder="Write a comprehensive bio, history, mission, accreditation, and overview of the institution..."
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontFamily: 'inherit',
+                      fontSize: '14px',
+                      marginTop: '4px',
+                      resize: 'vertical'
+                    }}
+                  />
+                </label>
+
+                <label>
+                  Established Year
+                  <input
+                    type="text"
+                    value={profileForm.establishedYear || ''}
+                    onChange={(e) => handleProfileInputChange('establishedYear', e.target.value)}
+                    placeholder="e.g. 1995 or 2008"
+                  />
+                </label>
+
+                <label>
+                  City
+                  <input
+                    type="text"
+                    value={profileForm.city || ''}
+                    onChange={(e) => handleProfileInputChange('city', e.target.value)}
+                    placeholder="e.g. Moodubidire"
+                  />
+                </label>
+
+                <label>
+                  State
+                  <input
+                    type="text"
+                    value={profileForm.state || ''}
+                    onChange={(e) => handleProfileInputChange('state', e.target.value)}
+                    placeholder="e.g. Karnataka"
+                  />
+                </label>
+
+                <label className="full-width">
+                  Campus Facilities (Comma separated)
+                  <input
+                    type="text"
+                    value={profileForm.facilities || ''}
+                    onChange={(e) => handleProfileInputChange('facilities', e.target.value)}
+                    placeholder="e.g. Wi-Fi Campus, Advanced Labs, Central Library, Sports Arena, Hostel"
+                  />
+                </label>
+
+                <label className="full-width">
+                  Courses / Programs Offered (Comma separated)
+                  <input
+                    type="text"
+                    value={profileForm.courses || ''}
+                    onChange={(e) => handleProfileInputChange('courses', e.target.value)}
+                    placeholder="e.g. B.Tech Computer Science, MBA, M.Tech, MCA, Ph.D"
+                  />
                 </label>
 
                 <label className="file-upload-label">

@@ -105,6 +105,34 @@ const Admin = () => {
   const [rsvpsLoading, setRsvpsLoading] = useState(false)
   const [studentsExportLoading, setStudentsExportLoading] = useState(false)
 
+  // Super Admin Event Creation State
+  const [showCreateEventModal, setShowCreateEventModal] = useState(false)
+  const [adminEventForm, setAdminEventForm] = useState({
+    title: '',
+    description: '',
+    date: '',
+    location: '',
+    googleFormUrl: '',
+    institution: '',
+  })
+  const [adminEventImage, setAdminEventImage] = useState(null)
+  const [adminEventImagePreview, setAdminEventImagePreview] = useState('')
+  const [creatingEvent, setCreatingEvent] = useState(false)
+
+  // Super Admin Opportunity Creation State
+  const [showCreateOpportunityModal, setShowCreateOpportunityModal] = useState(false)
+  const [adminOppForm, setAdminOppForm] = useState({
+    title: '',
+    description: '',
+    company: '',
+    type: 'Full-time',
+    location: '',
+    applyLink: '',
+  })
+  const [adminOppImage, setAdminOppImage] = useState(null)
+  const [adminOppImagePreview, setAdminOppImagePreview] = useState('')
+  const [creatingOpportunity, setCreatingOpportunity] = useState(false)
+
   // Filter states
   const [filters, setFilters] = useState({
     institution: '',
@@ -572,6 +600,100 @@ const Admin = () => {
     }
   }
 
+  const handleAdminCreateEvent = async (e) => {
+    e.preventDefault()
+    if (!adminEventForm.title.trim() || !adminEventForm.description.trim() || !adminEventForm.date) {
+      alert('Title, description, and date are required')
+      return
+    }
+
+    try {
+      setCreatingEvent(true)
+      const data = new FormData()
+      data.append('title', adminEventForm.title.trim())
+      data.append('description', adminEventForm.description.trim())
+      data.append('date', adminEventForm.date)
+      data.append('status', 'approved')
+      if (adminEventForm.location.trim()) data.append('location', adminEventForm.location.trim())
+      if (adminEventForm.googleFormUrl.trim()) data.append('googleFormUrl', adminEventForm.googleFormUrl.trim())
+      if (adminEventForm.institution.trim()) data.append('institution', adminEventForm.institution.trim())
+      if (adminEventImage) data.append('image', adminEventImage)
+
+      await axios.post(`${API_BASE_URL}/api/content/events`, data, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      setShowCreateEventModal(false)
+      setAdminEventForm({
+        title: '',
+        description: '',
+        date: '',
+        location: '',
+        googleFormUrl: '',
+        institution: '',
+      })
+      setAdminEventImage(null)
+      setAdminEventImagePreview('')
+      await loadEvents()
+      alert('Event created and published successfully!')
+    } catch (err) {
+      console.error('Failed to create event:', err)
+      alert(err.response?.data?.message || 'Failed to create event')
+    } finally {
+      setCreatingEvent(false)
+    }
+  }
+
+  const handleAdminCreateOpportunity = async (e) => {
+    e.preventDefault()
+    if (!adminOppForm.title.trim() || !adminOppForm.description.trim()) {
+      alert('Title and description are required')
+      return
+    }
+
+    try {
+      setCreatingOpportunity(true)
+      const data = new FormData()
+      data.append('title', adminOppForm.title.trim())
+      data.append('description', adminOppForm.description.trim())
+      data.append('status', 'approved')
+      if (adminOppForm.company.trim()) data.append('company', adminOppForm.company.trim())
+      if (adminOppForm.type) data.append('type', adminOppForm.type)
+      if (adminOppForm.location.trim()) data.append('location', adminOppForm.location.trim())
+      if (adminOppForm.applyLink.trim()) data.append('applyLink', adminOppForm.applyLink.trim())
+      if (adminOppImage) data.append('image', adminOppImage)
+
+      await axios.post(`${API_BASE_URL}/api/content/opportunities`, data, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      setShowCreateOpportunityModal(false)
+      setAdminOppForm({
+        title: '',
+        description: '',
+        company: '',
+        type: 'Full-time',
+        location: '',
+        applyLink: '',
+      })
+      setAdminOppImage(null)
+      setAdminOppImagePreview('')
+      await loadOpportunities()
+      alert('Opportunity created and published successfully!')
+    } catch (err) {
+      console.error('Failed to create opportunity:', err)
+      alert(err.response?.data?.message || 'Failed to create opportunity')
+    } finally {
+      setCreatingOpportunity(false)
+    }
+  }
+
   const loadReports = async () => {
     setReportsLoading(true)
     try {
@@ -630,6 +752,23 @@ const Admin = () => {
       alert(`User ${action}ed successfully`)
     } catch (error) {
       alert(error.response?.data?.error || `Failed to ${action} user`)
+    }
+  }
+
+  const handleDeleteUser = async (userId, userName) => {
+    if (!window.confirm(`Are you sure you want to permanently delete user "${userName || 'this user'}"? All their posts and profile data will be permanently removed.`)) {
+      return
+    }
+    try {
+      await axios.delete(
+        `${API_BASE_URL}/api/admin/users/${userId}`,
+        { headers: getAuthHeaders() }
+      )
+      loadUsers()
+      loadDashboardStats()
+      alert('User deleted successfully')
+    } catch (error) {
+      alert(error.response?.data?.message || error.response?.data?.error || 'Failed to delete user')
     }
   }
 
@@ -1388,6 +1527,26 @@ const Admin = () => {
               <div className="dashboard-card-full">
                 <h3>Quick Actions</h3>
                 <div className="quick-actions-full">
+                  <button
+                    onClick={() => {
+                      setActiveTab('events')
+                      setShowCreateEventModal(true)
+                    }}
+                    className="action-btn-full"
+                    style={{ background: '#0a66c2', color: '#ffffff', fontWeight: '600' }}
+                  >
+                    ➕ Create New Event
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveTab('opportunities')
+                      setShowCreateOpportunityModal(true)
+                    }}
+                    className="action-btn-full"
+                    style={{ background: '#0a66c2', color: '#ffffff', fontWeight: '600' }}
+                  >
+                    ➕ Create New Opportunity
+                  </button>
                   <button onClick={() => navigate('/institutionadmin')} className="action-btn-full">
                     🏫 Post to Institutions
                   </button>
@@ -1709,6 +1868,15 @@ const Admin = () => {
                             >
                               Export PDF
                             </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteUser(user._id, user.name)}
+                              className="btn-reject"
+                              style={{ background: '#dc2626', color: '#fff', marginLeft: '4px' }}
+                              title="Permanently Delete User"
+                            >
+                              Delete
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -1838,7 +2006,30 @@ const Admin = () => {
 
         {activeTab === 'events' && (
           <div className="admin-section-full">
-            <h2>All Events</h2>
+            <div className="admin-section-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+              <h2 style={{ margin: 0 }}>All Events ({events.length})</h2>
+              <button
+                type="button"
+                className="btn-create-admin-item"
+                style={{
+                  background: '#0a66c2',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '20px',
+                  padding: '9px 20px',
+                  fontWeight: '600',
+                  fontSize: '13.5px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 2px 6px rgba(10, 102, 194, 0.25)'
+                }}
+                onClick={() => setShowCreateEventModal(true)}
+              >
+                <span>➕ Create Event</span>
+              </button>
+            </div>
 
             {/* Filters */}
             <div className="admin-filters">
@@ -1955,7 +2146,30 @@ const Admin = () => {
 
         {activeTab === 'opportunities' && (
           <div className="admin-section-full">
-            <h2>All Opportunities</h2>
+            <div className="admin-section-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+              <h2 style={{ margin: 0 }}>All Opportunities ({opportunities.length})</h2>
+              <button
+                type="button"
+                className="btn-create-admin-item"
+                style={{
+                  background: '#0a66c2',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '20px',
+                  padding: '9px 20px',
+                  fontWeight: '600',
+                  fontSize: '13.5px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 2px 6px rgba(10, 102, 194, 0.25)'
+                }}
+                onClick={() => setShowCreateOpportunityModal(true)}
+              >
+                <span>➕ Create Opportunity</span>
+              </button>
+            </div>
 
             {/* Filters */}
             <div className="admin-filters">
@@ -2706,6 +2920,369 @@ const Admin = () => {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: SUPER ADMIN CREATE EVENT */}
+        {showCreateEventModal && (
+          <div
+            className="admin-modal-backdrop"
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(15, 23, 42, 0.65)',
+              backdropFilter: 'blur(4px)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px',
+            }}
+            onClick={() => setShowCreateEventModal(false)}
+          >
+            <div
+              className="admin-modal-box"
+              style={{
+                background: '#ffffff',
+                borderRadius: '16px',
+                width: '100%',
+                maxWidth: '560px',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                style={{
+                  padding: '18px 24px',
+                  borderBottom: '1px solid #e2e8f0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <h3 style={{ margin: '0 0 4px', fontSize: '18px', color: '#0f172a' }}>
+                    📅 Create &amp; Publish Event
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '12.5px', color: '#64748b' }}>
+                    Publish official alumni reunions, summit webinars, and campus workshops.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '18px',
+                    cursor: 'pointer',
+                    color: '#64748b',
+                  }}
+                  onClick={() => setShowCreateEventModal(false)}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleAdminCreateEvent} style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Event Title *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Annual Global Alumni Meet 2026"
+                    value={adminEventForm.title}
+                    onChange={(e) => setAdminEventForm({ ...adminEventForm, title: e.target.value })}
+                    style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Date &amp; Time *</label>
+                    <input
+                      type="datetime-local"
+                      required
+                      value={adminEventForm.date}
+                      onChange={(e) => setAdminEventForm({ ...adminEventForm, date: e.target.value })}
+                      style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Location / Venue</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Main Auditorium / Zoom"
+                      value={adminEventForm.location}
+                      onChange={(e) => setAdminEventForm({ ...adminEventForm, location: e.target.value })}
+                      style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Target Institution</label>
+                    <input
+                      type="text"
+                      placeholder="All Institutions or College Name"
+                      value={adminEventForm.institution}
+                      onChange={(e) => setAdminEventForm({ ...adminEventForm, institution: e.target.value })}
+                      style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Registration / Form URL</label>
+                    <input
+                      type="url"
+                      placeholder="https://forms.google.com/..."
+                      value={adminEventForm.googleFormUrl}
+                      onChange={(e) => setAdminEventForm({ ...adminEventForm, googleFormUrl: e.target.value })}
+                      style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Banner / Cover Image</label>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        setAdminEventImage(file)
+                        setAdminEventImagePreview(URL.createObjectURL(file))
+                      }
+                    }}
+                    style={{ fontSize: '13px' }}
+                  />
+                  {adminEventImagePreview && (
+                    <div style={{ marginTop: '8px', height: '120px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
+                      <img src={adminEventImagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Event Description *</label>
+                  <textarea
+                    rows={4}
+                    required
+                    placeholder="Details about the event, agenda, speakers, eligibility..."
+                    value={adminEventForm.description}
+                    onChange={(e) => setAdminEventForm({ ...adminEventForm, description: e.target.value })}
+                    style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', resize: 'vertical' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
+                  <button
+                    type="button"
+                    style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f1f5f9', color: '#334155', cursor: 'pointer', fontWeight: '600' }}
+                    onClick={() => setShowCreateEventModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creatingEvent}
+                    style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', background: '#0a66c2', color: '#ffffff', cursor: 'pointer', fontWeight: '600' }}
+                  >
+                    {creatingEvent ? 'Publishing Event...' : '🚀 Publish Event'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: SUPER ADMIN CREATE OPPORTUNITY */}
+        {showCreateOpportunityModal && (
+          <div
+            className="admin-modal-backdrop"
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(15, 23, 42, 0.65)',
+              backdropFilter: 'blur(4px)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px',
+            }}
+            onClick={() => setShowCreateOpportunityModal(false)}
+          >
+            <div
+              className="admin-modal-box"
+              style={{
+                background: '#ffffff',
+                borderRadius: '16px',
+                width: '100%',
+                maxWidth: '560px',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                style={{
+                  padding: '18px 24px',
+                  borderBottom: '1px solid #e2e8f0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <h3 style={{ margin: '0 0 4px', fontSize: '18px', color: '#0f172a' }}>
+                    💼 Post Job / Opportunity
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '12.5px', color: '#64748b' }}>
+                    Publish career openings, corporate internships, and hiring drives for alumni.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '18px',
+                    cursor: 'pointer',
+                    color: '#64748b',
+                  }}
+                  onClick={() => setShowCreateOpportunityModal(false)}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleAdminCreateOpportunity} style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Opportunity Title / Role *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Associate Software Engineer / Data Scientist"
+                    value={adminOppForm.title}
+                    onChange={(e) => setAdminOppForm({ ...adminOppForm, title: e.target.value })}
+                    style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Company / Organization *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Infosys, TCS, TechCorp"
+                      value={adminOppForm.company}
+                      onChange={(e) => setAdminOppForm({ ...adminOppForm, company: e.target.value })}
+                      style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Job Type</label>
+                    <select
+                      value={adminOppForm.type}
+                      onChange={(e) => setAdminOppForm({ ...adminOppForm, type: e.target.value })}
+                      style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                    >
+                      <option value="Full-time">Full-time</option>
+                      <option value="Part-time">Part-time</option>
+                      <option value="Internship">Internship</option>
+                      <option value="Remote">Remote</option>
+                      <option value="Contract">Contract</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Job Location</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Bengaluru / Hybrid"
+                      value={adminOppForm.location}
+                      onChange={(e) => setAdminOppForm({ ...adminOppForm, location: e.target.value })}
+                      style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Apply Link / Email</label>
+                    <input
+                      type="text"
+                      placeholder="https://careers.company.com/... or hr@company.com"
+                      value={adminOppForm.applyLink}
+                      onChange={(e) => setAdminOppForm({ ...adminOppForm, applyLink: e.target.value })}
+                      style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Company Logo / Poster Image</label>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        setAdminOppImage(file)
+                        setAdminOppImagePreview(URL.createObjectURL(file))
+                      }
+                    }}
+                    style={{ fontSize: '13px' }}
+                  />
+                  {adminOppImagePreview && (
+                    <div style={{ marginTop: '8px', height: '100px', width: '100px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
+                      <img src={adminOppImagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>Job Description &amp; Requirements *</label>
+                  <textarea
+                    rows={4}
+                    required
+                    placeholder="Role responsibilities, required qualifications, skills, batch eligibility..."
+                    value={adminOppForm.description}
+                    onChange={(e) => setAdminOppForm({ ...adminOppForm, description: e.target.value })}
+                    style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', resize: 'vertical' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
+                  <button
+                    type="button"
+                    style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f1f5f9', color: '#334155', cursor: 'pointer', fontWeight: '600' }}
+                    onClick={() => setShowCreateOpportunityModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creatingOpportunity}
+                    style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', background: '#0a66c2', color: '#ffffff', cursor: 'pointer', fontWeight: '600' }}
+                  >
+                    {creatingOpportunity ? 'Publishing Opportunity...' : '🚀 Publish Opportunity'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

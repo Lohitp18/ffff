@@ -278,7 +278,9 @@ exports.deletePost = async (req, res) => {
 
     const post = await Post.findById(postId);
     if (!post) return res.status(404).json({ message: 'Post not found' });
-    if (post.authorId?.toString() !== userId.toString()) {
+    const isOwner = post.authorId?.toString() === userId.toString();
+    const isAdmin = req.user.isAdmin === true || req.user.role === 'admin' || req.user.role === 'instituteadmin';
+    if (!isOwner && !isAdmin) {
       return res.status(403).json({ message: 'Not authorized' });
     }
 

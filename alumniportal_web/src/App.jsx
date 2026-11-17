@@ -21,9 +21,9 @@ import Connections from './pages/Connections'
 import UserProfileView from './pages/UserProfileView'
 import PostEvent from './pages/PostEvent'
 import PostOpportunity from './pages/PostOpportunity'
-import InstitutionDashboard from './pages/InstitutionDashboard'
 import Privacy from './pages/privacy'
 import ContactChild from './pages/ContactChild'
+import Chat from './pages/Chat'
 
 import './App.css'
 
@@ -143,6 +143,22 @@ function App() {
           element={
             <PrivateRoute>
               <PostOpportunity />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/chat"
+          element={
+            <PrivateRoute>
+              <Chat />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/messages"
+          element={
+            <PrivateRoute>
+              <Chat />
             </PrivateRoute>
           }
         />

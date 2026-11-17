@@ -88,6 +88,21 @@ const InstituteAdminLogin = () => {
   const [eventMessage, setEventMessage] = useState('')
   const [eventError, setEventError] = useState('')
 
+  // Opportunities State
+  const [opportunities, setOpportunities] = useState([])
+  const [opportunitiesLoading, setOpportunitiesLoading] = useState(false)
+  const [opportunityFormTitle, setOpportunityFormTitle] = useState('')
+  const [opportunityFormCompany, setOpportunityFormCompany] = useState('')
+  const [opportunityFormType, setOpportunityFormType] = useState('Full-time')
+  const [opportunityFormLocation, setOpportunityFormLocation] = useState('')
+  const [opportunityFormApplyLink, setOpportunityFormApplyLink] = useState('')
+  const [opportunityFormDescription, setOpportunityFormDescription] = useState('')
+  const [opportunityFormImage, setOpportunityFormImage] = useState(null)
+  const [opportunityFormImagePreview, setOpportunityFormImagePreview] = useState('')
+  const [opportunityCreating, setOpportunityCreating] = useState(false)
+  const [opportunityMessage, setOpportunityMessage] = useState('')
+  const [opportunityError, setOpportunityError] = useState('')
+
   // Users / Alumni State
   const [alumniUsers, setAlumniUsers] = useState([])
   const [alumniLoading, setAlumniLoading] = useState(false)
@@ -97,8 +112,21 @@ const InstituteAdminLogin = () => {
   const [userYearFilter, setUserYearFilter] = useState('all')
   const [selectedUserDetail, setSelectedUserDetail] = useState(null)
 
-  // Auth token helper
+  // Auth token & headers helper
   const getAuthToken = () => localStorage.getItem('auth_token') || ''
+  const getAuthHeaders = (extra = {}) => {
+    const token = getAuthToken()
+    const headers = {
+      'x-institution': college || localStorage.getItem('institute_admin_college') || '',
+      'x-admin-email': localStorage.getItem('institute_admin_email') || '',
+      'x-institution-admin': 'true',
+      ...extra,
+    }
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+    }
+    return headers
+  }
 
   // Fetch institutions for login selection
   useEffect(() => {
@@ -129,6 +157,7 @@ const InstituteAdminLogin = () => {
       loadAlumniUsers(college)
       loadPosts(college)
       loadEvents(college)
+      loadOpportunities(college)
     }
   }, [isAuthenticated, college])
 
@@ -193,6 +222,24 @@ const InstituteAdminLogin = () => {
       setEvents([])
     } finally {
       setEventsLoading(false)
+    }
+  }
+
+  const loadOpportunities = async (institutionName) => {
+    if (!institutionName) return
+    setOpportunitiesLoading(true)
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/content/opportunities`, {
+        params: { institution: institutionName }
+      })
+      const list = Array.isArray(response.data) ? response.data : []
+      const filtered = list.filter((o) => !o.institution || o.institution.toLowerCase() === institutionName.toLowerCase())
+      setOpportunities(filtered)
+    } catch (err) {
+      console.error('Failed to load opportunities:', err)
+      setOpportunities([])
+    } finally {
+      setOpportunitiesLoading(false)
     }
   }
 
@@ -369,9 +416,7 @@ const InstituteAdminLogin = () => {
         `${API_BASE_URL}/api/admin/${endpoint}/${userId}`,
         {},
         {
-          headers: {
-            Authorization: `Bearer ${getAuthToken()}`,
-          },
+          headers: getAuthHeaders(),
         }
       )
       await loadAlumniUsers(college)
@@ -379,6 +424,28 @@ const InstituteAdminLogin = () => {
     } catch (err) {
       console.error(`Failed to ${action} user:`, err)
       alert(`Failed to ${action} user: ${err.response?.data?.message || err.message}`)
+    }
+  }
+
+  const handleDeleteUser = async (userId, userName) => {
+    if (!window.confirm(`Are you sure you want to permanently delete user "${userName || 'this user'}"? All their posts and profile data will be permanently removed.`)) {
+      return
+    }
+    try {
+      await axios.delete(
+        `${API_BASE_URL}/api/admin/users/${userId}`,
+        {
+          headers: getAuthHeaders(),
+        }
+      )
+      await loadAlumniUsers(college)
+      if (selectedUserDetail?._id === userId) {
+        setSelectedUserDetail(null)
+      }
+      alert('User deleted successfully')
+    } catch (err) {
+      console.error('Failed to delete user:', err)
+      alert(`Failed to delete user: ${err.response?.data?.message || err.message}`)
     }
   }
 
@@ -463,11 +530,34 @@ const InstituteAdminLogin = () => {
   const handleDeletePost = async (postId) => {
     if (!window.confirm('Are you sure you want to delete this post?')) return
     try {
-      await axios.delete(`${API_BASE_URL}/api/content/institution-posts/${postId}`, {
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-        },
-      })
+      let deleted = false
+      const endpoints = [
+        `${API_BASE_URL}/api/content/institution-posts/${postId}`,
+        `${API_BASE_URL}/api/content/posts/${postId}`,
+        `${API_BASE_URL}/api/admin/institution-posts/${postId}`,
+        `${API_BASE_URL}/api/admin/posts/${postId}`,
+        `${API_BASE_URL}/api/posts/${postId}`,
+      ]
+
+      for (const endpoint of endpoints) {
+        try {
+          await axios.delete(endpoint, {
+            headers: getAuthHeaders(),
+          })
+          deleted = true
+          break
+        } catch (err) {
+          if (err.response?.status === 404) {
+            continue
+          }
+          throw err
+        }
+      }
+
+      if (!deleted) {
+        throw new Error('Post not found or already deleted')
+      }
+
       loadPosts(college)
       alert('Post deleted successfully')
     } catch (err) {
@@ -505,10 +595,7 @@ const InstituteAdminLogin = () => {
       if (postFormVideo) formData.append('video', postFormVideo)
 
       await axios.post(`${API_BASE_URL}/api/content/institution-posts`, formData, {
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: getAuthHeaders({ 'Content-Type': 'multipart/form-data' }),
       })
 
       setPostFormTitle('')
@@ -559,10 +646,7 @@ const InstituteAdminLogin = () => {
       }
 
       await axios.post(`${API_BASE_URL}/api/content/events`, formData, {
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: getAuthHeaders({ 'Content-Type': 'multipart/form-data' }),
       })
 
       // Reset form
@@ -589,15 +673,134 @@ const InstituteAdminLogin = () => {
   const handleDeleteEvent = async (eventId) => {
     if (!window.confirm('Are you sure you want to delete this event?')) return
     try {
-      await axios.delete(`${API_BASE_URL}/api/content/events/${eventId}`, {
-        headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
-        },
-      })
+      let deleted = false
+      const endpoints = [
+        `${API_BASE_URL}/api/content/events/${eventId}`,
+        `${API_BASE_URL}/api/admin/events/${eventId}`,
+      ]
+
+      for (const endpoint of endpoints) {
+        try {
+          await axios.delete(endpoint, {
+            headers: getAuthHeaders(),
+          })
+          deleted = true
+          break
+        } catch (err) {
+          if (err.response?.status === 404) {
+            continue
+          }
+          throw err
+        }
+      }
+
+      if (!deleted) {
+        throw new Error('Event not found or already deleted')
+      }
+
       loadEvents(college)
       alert('Event deleted successfully')
     } catch (err) {
       alert('Failed to delete event: ' + (err.response?.data?.message || err.message))
+    }
+  }
+
+  const handleOpportunityImageChange = (e) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Image must be under 5MB')
+        return
+      }
+      setOpportunityFormImage(file)
+      setOpportunityFormImagePreview(URL.createObjectURL(file))
+    }
+  }
+
+  const handleCreateOpportunitySubmit = async (e) => {
+    e.preventDefault()
+    setOpportunityError('')
+    setOpportunityMessage('')
+
+    if (!opportunityFormTitle.trim() || !opportunityFormDescription.trim()) {
+      setOpportunityError('Title and description are required')
+      return
+    }
+
+    setOpportunityCreating(true)
+    try {
+      const formData = new FormData()
+      formData.append('title', opportunityFormTitle.trim())
+      formData.append('description', opportunityFormDescription.trim())
+      formData.append('company', opportunityFormCompany.trim() || 'Institution Placement / Opportunity')
+      formData.append('type', opportunityFormType || 'Full-time')
+      formData.append('location', opportunityFormLocation.trim() || "Alva's Campus / Flexible")
+      formData.append('applyLink', opportunityFormApplyLink.trim())
+      formData.append('institution', college)
+      formData.append('status', 'approved')
+
+      if (opportunityFormImage) {
+        formData.append('image', opportunityFormImage)
+      }
+
+      await axios.post(`${API_BASE_URL}/api/content/opportunities`, formData, {
+        headers: getAuthHeaders({ 'Content-Type': 'multipart/form-data' }),
+      })
+
+      // Reset form
+      setOpportunityFormTitle('')
+      setOpportunityFormCompany('')
+      setOpportunityFormType('Full-time')
+      setOpportunityFormLocation('')
+      setOpportunityFormApplyLink('')
+      setOpportunityFormDescription('')
+      setOpportunityFormImage(null)
+      setOpportunityFormImagePreview('')
+      setOpportunityMessage('Opportunity published successfully!')
+      loadOpportunities(college)
+      setTimeout(() => {
+        setActiveTab('opportunities')
+        setOpportunityMessage('')
+      }, 1000)
+    } catch (err) {
+      setOpportunityError(err.response?.data?.message || err.message || 'Failed to create opportunity')
+    } finally {
+      setOpportunityCreating(false)
+    }
+  }
+
+  const handleDeleteOpportunity = async (opportunityId) => {
+    if (!window.confirm('Are you sure you want to delete this opportunity?')) return
+    try {
+      let deleted = false
+      const endpoints = [
+        `${API_BASE_URL}/api/content/opportunities/${opportunityId}`,
+        `${API_BASE_URL}/api/admin/opportunities/${opportunityId}`,
+      ]
+
+      for (const endpoint of endpoints) {
+        try {
+          await axios.delete(endpoint, {
+            headers: getAuthHeaders(),
+          })
+          deleted = true
+          break
+        } catch (err) {
+          if (err.response?.status === 404) {
+            continue
+          }
+          throw err
+        }
+      }
+
+      if (!deleted) {
+        throw new Error('Opportunity not found or already deleted')
+      }
+
+      loadOpportunities(college)
+      alert('Opportunity deleted successfully')
+    } catch (err) {
+      alert('Failed to delete opportunity: ' + (err.response?.data?.message || err.message))
     }
   }
 
@@ -1140,6 +1343,42 @@ const InstituteAdminLogin = () => {
             <span className="inst-nav-label">+ Create an Event</span>
           </button>
 
+          <button
+            type="button"
+            className={`inst-nav-item ${activeTab === 'opportunities' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('opportunities')
+              setMobileMenuOpen(false)
+            }}
+          >
+            <span className="inst-nav-icon">
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+              </svg>
+            </span>
+            <span className="inst-nav-label">Opportunities</span>
+            <span className="inst-nav-badge">{opportunities.length}</span>
+          </button>
+
+          <button
+            type="button"
+            className={`inst-nav-item ${activeTab === 'createOpportunity' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('createOpportunity')
+              setMobileMenuOpen(false)
+            }}
+          >
+            <span className="inst-nav-icon">
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="16"/>
+                <line x1="8" y1="12" x2="16" y2="12"/>
+              </svg>
+            </span>
+            <span className="inst-nav-label">+ Post Opportunity</span>
+          </button>
+
           <div className="inst-nav-group-label">INSTITUTION PORTAL</div>
 
           <button
@@ -1216,6 +1455,8 @@ const InstituteAdminLogin = () => {
                 {activeTab === 'addPost' && 'Add Announcement Post'}
                 {activeTab === 'events' && 'College Events'}
                 {activeTab === 'createEvent' && 'Create an Event'}
+                {activeTab === 'opportunities' && 'Career Opportunities & Jobs'}
+                {activeTab === 'createOpportunity' && 'Post an Opportunity'}
               </span>
             </div>
           </div>
@@ -1231,6 +1472,13 @@ const InstituteAdminLogin = () => {
               onClick={() => setActiveTab('addPost')}
             >
               + Post
+            </button>
+            <button
+              type="button"
+              className="inst-quick-btn"
+              onClick={() => setActiveTab('createOpportunity')}
+            >
+              + Opportunity
             </button>
             <button
               type="button"
@@ -1401,6 +1649,15 @@ const InstituteAdminLogin = () => {
                                 </button>
                                 <button type="button" className="inst-btn-sm reject" onClick={() => handleUpdateUserStatus(user._id, 'reject')}>
                                   ✕ Reject
+                                </button>
+                                <button
+                                  type="button"
+                                  className="inst-btn-sm reject"
+                                  style={{ background: '#dc2626', color: '#fff' }}
+                                  onClick={() => handleDeleteUser(user._id, user.name)}
+                                  title="Permanently Delete User"
+                                >
+                                  Delete
                                 </button>
                               </div>
                             </td>
@@ -1590,6 +1847,15 @@ const InstituteAdminLogin = () => {
                                   title="View User Details"
                                 >
                                   View Details
+                                </button>
+                                <button
+                                  type="button"
+                                  className="inst-btn-sm reject"
+                                  style={{ background: '#dc2626', color: '#fff' }}
+                                  onClick={() => handleDeleteUser(alumnus._id, alumnus.name)}
+                                  title="Permanently Delete User"
+                                >
+                                  Delete
                                 </button>
                               </div>
                             </td>
@@ -2084,6 +2350,251 @@ const InstituteAdminLogin = () => {
               </div>
             </div>
           )}
+
+          {/* ========================================================
+             7. OPPORTUNITIES MODULE (LIST / DELETE)
+             ======================================================== */}
+          {activeTab === 'opportunities' && (
+            <div className="inst-section-card">
+              <div className="inst-section-header">
+                <div>
+                  <div className="inst-section-title">
+                    Opportunities & Placements
+                    <span className="inst-count-pill">{opportunities.length}</span>
+                  </div>
+                  <div className="inst-section-subtitle">
+                    Job postings, campus drives, and internships published for {college}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="inst-btn-primary"
+                  onClick={() => setActiveTab('createOpportunity')}
+                >
+                  + Post New Opportunity
+                </button>
+              </div>
+
+              {opportunitiesLoading ? (
+                <div className="loading">Loading opportunities...</div>
+              ) : opportunities.length === 0 ? (
+                <div className="empty-state">
+                  <p>No career opportunities posted for {college} yet.</p>
+                  <button
+                    type="button"
+                    className="inst-btn-primary"
+                    onClick={() => setActiveTab('createOpportunity')}
+                  >
+                    + Post First Opportunity
+                  </button>
+                </div>
+              ) : (
+                <div className="inst-events-grid">
+                  {opportunities.map((opp) => (
+                    <div key={opp._id} className="inst-event-card">
+                      <div className="inst-event-banner-wrap">
+                        {opp.imageUrl ? (
+                          <SasImage
+                            src={getImageUrl(opp.imageUrl)}
+                            alt={opp.title}
+                            className="inst-event-banner-img"
+                          />
+                        ) : (
+                          <div className="inst-event-fallback-banner">
+                            <span style={{ fontSize: '30px' }}>💼</span>
+                            <span style={{ fontSize: '13px', fontWeight: 600 }}>{opp.company || college}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="inst-event-body">
+                        <div className="inst-event-title">{opp.title}</div>
+                        <div className="inst-event-meta-row">
+                          <span>🏢 {opp.company || 'Company'}</span>
+                          {opp.type && <span>🏷️ {opp.type}</span>}
+                          {opp.location && <span>📍 {opp.location}</span>}
+                        </div>
+                        <div className="inst-event-desc">{opp.description}</div>
+
+                        {opp.applyLink && (
+                          <a
+                            href={opp.applyLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inst-google-form-btn"
+                            style={{ background: '#0284c7' }}
+                          >
+                            🔗 Apply Link / Info
+                          </a>
+                        )}
+
+                        <div className="inst-card-actions">
+                          <button
+                            type="button"
+                            className="inst-btn-sm reject"
+                            onClick={() => handleDeleteOpportunity(opp._id)}
+                          >
+                            🗑️ Delete Opportunity
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ========================================================
+             8. CREATE OPPORTUNITY MODULE
+             ======================================================== */}
+          {activeTab === 'createOpportunity' && (
+            <div className="inst-section-card">
+              <div className="inst-section-header">
+                <div>
+                  <div className="inst-section-title">Create Career Opportunity</div>
+                  <div className="inst-section-subtitle">
+                    Post a job opening, internship, or placement drive for students & alumni of {college}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="inst-quick-btn"
+                  onClick={() => setActiveTab('opportunities')}
+                >
+                  ← Back to Opportunities
+                </button>
+              </div>
+
+              <div className="inst-form-container">
+                {opportunityMessage && (
+                  <div style={{ padding: '12px', background: '#dcfce7', color: '#15803d', borderRadius: '8px', marginBottom: '16px', fontWeight: 600 }}>
+                    {opportunityMessage}
+                  </div>
+                )}
+                {opportunityError && (
+                  <div style={{ padding: '12px', background: '#fee2e2', color: '#b91c1c', borderRadius: '8px', marginBottom: '16px', fontWeight: 600 }}>
+                    {opportunityError}
+                  </div>
+                )}
+
+                <form onSubmit={handleCreateOpportunitySubmit}>
+                  {/* Opportunity Title */}
+                  <div className="inst-form-group">
+                    <label className="inst-form-label">Job / Role Title *</label>
+                    <input
+                      type="text"
+                      className="inst-form-input"
+                      placeholder="e.g. Junior Full Stack Developer, Research Assistant"
+                      value={opportunityFormTitle}
+                      onChange={(e) => setOpportunityFormTitle(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  {/* Company & Type Grid */}
+                  <div className="inst-form-grid">
+                    <div className="inst-form-group">
+                      <label className="inst-form-label">Company / Organization *</label>
+                      <input
+                        type="text"
+                        className="inst-form-input"
+                        placeholder="e.g. Google, Infosys, Alva's Research Labs"
+                        value={opportunityFormCompany}
+                        onChange={(e) => setOpportunityFormCompany(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="inst-form-group">
+                      <label className="inst-form-label">Opportunity Type *</label>
+                      <select
+                        className="inst-form-input"
+                        value={opportunityFormType}
+                        onChange={(e) => setOpportunityFormType(e.target.value)}
+                      >
+                        <option value="Full-time">Full-time</option>
+                        <option value="Internship">Internship</option>
+                        <option value="Part-time">Part-time</option>
+                        <option value="Contract">Contract</option>
+                        <option value="Remote">Remote</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Location & Apply Link Grid */}
+                  <div className="inst-form-grid">
+                    <div className="inst-form-group">
+                      <label className="inst-form-label">Location</label>
+                      <input
+                        type="text"
+                        className="inst-form-input"
+                        placeholder="e.g. Bangalore / Mangalore / Remote"
+                        value={opportunityFormLocation}
+                        onChange={(e) => setOpportunityFormLocation(e.target.value)}
+                      />
+                    </div>
+                    <div className="inst-form-group">
+                      <label className="inst-form-label">Application URL / Portal Link</label>
+                      <input
+                        type="url"
+                        className="inst-form-input"
+                        placeholder="https://company.com/apply or google form"
+                        value={opportunityFormApplyLink}
+                        onChange={(e) => setOpportunityFormApplyLink(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Poster / Logo Image */}
+                  <div className="inst-form-group">
+                    <label className="inst-form-label">Poster / Company Logo (Optional, JPG/PNG under 5MB)</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="inst-form-input"
+                      onChange={handleOpportunityImageChange}
+                    />
+                    {opportunityFormImagePreview && (
+                      <div style={{ marginTop: '10px' }}>
+                        <img
+                          src={opportunityFormImagePreview}
+                          alt="Preview"
+                          style={{ maxHeight: '180px', borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Job Description */}
+                  <div className="inst-form-group">
+                    <label className="inst-form-label">Job Description & Eligibility Requirements *</label>
+                    <textarea
+                      className="inst-form-textarea"
+                      rows={6}
+                      placeholder="Specify role responsibilities, required qualifications, eligibility criteria, CTC/stipend, and instructions..."
+                      value={opportunityFormDescription}
+                      onChange={(e) => setOpportunityFormDescription(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  {/* Submit Button */}
+                  <div className="inst-submit-row">
+                    <button type="submit" className="inst-btn-primary" disabled={opportunityCreating}>
+                      {opportunityCreating ? 'Publishing Opportunity...' : '🚀 Publish Opportunity'}
+                    </button>
+                    <button
+                      type="button"
+                      className="inst-btn-secondary"
+                      onClick={() => setActiveTab('opportunities')}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </main>
       </div>
 
@@ -2166,6 +2677,17 @@ const InstituteAdminLogin = () => {
                   <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#334155' }}>{selectedUserDetail.headline}</p>
                 </div>
               )}
+
+              <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  className="inst-btn-sm reject"
+                  style={{ background: '#dc2626', color: '#fff', padding: '8px 16px', borderRadius: '6px', fontSize: '13px' }}
+                  onClick={() => handleDeleteUser(selectedUserDetail._id, selectedUserDetail.name)}
+                >
+                  Permanently Delete User
+                </button>
+              </div>
             </div>
           </div>
         </div>

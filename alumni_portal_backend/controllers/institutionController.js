@@ -69,8 +69,40 @@ exports.getAllInstitutions = async (req, res) => {
 exports.getInstitutionByName = async (req, res) => {
   try {
     const { name } = req.params;
-    const institution = await Institution.findOne({ name, isActive: true })
+    const safeRegex = new RegExp(`^${name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+    let institution = await Institution.findOne({ name: safeRegex, isActive: true })
       .select('-createdBy -updatedBy');
+
+    // Fallback to enrollmentHierarchy.json if MongoDB record doesn't exist yet
+    if (!institution) {
+      const filePath = path.join(__dirname, '..', 'data', 'enrollmentHierarchy.json');
+      if (fs.existsSync(filePath)) {
+        const data = fs.readFileSync(filePath, 'utf8');
+        const hierarchy = JSON.parse(data);
+        const match = hierarchy.institutions.find(
+          (i) => i.name.toLowerCase() === name.trim().toLowerCase()
+        );
+        if (match) {
+          try {
+            institution = await Institution.create({
+              name: match.name,
+              email: match.email || `${match.name.toLowerCase().replace(/[^a-z0-9]/g, '')}@alvas.org`,
+              password: match.password || 'alvas123',
+              establishedYear: match.establishedYear ? String(match.establishedYear) : '1995',
+              description: `Welcome to ${match.name}, a premier constituent institution under Alva's Education Foundation, dedicated to academic excellence, state-of-the-art facilities, and nurturing future global leaders.`,
+              city: 'Moodubidire',
+              state: 'Karnataka',
+              country: 'India',
+              courses: match.programs?.flatMap((p) => p.courses?.map((c) => c.name) || []) || [],
+              isActive: true,
+            });
+          } catch (createErr) {
+            // In case of duplicate race, just query again
+            institution = await Institution.findOne({ name: safeRegex });
+          }
+        }
+      }
+    }
 
     if (!institution) {
       return res.status(404).json({ message: 'Institution not found' });
@@ -119,12 +151,20 @@ exports.createInstitution = async (req, res) => {
 exports.updateInstitution = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user._id;
+    const userId = req.user?._id;
+    const mongoose = require('mongoose');
 
     const updateData = {
       ...req.body,
       updatedBy: userId
     };
+
+    if (typeof updateData.facilities === 'string') {
+      updateData.facilities = updateData.facilities.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    if (typeof updateData.courses === 'string') {
+      updateData.courses = updateData.courses.split(',').map((s) => s.trim()).filter(Boolean);
+    }
 
     // Handle image upload (logo)
     if (req.file) {
@@ -137,11 +177,23 @@ exports.updateInstitution = async (req, res) => {
       );
     }
 
-    const institution = await Institution.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true, runValidators: true }
-    ).select('-createdBy -updatedBy');
+    let institution = null;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      institution = await Institution.findByIdAndUpdate(
+        id,
+        updateData,
+        { new: true, runValidators: true }
+      ).select('-createdBy -updatedBy');
+    }
+
+    if (!institution) {
+      const safeName = updateData.name || id;
+      institution = await Institution.findOneAndUpdate(
+        { name: new RegExp(`^${safeName.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+        updateData,
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      ).select('-createdBy -updatedBy');
+    }
 
     if (!institution) {
       return res.status(404).json({ message: 'Institution not found' });
@@ -150,7 +202,7 @@ exports.updateInstitution = async (req, res) => {
     return res.json(institution);
   } catch (err) {
     console.error('Error updating institution:', err);
-    return res.status(500).json({ message: 'Failed to update institution' });
+    return res.status(500).json({ message: 'Failed to update institution', error: err.message });
   }
 };
 

@@ -18,7 +18,8 @@ const {
   deleteInstituteCredential,
   getSuperAdmins,
   createSuperAdmin,
-  deleteSuperAdmin
+  deleteSuperAdmin,
+  deleteUser
 } = require('../controllers/adminController');
 const {
   getPendingEvents,
@@ -56,6 +57,7 @@ router.patch('/approve-user/:id', authMiddleware, approveUser); // Alias (spec)
 router.patch('/reject/:id', authMiddleware, rejectUser);      // Reject user
 router.patch('/block/:id', authMiddleware, blockUser);        // Block user
 router.patch('/unblock/:id', authMiddleware, unblockUser);    // Unblock user
+router.delete('/users/:id', authMiddleware, deleteUser);      // Delete user
 
 // Institution user management routes
 router.get('/institution-users', authMiddleware, getInstitutionUsers); // Get all institution users

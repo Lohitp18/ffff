@@ -6,6 +6,7 @@ const {
   deleteEvent,
   getApprovedOpportunities,
   createOpportunity,
+  deleteOpportunity,
   getApprovedPosts,
   getApprovedInstitutionPosts,
   createInstitutionPost,
@@ -19,6 +20,7 @@ const {
   updatePostStatus,
   updateInstitutionPostStatus,
   deleteInstitutionPost,
+  deletePost,
   uploadOptionalImage,
   uploadInstitutionPost,
   toggleEventLike,
@@ -62,8 +64,11 @@ router.get("/events", optionalAuth, getApprovedEvents);
 router.get("/institution-events", optionalAuth, getEventsByInstitution);
 router.delete("/events/:id", authMiddleware, deleteEvent);
 router.get("/opportunities", optionalAuth, getApprovedOpportunities);
+router.delete("/opportunities/:id", authMiddleware, deleteOpportunity);
 router.get("/posts", optionalAuth, getApprovedPosts);
+router.delete("/posts/:id", authMiddleware, deletePost);
 router.get("/institution-posts", optionalAuth, getApprovedInstitutionPosts);
+router.delete("/institution-posts/:id", authMiddleware, deleteInstitutionPost);
 
 // Protected routes - create content (requires auth)
 router.post("/events", authMiddleware, uploadOptionalImage, createEvent);

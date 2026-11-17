@@ -26,8 +26,8 @@ exports.listMyConnections = async (req, res) => {
     const connections = await Connection.find({
       $or: [{ requester: me }, { recipient: me }],
     })
-      .populate('requester', 'name email')
-      .populate('recipient', 'name email')
+      .populate('requester', 'name email profileImage headline institution course year username')
+      .populate('recipient', 'name email profileImage headline institution course year username')
       .sort({ createdAt: -1 });
     return res.json(connections);
   } catch (err) {

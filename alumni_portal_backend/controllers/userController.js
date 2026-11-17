@@ -169,6 +169,21 @@ exports.updateProfile = async (req, res) => {
       updateData.username = normalizedUsername;
     }
 
+    // Sync personalInfo.isPublic with privacySettings.personalInfoVisibility if provided
+    if (updateData.personalInfo && typeof updateData.personalInfo.isPublic === "boolean") {
+      if (!updateData.privacySettings) {
+        const currentUser = await User.findById(userId).select("privacySettings");
+        updateData.privacySettings = { ...(currentUser?.privacySettings?.toObject?.() || currentUser?.privacySettings || {}) };
+      }
+      updateData.privacySettings.personalInfoVisibility = updateData.personalInfo.isPublic ? "public" : "private";
+    } else if (updateData.privacySettings?.personalInfoVisibility) {
+      if (!updateData.personalInfo) {
+        const currentUser = await User.findById(userId).select("personalInfo");
+        updateData.personalInfo = { ...(currentUser?.personalInfo?.toObject?.() || currentUser?.personalInfo || {}) };
+      }
+      updateData.personalInfo.isPublic = updateData.privacySettings.personalInfoVisibility === "public";
+    }
+
     const user = await User.findByIdAndUpdate(userId, updateData, {
       new: true,
       runValidators: true,
@@ -191,9 +206,14 @@ exports.updatePrivacySettings = async (req, res) => {
     const userId = req.user._id;
     const privacySettings = req.body;
 
+    const updateObj = { privacySettings };
+    if (privacySettings.personalInfoVisibility) {
+      updateObj["personalInfo.isPublic"] = privacySettings.personalInfoVisibility === "public";
+    }
+
     const user = await User.findByIdAndUpdate(
       userId,
-      { privacySettings },
+      updateObj,
       { new: true, runValidators: true }
     ).select("-password");
 
@@ -204,6 +224,7 @@ exports.updatePrivacySettings = async (req, res) => {
     res.json({
       message: "Privacy settings updated successfully",
       privacySettings: user.privacySettings,
+      personalInfo: user.personalInfo,
     });
   } catch (error) {
     console.error("Error updating privacy settings:", error);
@@ -229,19 +250,36 @@ exports.getUserById = async (req, res) => {
     }
 
     // Check privacy settings
-    if (user.privacySettings?.profileVisibility === "private") {
+    if (user.privacySettings?.profileVisibility === "private" && (!currentUserId || currentUserId !== id)) {
       return res.status(403).json({ message: "Profile is private" });
     }
 
     // Convert to plain object to modify
     const userObj = user.toObject();
 
-    // Hide email and phone if viewing someone else's profile (for privacy)
-    // Only the user themselves can see their own email/phone
+    // Check personal information privacy setting
+    const isPersonalPublic = Boolean(
+      userObj.personalInfo?.isPublic === true ||
+      userObj.privacySettings?.personalInfoVisibility === "public"
+    );
+
+    // If viewing someone else's profile
     if (!currentUserId || currentUserId !== id) {
       delete userObj.email;
-      delete userObj.phone;
-      // Also hide private info for other users
+      
+      // If personal info is not public, hide personal contact and detailed personal info
+      if (!isPersonalPublic) {
+        delete userObj.phone;
+        delete userObj.dob;
+        delete userObj.personalInfo;
+      } else {
+        // Ensure personalInfo.isPublic flag is preserved
+        if (userObj.personalInfo) {
+          userObj.personalInfo.isPublic = true;
+        }
+      }
+
+      // Hide internal private fields for other users
       delete userObj.privateInfo;
     }
 

@@ -144,6 +144,15 @@ const MainLayout = ({ children, fullWidth = false }) => {
               <span>Events</span>
             </div>
             <div 
+              className={`nav-item ${isActive('/chat') || isActive('/messages') ? 'active' : ''}`}
+              onClick={() => navigate('/chat')}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill={isActive('/chat') || isActive('/messages') ? '#0a66c2' : '#666'}>
+                <path d="M16 4H8C5.79 4 4 5.79 4 8V18L7.5 15.5H16C18.21 15.5 20 13.71 20 11.5V8C20 5.79 18.21 4 16 4ZM18 11.5C18 12.6 17.1 13.5 16 13.5H7.17L6 14.33V8C6 6.9 6.9 6 8 6H16C17.1 6 18 6.9 18 8V11.5Z"/>
+              </svg>
+              <span>Messaging</span>
+            </div>
+            <div 
               className={`nav-item ${isActive('/notifications') ? 'active' : ''}`}
               onClick={() => navigate('/notifications')}
             >
@@ -263,6 +272,9 @@ const MainLayout = ({ children, fullWidth = false }) => {
               </div>
               <div className="sidebar-link" onClick={() => navigate('/events')}>
                 📅 Upcoming Events
+              </div>
+              <div className="sidebar-link" onClick={() => navigate('/chat')}>
+                Chat & Groups
               </div>
               <div className="sidebar-link" onClick={() => navigate('/institutions')}>
                 🏫 Institutions

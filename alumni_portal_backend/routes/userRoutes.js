@@ -12,6 +12,7 @@ const {
   getAlumniByInstitution,
 } = require("../controllers/userController");
 const authMiddleware = require("../middlewares/authMiddleware");
+const { optionalAuth } = require("../middlewares/authMiddleware");
 
 const router = express.Router();
 
@@ -31,7 +32,7 @@ router.put("/profile-image", authMiddleware, handleImageUpload, uploadProfileIma
 router.put("/cover-image", authMiddleware, handleImageUpload, uploadCoverImage);
 
 // Dynamic route must come last
-router.get("/:id", getUserById); // Get user profile by ID (public, but respects privacy settings)
+router.get("/:id", optionalAuth, getUserById); // Get user profile by ID (public, but respects privacy settings)
 
 module.exports = router;
 

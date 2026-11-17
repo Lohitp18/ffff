@@ -110,6 +110,20 @@ const Connections = () => {
                     </button>
                   </div>
                 )}
+                {status === 'accepted' && (
+                  <div className="connection-actions">
+                    <button
+                      className="accept-btn message-friend-btn"
+                      style={{ background: '#0a66c2', color: '#fff' }}
+                      onClick={() => {
+                        const friendId = requester._id === user?._id ? recipient._id : requester._id
+                        if (friendId) navigate(`/chat?with=${friendId}`)
+                      }}
+                    >
+                      💬 Message
+                    </button>
+                  </div>
+                )}
               </div>
             )
           })}

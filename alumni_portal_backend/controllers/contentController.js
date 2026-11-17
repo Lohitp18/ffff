@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Event = require("../models/Event");
 const Opportunity = require("../models/Opportunity");
 const Post = require("../models/Post");
@@ -224,10 +225,19 @@ module.exports = {
 
   createOpportunity: async (req, res) => {
     try {
-      const { title, description, company, applyLink, type, status } = req.body;
+      const { title, description, company, applyLink, type, status, location, bodyImageUrl } = req.body;
       if (!title || !description) {
         return res.status(400).json({ message: "title and description are required" });
       }
+
+      const isAdmin = Boolean(
+        req.user?.role === 'admin' ||
+        req.user?.role === 'superadmin' ||
+        req.user?.role === 'instituteadmin' ||
+        req.user?.role === 'institution' ||
+        req.user?.isAdmin === true ||
+        (req.user?.email && req.user.email.toLowerCase() === 'patgarlohit818@gmail.com')
+      );
 
       const opportunityData = {
         title,
@@ -235,19 +245,23 @@ module.exports = {
         company: company || null,
         applyLink: applyLink || null,
         type: type || null,
-        status: status || "pending",
-        postedBy: req.user?.id,
+        location: location || null,
+        institution: req.body.institution || req.user?.institution || null,
+        status: status || (isAdmin ? "approved" : "pending"),
+        postedBy: req.user?._id || req.user?.id,
       };
 
       if (req.file) {
-        opportunityData.imageUrl = await uploadToLocal(req.file, "opportunities", req.user._id);
+        opportunityData.imageUrl = await uploadToLocal(req.file, "opportunities", req.user._id || "admin");
+      } else if (bodyImageUrl) {
+        opportunityData.imageUrl = bodyImageUrl;
       }
 
       const opportunity = await Opportunity.create(opportunityData);
       return res.status(201).json(opportunity);
     } catch (err) {
       console.error("createOpportunity error", err);
-      return res.status(500).json({ message: "Failed to create opportunity" });
+      return res.status(500).json({ message: "Failed to create opportunity", error: err.message });
     }
   },
 
@@ -258,7 +272,16 @@ module.exports = {
       const postedBySelect = includeSensitive
         ? "name username profileImage headline institution program course specialization year phone email location"
         : "name username profileImage headline institution program course specialization year location";
-      const opportunities = await Opportunity.find({ status: "approved" })
+      const query = { status: "approved" };
+      if (req.query.institution) {
+        query.$or = [
+          { institution: new RegExp(req.query.institution.trim(), "i") },
+          { institution: { $exists: false } },
+          { institution: null },
+          { institution: "" }
+        ];
+      }
+      const opportunities = await Opportunity.find(query)
         .populate("postedBy", postedBySelect)
         .sort({ createdAt: -1 })
         .limit(100);
@@ -494,9 +517,15 @@ module.exports = {
   deleteInstitutionPost: async (req, res) => {
     try {
       const { id } = req.params;
-      const post = await InstitutionPost.findByIdAndDelete(id);
-      if (!post) return res.status(404).json({ message: "Institution post not found" });
-      return res.json({ message: "Institution post deleted successfully" });
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid post ID format" });
+      }
+      let post = await InstitutionPost.findByIdAndDelete(id);
+      if (!post) {
+        post = await Post.findByIdAndDelete(id);
+      }
+      if (!post) return res.status(404).json({ message: "Post not found or already deleted" });
+      return res.json({ message: "Post deleted successfully" });
     } catch (err) {
       console.error("deleteInstitutionPost error", err);
       return res.status(500).json({ message: "Failed to delete institution post" });
@@ -607,8 +636,11 @@ module.exports = {
   deleteEvent: async (req, res) => {
     try {
       const { id } = req.params;
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid event ID format" });
+      }
       const event = await Event.findByIdAndDelete(id);
-      if (!event) return res.status(404).json({ message: "Event not found" });
+      if (!event) return res.status(404).json({ message: "Event not found or already deleted" });
       return res.json({ message: "Event deleted successfully" });
     } catch (err) {
       console.error("deleteEvent error", err);
@@ -619,8 +651,11 @@ module.exports = {
   deleteOpportunity: async (req, res) => {
     try {
       const { id } = req.params;
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid opportunity ID format" });
+      }
       const opportunity = await Opportunity.findByIdAndDelete(id);
-      if (!opportunity) return res.status(404).json({ message: "Opportunity not found" });
+      if (!opportunity) return res.status(404).json({ message: "Opportunity not found or already deleted" });
       return res.json({ message: "Opportunity deleted successfully" });
     } catch (err) {
       console.error("deleteOpportunity error", err);
@@ -631,8 +666,14 @@ module.exports = {
   deletePost: async (req, res) => {
     try {
       const { id } = req.params;
-      const post = await Post.findByIdAndDelete(id);
-      if (!post) return res.status(404).json({ message: "Post not found" });
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid post ID format" });
+      }
+      let post = await Post.findByIdAndDelete(id);
+      if (!post) {
+        post = await InstitutionPost.findByIdAndDelete(id);
+      }
+      if (!post) return res.status(404).json({ message: "Post not found or already deleted" });
       return res.json({ message: "Post deleted successfully" });
     } catch (err) {
       console.error("deletePost error", err);

@@ -275,7 +275,7 @@ const UserProfileView = () => {
   const hasMasters = Boolean(user.privateInfo?.hasMasters && (user.privateInfo?.mastersUniversity || user.privateInfo?.mastersDegree))
 
   return (
-    <MainLayout>
+    <MainLayout fullWidth={true}>
       <div className="li-profile-page">
         <div className="li-profile-layout">
           {/* =========================================================
@@ -360,10 +360,6 @@ const UserProfileView = () => {
                       Contact info
                     </button>
                   </div>
-
-                  <div className="li-connections-count">
-                    <span className="li-conn-highlight">500+</span> connections
-                  </div>
                 </div>
 
                 {/* Hero Action Buttons */}
@@ -419,7 +415,13 @@ const UserProfileView = () => {
 
                       <button
                         className="li-btn li-btn-secondary"
-                        onClick={() => setShowContactModal(true)}
+                        onClick={() => {
+                          if (connectionStatus === 'accepted') {
+                            navigate(`/chat?with=${user._id}`)
+                          } else {
+                            setShowContactModal(true)
+                          }
+                        }}
                       >
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -612,7 +614,76 @@ const UserProfileView = () => {
               </div>
             )}
 
-            {/* 6. ACTIVITY CARD */}
+            {/* 5. PROFESSIONAL INFORMATION CARD */}
+            {(user.professionalInfo || user.skills?.length > 0 || user.linkedin || user.github || user.website) && (
+              <div className="li-card li-section-card">
+                <h2 className="li-section-title">💼 Professional Details</h2>
+                <div className="li-timeline" style={{ padding: '4px 0' }}>
+                  {user.professionalInfo?.currentTitle && (
+                    <div className="li-timeline-item">
+                      <div className="li-timeline-icon"><span>💼</span></div>
+                      <div className="li-timeline-content">
+                        <h3 className="li-role-title">{user.professionalInfo.currentTitle}</h3>
+                        {user.professionalInfo.company && (
+                          <p className="li-company-name">{user.professionalInfo.company}</p>
+                        )}
+                        {user.professionalInfo.industry && (
+                          <p className="li-item-dates">Industry: {user.professionalInfo.industry}</p>
+                        )}
+                        {user.professionalInfo.totalExperience && (
+                          <p className="li-item-dates">Experience: {user.professionalInfo.totalExperience}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {user.professionalInfo?.workSummary && (
+                    <p style={{ fontSize: '13.5px', color: '#475569', lineHeight: '1.5', margin: '8px 0 12px' }}>
+                      {user.professionalInfo.workSummary}
+                    </p>
+                  )}
+
+                  {/* External links */}
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '8px' }}>
+                    {(user.professionalInfo?.linkedin || user.linkedin) && (
+                      <a
+                        href={user.professionalInfo?.linkedin || user.linkedin}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="li-btn li-btn-secondary"
+                        style={{ fontSize: '12px', padding: '4px 12px' }}
+                      >
+                        LinkedIn ↗
+                      </a>
+                    )}
+                    {(user.professionalInfo?.github || user.github) && (
+                      <a
+                        href={user.professionalInfo?.github || user.github}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="li-btn li-btn-secondary"
+                        style={{ fontSize: '12px', padding: '4px 12px' }}
+                      >
+                        GitHub ↗
+                      </a>
+                    )}
+                    {(user.professionalInfo?.portfolio || user.website) && (
+                      <a
+                        href={user.professionalInfo?.portfolio || user.website}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="li-btn li-btn-secondary"
+                        style={{ fontSize: '12px', padding: '4px 12px' }}
+                      >
+                        Portfolio ↗
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ACTIVITY CARD */}
             <div className="li-card li-section-card">
               <div className="li-activity-header">
                 <div>
